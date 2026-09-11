@@ -6,6 +6,8 @@ project "GameTechlabWeek2"
 	language "C++"
 	cppdialect "C++20"
 	characterset "Unicode"
+	pchheader "pch.h"
+	pchsource "GameTechlabWeek2/pch.cpp"
 	
 	targetdir "bin/%{cfg.buildcfg}"
 	
@@ -30,6 +32,12 @@ project "GameTechlabWeek2"
 	-- Visual Studio가 기본 진입점(main)으로 미리 컴파일하지 않도록 콘텐츠로만 취급한다.
 	filter "files:**.hlsl"
 		buildaction "None"
+
+	filter {}
+
+	-- 외부 라이브러리 소스는 자체 include 순서를 유지합니다.
+	filter "files:**/ImGui/**.cpp"
+		enablepch "Off"
 
 	filter {}
 
