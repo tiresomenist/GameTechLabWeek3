@@ -39,10 +39,6 @@ FGizmoPicker::~FGizmoPicker()
 {
 }
 
-void FGizmoPicker::Tick()
-{
-}
-
 bool FGizmoPicker::RayTriangleIntersect(const FRay& Ray, FVector A, FVector B, FVector C, float& OutDistance) {
     const FVector Edge1 = B - A;
     const FVector Edge2 = C - A;

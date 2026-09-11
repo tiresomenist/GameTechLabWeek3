@@ -114,8 +114,12 @@ void GEngine::Destroy()
 	// GObjectStatics 정리
 	GObjectStatics::Release();
 
+	//
+	GDevice::GetInstance()->Release();
+
 	Renderer.Shutdown();
 	
 	// 콘솔 정리
 	delete Console;
+
 }

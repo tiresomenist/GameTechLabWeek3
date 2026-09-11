@@ -24,7 +24,7 @@ void USceneComponent::AddLocalRotation(const FQuaternion& Delta)
 
 void USceneComponent::AddWorldRotation(const FQuaternion& Delta)
 {
-    // Components currently have no implemented parent-transform composition.
+    // 현재 부모가 없어서 합성할 부모 회전각이 없음
     SetRelativeRotation(Delta * RelativeRotation);
 }
 
@@ -100,12 +100,15 @@ void USceneComponent::Deserialize(FArchive& Archive)
 
     // Location
     TArray<float> Location = Archive.GetArray<float>("Location");
+    if (Location.Num() != 3) return;
     RelativeLocation.X = Location[0];
     RelativeLocation.Y = Location[1];
     RelativeLocation.Z = Location[2];
 
     // Rotation
     TArray<float> Rotation = Archive.GetArray<float>("Rotation");
+    if (Rotation.Num() != 3) return;
+
     FVector EulerRotation
     {
         Rotation[0],
@@ -116,6 +119,8 @@ void USceneComponent::Deserialize(FArchive& Archive)
     
     // Scale
     TArray<float> Scale = Archive.GetArray<float>("Scale");
+    if (Scale.Num() != 3) return;
+
     RelativeScale3D.X = Scale[0];
     RelativeScale3D.Y = Scale[1];
     RelativeScale3D.Z = Scale[2];

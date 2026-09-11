@@ -3,8 +3,7 @@
 #include <cmath>
 #include <cassert>
 #include <algorithm>
-#include "Engine/UEngineStatics.h"
-
+#include "Engine/Core.h"
 struct FVector4; // 전방 선언
 
 struct FVector
@@ -33,7 +32,7 @@ struct FVector
 	float Dot(const FVector& rhs)const;
 	FVector Cross(const FVector& rhs)const;
 
-	bool Equals(const FVector& other, float Epsilon = UEngineStatics::Epsilon)const;
+	bool Equals(const FVector& other, float Epsilon = EPSILON)const;
 
 	float Length() const;
 	float LengthSquared() const;

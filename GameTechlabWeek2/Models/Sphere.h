@@ -1,7 +1,8 @@
 #pragma once
-#include <cstdint>
+#include "Engine/Core.h"
+#include "Engine/Renderer/FVertexSimple.h"
 
-inline FVertexSimple sphere_vertices[] = {
+inline const FVertexSimple sphere_vertices[] = {
 	{ 0.000000f, 0.000000f, 1.000000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
 	{ 0.000000f, 0.555570f, 0.831470f, 0.000000f, 0.555570f, 0.831470f, 1.000000f },
 	{ 0.000000f, 0.831470f, 0.555570f, 0.000000f, 0.831470f, 0.555570f, 1.000000f },
@@ -486,7 +487,7 @@ inline FVertexSimple sphere_vertices[] = {
 	{ 0.000000f, 0.195090f, -0.980785f, 0.000000f, 0.195090f, 0.980785f, 1.000000f },
 };
 
-inline uint32_t sphere_indices[] = {
+inline const uint32 sphere_indices[] = {
 	481, 480, 21,
 	481, 21, 22,
 	4, 3, 14,

@@ -1,7 +1,8 @@
 #pragma once
-#include <cstdint>
+#include "Engine/Core.h"
+#include "Engine/Renderer/FVertexSimple.h"
 
-inline FVertexSimple arrow_blue_vertices[] = {
+inline const FVertexSimple arrow_blue_vertices[] = {
 	{ 0.000000f, 0.299884f, 3.321274f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
 	{ 0.058504f, 0.294122f, 3.321274f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
 	{ 0.114761f, 0.277056f, 3.321274f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
@@ -100,7 +101,7 @@ inline FVertexSimple arrow_blue_vertices[] = {
 	{ -0.030877f, 0.155230f, -0.019194f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
 	{ -0.030877f, 0.155230f, 3.587367f, 0.000000f, 0.000000f, 1.000000f, 1.000000f }, };
 
-inline uint32_t arrow_blue_indices[] = {
+inline const uint32 arrow_blue_indices[] = {
 	0, 32, 1,
 	1, 32, 2,
 	2, 32, 3,

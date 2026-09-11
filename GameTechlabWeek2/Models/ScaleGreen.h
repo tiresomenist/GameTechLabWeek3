@@ -1,9 +1,9 @@
 #pragma once
-#include "Container/TArray.h"
+#include "Engine/Core.h"
 #include "Engine/Renderer/FVertexSimple.h"
 
 // Local +Z axis. Index pairs describe a LINELIST.
-inline const TArray<FVertexSimple> scale_green_vertices = {
+inline const FVertexSimple scale_green_vertices[] = {
 	{ -0.208970f, -0.208970f, 3.326634f, 0.000000f, 1.000000f, 0.000000f, 1.000000f },
 	{ -0.208970f, -0.208970f, 3.744574f, 0.000000f, 1.000000f, 0.000000f, 1.000000f },
 	{ -0.208970f, 0.208970f, 3.326634f, 0.000000f, 1.000000f, 0.000000f, 1.000000f },
@@ -78,7 +78,7 @@ inline const TArray<FVertexSimple> scale_green_vertices = {
 	{ -0.030877f, 0.155230f, 3.587367f, 0.000000f, 1.000000f, 0.000000f, 1.000000f },
 };
 
-inline const TArray<uint32> scale_green_indices = {
+inline const uint32 scale_green_indices[] = {
 	0, 1, 3,
 	0, 3, 2,
 	2, 3, 7,

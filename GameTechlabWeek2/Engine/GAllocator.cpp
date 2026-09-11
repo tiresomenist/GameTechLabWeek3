@@ -9,12 +9,18 @@
 
 void* GAllocator::Allocate(size_t Size, size_t Alignment)
 {
+	//Size 유효성 체크
+	if (Size == 0) return nullptr;
+
 	// Align이 0이거나 2의 거듭제곱이어야만 함
 	if (Alignment == 0) { return nullptr; }
 	if ((Alignment & (Alignment - 1)) != 0) { return nullptr; }
 
+	if (Size > SIZE_MAX - sizeof(FAllocationHeader) - (Alignment - 1)){ return nullptr;}
 	std::size_t TotalRawSize = sizeof(FAllocationHeader) + (Alignment - 1) + Size;
-	
+
+	if (TotalRawSize < 0) { return nullptr; }
+
 	void* RawPtr = std::malloc(TotalRawSize);
 	if (RawPtr == nullptr)
 	{

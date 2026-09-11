@@ -1,7 +1,9 @@
 #pragma once
+#include "Engine/Renderer/FVertexSimple.h"
+#include "Engine/Core.h"
 #include <cstdint>
 
-inline FVertexSimple pepe_vertices[] = {
+inline const FVertexSimple pepe_vertices[] = {
 	{ 0.316846f, -0.834054f, 0.494550f, 0.316846f, 0.834054f, 0.494550f, 1.000000f },
 	{ 0.318799f, -0.833982f, 0.487509f, 0.318799f, 0.833982f, 0.487509f, 1.000000f },
 	{ 0.319133f, -0.838003f, 0.504510f, 0.319133f, 0.838003f, 0.504510f, 1.000000f },
@@ -59976,7 +59978,7 @@ inline FVertexSimple pepe_vertices[] = {
 	{ -0.340408f, -0.810934f, 0.017284f, 0.340408f, 0.810934f, 0.017284f, 1.000000f },
 };
 
-inline uint32_t pepe_indices[] = {
+inline const uint32_t pepe_indices[] = {
 	2, 0, 1,
 	3123, 3124, 3122,
 	11023, 11022, 10528,

@@ -30,6 +30,7 @@ UObject* FObjectFactory::_ConstructObject(FClassType* Type, EObjectDomain Domain
 
 	UE_LOG("[Object Created] Name:{} UUID:{} Domain:{} ", Type->Name, UUID, static_cast<size_t>(Domain));
 
+	//
 	UObject* Object = Type->ClassConstructor(Info);
 
 	Object->Initialize();

@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <map>
 #include <string>
+#include <span>
 #include "GDevice.h"
 #include "Core.h"
 #include "Container/FString.h"
@@ -44,64 +45,7 @@ public:
 
 	void Initialize(GDevice* InDevice);
 	void Shutdown();
-	FMeshResource* CreateMesh(const FString& MeshName,const TArray<FVertexSimple>& Vertices, const TArray<uint32>& Indices);
-
-	template <size_t VCount, size_t ICount>
-	FMeshResource* CreateMesh(
-		const std::string& MeshName,
-		const FVertexSimple(&Vertices)[VCount],
-		const uint32_t(&Indices)[ICount])
-	{
-		if (PrimitiveCache.find(MeshName) != PrimitiveCache.end())
-		{
-			return PrimitiveCache[MeshName];
-		}
-
-		FMeshResource* MeshResource = new FMeshResource;
-		UINT VertexCount = VCount;
-		UINT IndexCount = ICount;
-
-		for (UINT i = 0; i < VertexCount; ++i)
-		{
-			MeshResource->vertexs.Add(Vertices[i]);
-		}
-		for (UINT i = 0; i < IndexCount; ++i)
-		{
-			MeshResource->indexes.Add(Indices[i]);
-		}
-
-		MeshResource->VertexBuffer = Device->CreateVertexBuffer(&MeshResource->vertexs[0], sizeof(FVertexSimple) * VertexCount);
-
-		MeshResource->IndexBuffer = Device->CreateIndexBuffer(&MeshResource->indexes[0], sizeof(uint32_t) * IndexCount);
-
-		MeshResource->VertexCount = VertexCount;
-		MeshResource->IndexCount = IndexCount;
-		MeshResource->Stride = sizeof(FVertexSimple);
-		MeshResource->bHasBounds = false;
-		if (MeshResource->vertexs.Num() > 0)
-		{
-			const auto& First = MeshResource->vertexs[0];
-
-			MeshResource->BoundsMin = FVector(First.x, First.y, First.z);
-			MeshResource->BoundsMax = MeshResource->BoundsMin;
-
-			for (const auto& Vertex : MeshResource->vertexs)
-			{
-				MeshResource->BoundsMin.X = (std::min)(MeshResource->BoundsMin.X, Vertex.x);
-				MeshResource->BoundsMin.Y = (std::min)(MeshResource->BoundsMin.Y, Vertex.y);
-				MeshResource->BoundsMin.Z = (std::min)(MeshResource->BoundsMin.Z, Vertex.z);
-
-				MeshResource->BoundsMax.X = (std::max)(MeshResource->BoundsMax.X, Vertex.x);
-				MeshResource->BoundsMax.Y = (std::max)(MeshResource->BoundsMax.Y, Vertex.y);
-				MeshResource->BoundsMax.Z = (std::max)(MeshResource->BoundsMax.Z, Vertex.z);
-			}
-
-			MeshResource->bHasBounds = true;
-		}
-		PrimitiveCache[MeshName] = MeshResource;
-
-		return MeshResource;
-	};
+	FMeshResource* CreateMesh(const FString& MeshName, std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices);
 
 	FMeshResource* GetPrimitive(const FString& Type);
 

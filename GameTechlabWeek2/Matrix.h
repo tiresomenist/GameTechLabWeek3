@@ -3,7 +3,7 @@
 #include <cmath>
 #include <cassert>
 #include <algorithm>
-#include "Engine/UEngineStatics.h"
+#include "Engine/Core.h"
 #include "Engine/Core.h"
 #include "FVector.h"
 //벡터, 행렬 구조체 선언
@@ -60,8 +60,8 @@ struct FMatrix
 	FMatrix NormalMatrix() const;
 
 	//직교행렬인가? 정규직교행렬인가?
-	bool IsOrthogonal(float Epsilon = UEngineStatics::Epsilon) const;
-	bool IsOrthonormal(float Epsilon = UEngineStatics::Epsilon) const;
+	bool IsOrthogonal(float Epsilon = EPSILON) const;
+	bool IsOrthonormal(float Epsilon = EPSILON) const;
 
 	FMatrix(float m00 = 1.0f, float m01 = 0.0f, float m02 = 0.0f, float m03 = 0.0f,
 		float m10 = 0.0f, float m11 = 1.0f, float m12 = 0.0f, float m13 = 0.0f,

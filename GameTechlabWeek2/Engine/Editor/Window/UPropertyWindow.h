@@ -30,7 +30,7 @@ public:
 	void SetSelectedValue(bool bSetRotation);
 	void DeleteSelected();
 
-	bool DrawRotationField(const char* ID, float& Degree, int AxisIndex, bool& bRotationActive, bool& bRotationFinished);
+	bool DrawRotationField(const char* ID, float& Degree, bool& bRotationActive);
 
 	void Render(float DeltaTime) override;
 };

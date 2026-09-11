@@ -1,9 +1,9 @@
-﻿#pragma once
-#include "Container/TArray.h"
+#pragma once
+#include "Engine/Core.h"
 #include "Engine/Renderer/FVertexSimple.h"
 
 // Local +Z axis. Index pairs describe a LINELIST.
-inline const TArray<FVertexSimple> move_blue_vertices = {
+inline const FVertexSimple move_blue_vertices[] = {
     { 0.000000f, 0.000000f, 0.000000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
     { 0.000000f, 0.000000f, 0.750000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
     { 0.000000f, 0.000000f, 1.000000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
@@ -17,7 +17,7 @@ inline const TArray<FVertexSimple> move_blue_vertices = {
     { 0.070710f, -0.070710f, 0.750000f, 0.000000f, 0.000000f, 1.000000f, 1.000000f },
 };
 
-inline const TArray<uint32> move_blue_indices = {
+inline const uint32 move_blue_indices[] = {
     0, 1, 3, 4, 4, 5, 5, 6,
     6, 7, 7, 8, 8, 9, 9, 10,
     10, 3, 3, 2, 5, 2, 7, 2,

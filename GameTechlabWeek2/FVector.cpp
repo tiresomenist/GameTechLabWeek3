@@ -23,9 +23,9 @@ FVector FVector::operator*(float scalar) const
 
 FVector FVector::operator/(float scalar) const
 {
-	assert(std::fabs(scalar) > UEngineStatics::Epsilon);
+	assert(std::fabs(scalar) > EPSILON);
 
-	if (std::fabs(scalar) <= UEngineStatics::Epsilon)
+	if (std::fabs(scalar) <= EPSILON)
 	{
 
 		return Zero;
@@ -101,7 +101,7 @@ float FVector::Distance(const FVector& rhs) const
 FVector FVector::GetNormalized() const
 {
 	float length = Length();
-	if (length > UEngineStatics::Epsilon)
+	if (length > EPSILON)
 	{
 		return *this / length;
 	}
@@ -111,7 +111,7 @@ FVector FVector::GetNormalized() const
 void FVector::Normalize()
 {
 	float length = Length();
-	if (length > UEngineStatics::Epsilon)
+	if (length > EPSILON)
 	{
 		*this /= length;
 	}

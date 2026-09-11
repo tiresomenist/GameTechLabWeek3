@@ -1,9 +1,9 @@
 #pragma once
-#include "Container/TArray.h"
+#include "Engine/Core.h"
 #include "Engine/Renderer/FVertexSimple.h"
 
 // Unit circle in local XY; +Z is the rotation axis. LINELIST index pairs.
-inline const TArray<FVertexSimple> rotate_blue_vertices = {
+inline const FVertexSimple rotate_blue_vertices[] = {
     { 1.00000000f, 0.00000000f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f },
     { 0.99518473f, 0.09801714f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f },
     { 0.98078528f, 0.19509032f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f },
@@ -70,7 +70,7 @@ inline const TArray<FVertexSimple> rotate_blue_vertices = {
     { 0.99518473f, -0.09801714f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f },
 };
 
-inline const TArray<uint32> rotate_blue_indices = {
+inline const uint32 rotate_blue_indices[] = {
     0, 1,
     1, 2,
     2, 3,

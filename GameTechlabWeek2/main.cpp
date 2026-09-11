@@ -10,6 +10,12 @@
 
 #include "../resource.h"
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
+
+
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // 각종 메시지를 처리할 함수
@@ -47,11 +53,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return HandleInput(hWnd, message, wParam, lParam);
     }
 
+
+
+
     return 0;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+#if defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    // {159} 번호에 할당 브레이크포인트 설정 (원하는 번호로 변경 가능)
+    _CrtSetBreakAlloc(159);
+#endif
     // 윈도우 클래스 이름
     WCHAR WindowClass[] = L"JungleWindowClass";
 
@@ -103,5 +117,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Engine->Destroy();
     Engine = nullptr;
 
+
+    
+    _CrtDumpMemoryLeaks();
     return 0;
 }

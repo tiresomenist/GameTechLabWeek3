@@ -10,6 +10,7 @@ void GObjectStatics::SetNextUUID(EObjectDomain Domain, uint32 UUID)
 
 void GObjectStatics::AddObject(UObject* Object)
 {
+	//6. [P2] 삭제한 전역 객체 슬롯이 영구 누적
 	ObjectArray.Add(Object);
 }
 
