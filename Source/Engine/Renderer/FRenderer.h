@@ -13,7 +13,7 @@
 //#include "../FVertexSimple.h"
 #include "Engine/Resource/FMeshResource.h"
 #include "Core/Container/TArray.h"
-
+#include "Engine/Resource/FTexture.h"
 
 //struct FVertexSimple;
 struct FConstants
@@ -64,6 +64,16 @@ public:
 	ID3D11VertexShader* GridVertexShader = nullptr;
 	ID3D11PixelShader* GridPixelShader = nullptr;
 
+	ID3D11VertexShader* TextVertexShader = nullptr;
+	ID3D11PixelShader* TextPixelShader = nullptr;
+	ID3D11InputLayout* TextInputLayout = nullptr;
+	FTexture DebugTexture;
+	ID3D11SamplerState* PointSampler = nullptr;
+
+	ID3D11Buffer* DebugQuadVB = nullptr;
+	ID3D11Buffer* DebugQuadIB = nullptr;
+	void RenderDebugTextQuad(const FMatrix& ViewProj);
+
 	bool bImGuiContextCreated = false;
 	bool bImGuiWin32Initialized = false;
 	bool bImGuiDX11Initialized = false;
@@ -91,6 +101,9 @@ public:
 
 	void CreateDepthStencilStates();
 	void ReleaseDepthStencilStates();
+
+	void CreateDebugTextResources();
+	void ReleaseDebugTextResources();
 
 	void BeginFrame();
 	void EndFrame();

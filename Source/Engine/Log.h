@@ -1,3 +1,4 @@
+#pragma once
 
 #include "Engine/GEngine.h"
 #include "Engine/FConsole.h"

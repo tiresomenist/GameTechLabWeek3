@@ -14,6 +14,7 @@
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Resource/FMeshResource.h"
 #include "Engine/Log.h"
+#include "Engine/Renderer/FVertexText.h"
 
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -26,27 +27,52 @@
 
 namespace
 {
-    void CheckHR(HRESULT Result)
-    {
-        if (FAILED(Result))
-            throw std::runtime_error(std::format("D3D resource creation failed: {}", Result));
-    }
+	void CheckHR(HRESULT Result)
+	{
+		if (FAILED(Result))
+			throw std::runtime_error(std::format("D3D resource creation failed: {}", Result));
+	}
 }
 
 
+void FRenderer::RenderDebugTextQuad(const FMatrix& ViewProj)
+{
+	UpdateTransformConstantBuffer(ViewProj);           // 월드 행렬 = 단위 행렬 → MVP = ViewProj
+
+	UINT Stride = sizeof(FVertexText);
+	UINT Offset = 0;
+	DeviceContext->IASetInputLayout(TextInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &DebugQuadVB, &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(DebugQuadIB, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	DeviceContext->VSSetShader(TextVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+
+	ID3D11ShaderResourceView* SRV = DebugTexture.GetSRV();
+	DeviceContext->PSSetShader(TextPixelShader, nullptr, 0);
+	DeviceContext->PSSetShaderResources(0, 1, &SRV);   // t0
+	DeviceContext->PSSetSamplers(0, 1, &PointSampler); // s0
+
+	DeviceContext->RSSetState(CullNoneRasterizerState); // 앞뒤 어느 쪽에서 봐도 보이게
+	DeviceContext->DrawIndexed(6, 0, 0);
+	DeviceContext->RSSetState(DefaultRasterizerState);  // 다음 드로우를 위해 되돌리기
+}
+
 void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 {
-    if (!InDevice || !InDevice->GetDevice() || !InDevice->GetContext())
-        throw std::runtime_error("Renderer requires an initialized device");
+	if (!InDevice || !InDevice->GetDevice() || !InDevice->GetContext())
+		throw std::runtime_error("Renderer requires an initialized device");
 	Device = InDevice;
 	DeviceContext = InDevice->GetContext();
 	D3DDevice = InDevice->GetDevice();
 	ViewportInfo = InDevice->GetViewport();
-	CreateRasterizerState(); 
+	CreateRasterizerState();
 	if (!CreateShaders()) throw std::runtime_error("Shader compilation failed");
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
+	CreateDebugTextResources();
 
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
@@ -59,25 +85,27 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	if (!bImGuiWin32Initialized) throw std::runtime_error("ImGui Win32 initialization failed");
 	bImGuiDX11Initialized = ImGui_ImplDX11_Init(D3DDevice, DeviceContext);
 	if (!bImGuiDX11Initialized) throw std::runtime_error("ImGui DX11 initialization failed");
-    if (!ImGui_ImplDX11_CreateDeviceObjects())
-        throw std::runtime_error("ImGui GPU resource creation failed");
+	if (!ImGui_ImplDX11_CreateDeviceObjects())
+		throw std::runtime_error("ImGui GPU resource creation failed");
 }
 
 void FRenderer::Shutdown()
 {
-    if (DeviceContext) DeviceContext->ClearState();
-    ReleaseConstantBuffer();
-    ReleaseShaders();
-    ReleaseRasterizerState();
-    ReleaseAlphaBlendState();
-    ReleaseDepthStencilStates();
-    if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
-    if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
-    if (bImGuiContextCreated) ImGui::DestroyContext();
-    bImGuiDX11Initialized = bImGuiWin32Initialized = bImGuiContextCreated = false;
-    DeviceContext = nullptr;
-    D3DDevice = nullptr;
-    Device = nullptr;
+	if (DeviceContext) DeviceContext->ClearState();
+	ReleaseConstantBuffer();
+	ReleaseShaders();
+	ReleaseRasterizerState();
+	ReleaseAlphaBlendState();
+	ReleaseDepthStencilStates();
+	ReleaseDebugTextResources();
+
+	if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
+	if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
+	if (bImGuiContextCreated) ImGui::DestroyContext();
+	bImGuiDX11Initialized = bImGuiWin32Initialized = bImGuiContextCreated = false;
+	DeviceContext = nullptr;
+	D3DDevice = nullptr;
+	Device = nullptr;
 }
 
 bool FRenderer::CreateShaders()
@@ -118,18 +146,35 @@ bool FRenderer::CreateShaders()
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridPixelShader));
 	shaderBlob.Reset();
 
+	// Text Shader (VS & PS)  ← 여기부터 추가
+	if (!CompileShader(L"Assets/Shaders/TextShader.hlsl", "mainVS", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &TextVertexShader));
+
+	D3D11_INPUT_ELEMENT_DESC TextLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	CheckHR(D3DDevice->CreateInputLayout(TextLayout, ARRAYSIZE(TextLayout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &TextInputLayout));
+	shaderBlob.Reset();
+
+	if (!CompileShader(L"Assets/Shaders/TextShader.hlsl", "mainPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &TextPixelShader));
+	shaderBlob.Reset();
+
 	return true;
 }
 bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob)
 {
-    if (!OutBlob) return false;
-    *OutBlob = nullptr;
-    Microsoft::WRL::ComPtr<ID3DBlob> ErrorBlob;
-    const HRESULT Hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel,
-        0, 0, OutBlob, ErrorBlob.GetAddressOf());
-    if (ErrorBlob)
-        UE_LOG("Shader diagnostic: {}", static_cast<const char*>(ErrorBlob->GetBufferPointer()));
-    return SUCCEEDED(Hr);
+	if (!OutBlob) return false;
+	*OutBlob = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> ErrorBlob;
+	const HRESULT Hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel,
+		0, 0, OutBlob, ErrorBlob.GetAddressOf());
+	if (ErrorBlob)
+		UE_LOG("Shader diagnostic: {}", static_cast<const char*>(ErrorBlob->GetBufferPointer()));
+	return SUCCEEDED(Hr);
 }
 
 void FRenderer::ReleaseShaders()
@@ -169,6 +214,9 @@ void FRenderer::ReleaseShaders()
 		GridPixelShader->Release();
 		GridPixelShader = nullptr;
 	}
+	if (TextVertexShader) { TextVertexShader->Release(); TextVertexShader = nullptr; }
+	if (TextPixelShader) { TextPixelShader->Release();  TextPixelShader = nullptr; }
+	if (TextInputLayout) { TextInputLayout->Release();  TextInputLayout = nullptr; }
 }
 
 void FRenderer::PrepareRTVDSV()
@@ -352,6 +400,87 @@ void FRenderer::ReleaseDepthStencilStates()
 	}
 }
 
+void FRenderer::CreateDebugTextResources()
+{
+	constexpr UINT Size = 8;
+	uint32_t Pixels[Size * Size];
+
+	// R8G8B8A8_UNORM은 메모리에 R,G,B,A 순서 → uint32로는 0xAABBGGRR
+	constexpr uint32_t White = 0xFFFFFFFF;
+	constexpr uint32_t Gray = 0xFF404040;
+	constexpr uint32_t Red = 0xFF0000FF;
+
+	for (UINT y = 0; y < Size; ++y)
+	{
+		for (UINT x = 0; x < Size; ++x)
+		{
+			// (x + y)가 짝수/홀수냐로 번갈아 칠한다
+			Pixels[y * Size + x] = ((x + y) % 2 == 0) ? White : Gray;
+		}
+	}
+	Pixels[0] = Red;   // 좌상단 (0,0)만 빨강 → 뒤집힘 확인용
+
+	if (!DebugTexture.Create(D3DDevice, Size, Size, DXGI_FORMAT_R8G8B8A8_UNORM, 4, Pixels))
+		throw std::runtime_error("Debug texture creation failed");
+
+	D3D11_SAMPLER_DESC SamplerDesc = {};
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;   // 가장 가까운 텍셀 하나만 → 칸 경계가 칼같이
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;      // UV가 0~1 밖이면 가장자리 색 유지
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	CheckHR(D3DDevice->CreateSamplerState(&SamplerDesc, &PointSampler));
+
+	UE_LOG("[FRenderer] Debug texture OK: {}x{}", DebugTexture.GetWidth(), DebugTexture.GetHeight());
+
+	// 그리드가 XY 평면(Z가 위)이라 X = 0인 YZ 평면에 세운다. 한 변 2 유닛
+//   0 ── 1      UV (0,0) ── (1,0)
+//   │ ╲  │         │          │
+//   2 ── 3      UV (0,1) ── (1,1)
+	FVertexText QuadVertices[] =
+	{
+		{ 0.f, -1.f,  1.f,   0.f, 0.f,   1.f, 1.f, 1.f, 1.f },
+		{ 0.f,  1.f,  1.f,   1.f, 0.f,   1.f, 1.f, 1.f, 1.f },
+		{ 0.f, -1.f, -1.f,   0.f, 1.f,   1.f, 1.f, 1.f, 1.f },
+		{ 0.f,  1.f, -1.f,   1.f, 1.f,   1.f, 1.f, 1.f, 1.f },
+	};
+	uint32_t QuadIndices[] = { 0, 1, 2,   2, 1, 3 };
+
+	D3D11_BUFFER_DESC VBDesc = {};
+	VBDesc.ByteWidth = sizeof(QuadVertices);
+	VBDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA VBData = {};
+	VBData.pSysMem = QuadVertices;
+	CheckHR(D3DDevice->CreateBuffer(&VBDesc, &VBData, &DebugQuadVB));
+
+	// 인덱스 버퍼도 같은 방식 (BindFlags = D3D11_BIND_INDEX_BUFFER) — 직접 써 보세요
+	D3D11_BUFFER_DESC IBDesc = {};
+	IBDesc.ByteWidth = sizeof(QuadIndices);
+	IBDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA IBData = {};
+	IBData.pSysMem = QuadIndices;
+	CheckHR(D3DDevice->CreateBuffer(&IBDesc, &IBData, &DebugQuadIB));
+}
+
+void FRenderer::ReleaseDebugTextResources()
+{
+	DebugTexture.Release();
+	if (PointSampler) { PointSampler->Release(); PointSampler = nullptr; }
+	if (DebugQuadVB)
+	{
+		DebugQuadVB->Release();
+		DebugQuadVB = nullptr;
+	}
+	if (DebugQuadIB)
+	{
+		DebugQuadIB->Release();
+		DebugQuadIB = nullptr;
+	}
+}
+
 void FRenderer::BeginFrame()
 {
 	ImGui_ImplDX11_NewFrame();
@@ -373,7 +502,7 @@ void FRenderer::EndFrame()
 
 void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 {
-    if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
+	if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
 	BeginFrame();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
@@ -392,6 +521,9 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		}
 		RenderPrimitive(Item);
 	}
+
+	// 디버그
+	RenderDebugTextQuad(ViewProjMatrix);
 
 	// Render Windows
 	for (auto Item : Editor->GetWindows())
@@ -548,9 +680,9 @@ void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 
 void FRenderer::RenderGrid(FMeshResource* Data)
 {
-    if (!Data) return;
-    ID3D11Buffer* VertexBuffer = Data->GetVertexBuffer();
-    const UINT Stride = Data->GetStride();
+	if (!Data) return;
+	ID3D11Buffer* VertexBuffer = Data->GetVertexBuffer();
+	const UINT Stride = Data->GetStride();
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(SimpleInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);

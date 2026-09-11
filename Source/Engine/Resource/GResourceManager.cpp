@@ -25,11 +25,50 @@
 #include "Engine/Resource/MeshData/RotateBlue.h"
 #include "Engine/Resource/MeshData/Grid.h"
 #include "Core/Math/FVector.h"
+#include "stb/stb_truetype.h"
+#include "Engine/Log.h"
 #include <memory>
 #include <limits>
 #include <stdexcept>
 #include <cmath>
+#include <fstream>
 
+namespace
+{
+    // 0단계 확인용 임시 함수. 2단계에서 FFontAtlas로 옮긴다.
+    void TestLoadFont(const char* Path)
+    {
+        // ate: 파일 끝에서 열어서 tellg()로 크기를 바로 얻는다
+        std::ifstream File(Path, std::ios::binary | std::ios::ate);
+        if (!File)
+        {
+            UE_LOG("[Font] 파일을 열 수 없습니다: {}", Path);
+            return;
+        }
+
+        const std::streamsize Size = File.tellg();
+        File.seekg(0);
+        std::vector<unsigned char> Buffer(static_cast<size_t>(Size));
+        File.read(reinterpret_cast<char*>(Buffer.data()), Size);
+
+        const int NumFonts = stbtt_GetNumberOfFonts(Buffer.data());
+        const int Offset = stbtt_GetFontOffsetForIndex(Buffer.data(), 0);
+
+        stbtt_fontinfo Info;
+        if (!stbtt_InitFont(&Info, Buffer.data(), Offset))
+        {
+            UE_LOG("[Font] InitFont 실패: {}", Path);
+            return;
+        }
+
+        // 덤: 코드포인트 → 글리프 인덱스 매핑(cmap) 확인. 0이면 폰트에 없는 글자
+        const int GlyphA = stbtt_FindGlyphIndex(&Info, 'A');
+        const int GlyphGa = stbtt_FindGlyphIndex(&Info, 0xAC00); // '가'
+
+        UE_LOG("[Font] InitFont OK: {} ({} bytes, 폰트 {}개, 'A'={}, '가'={})",
+            Path, Size, NumFonts, GlyphA, GlyphGa);
+    }
+}
 
 GResourceManager* GResourceManager::GetInstance()
 {
@@ -59,6 +98,8 @@ void GResourceManager::Initialize(GDevice* InDevice)
     if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
+
+    TestLoadFont("Assets/Fonts/Pretendard-Regular.ttf");
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,

@@ -38,7 +38,8 @@ project "GameTechlabWeek2"
 	filter {}
 
 	-- 외부 라이브러리 소스는 자체 include 순서를 유지합니다.
-	filter "files:**/ImGui/**.cpp"
+	-- StbTrueTypeImpl.cpp는 stb 구현만 생성하는 파일이라 PCH가 필요 없다.
+	filter { "files:**/ImGui/**.cpp or Source/Engine/Resource/StbTrueTypeImpl.cpp" }
 		enablepch "Off"
 
 	filter {}
