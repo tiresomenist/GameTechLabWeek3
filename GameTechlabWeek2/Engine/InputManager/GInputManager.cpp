@@ -2,8 +2,8 @@
 
 GInputManager* GInputManager::GetInstance()
 {
-	static GInputManager* InputManager = new GInputManager();
-	return InputManager;
+    static GInputManager Instance{};
+    return &Instance;
 }
 
 void GInputManager::SetKey(EInputStatus Key, bool Status)
@@ -32,6 +32,7 @@ void GInputManager::KillFocus()
 	EndRightDrag();
 	EndLeftDrag();
 	bLeftClickPending = false;
+	bSpacePressPending = false;
 }
 
 void GInputManager::BeginRightDrag(int32 X, int32 Y)

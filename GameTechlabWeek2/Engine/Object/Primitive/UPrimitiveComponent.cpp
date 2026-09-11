@@ -19,10 +19,10 @@ FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(FStringView Type)
 	FPrimitiveRenderData RenderData{};
 	if (MeshResource == nullptr) { return RenderData; }
 
-	RenderData.VertexBuffer = MeshResource->VertexBuffer;
-	RenderData.IndexBuffer = MeshResource->IndexBuffer;
-	RenderData.IndexCount = MeshResource->IndexCount;
-	RenderData.Stride = MeshResource->Stride;
+	RenderData.VertexBuffer = MeshResource->GetVertexBuffer();
+	RenderData.IndexBuffer = MeshResource->GetIndexBuffer();
+	RenderData.IndexCount = MeshResource->GetIndexCount();
+	RenderData.Stride = MeshResource->GetStride();
 	// RenderData.Material			= &GetMaterial();
 
 	return RenderData;
