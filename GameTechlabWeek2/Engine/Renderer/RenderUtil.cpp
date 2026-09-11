@@ -7,6 +7,15 @@
 #include "Engine/Gizmo/UGizmo.h"
 #include "Engine/Editor/UGrid.h"
 
+namespace
+{
+	bool IsComponentSelected(const FEditor* Editor, const USceneComponent* Component)
+	{
+		if (!Editor || !Component) return false;
+		return Editor->GetSelectedSceneComponent() == Component;
+	}
+}
+
 TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
 {
 	TArray<FPrimitiveRenderData> RenderList;
@@ -17,14 +26,8 @@ TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* 
 		if (Item->IsA(UPrimitiveComponent::GetClass()))
 		{
 			UPrimitiveComponent* Primitive = static_cast<UPrimitiveComponent*>(Item);
-			FPrimitiveRenderData RenderData = Primitive->CreateRenderData();
-			
-			if (SelectedComponent && Primitive == SelectedComponent)
-			{
-				RenderData.isSelected = true;
-			}
-
-			RenderList.Add(RenderData);
+			const bool bSelected = IsComponentSelected(Editor, Primitive);
+			RenderList.Add(Primitive->CreateRenderData(bSelected));
 		}
 	}
 

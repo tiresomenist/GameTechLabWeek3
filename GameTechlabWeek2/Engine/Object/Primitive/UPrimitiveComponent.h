@@ -15,7 +15,7 @@ public:
 
     virtual void Initialize() override;
 
-    virtual FPrimitiveRenderData CreateRenderData() const;
+    virtual FPrimitiveRenderData CreateRenderData(bool bSelected = false) const;
 
     FMeshResource* GetMeshResource() const
     {
