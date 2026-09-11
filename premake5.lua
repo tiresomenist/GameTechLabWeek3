@@ -7,15 +7,17 @@ project "GameTechlabWeek2"
 	cppdialect "C++20"
 	characterset "Unicode"
 	pchheader "pch.h"
-	pchsource "GameTechlabWeek2/pch.cpp"
-	
+	pchsource "Source/pch.cpp"
+
 	targetdir "bin/%{cfg.buildcfg}"
-	
-	-- include를 상대 경로 대신 절대 경로로 쓸 수 있도록 수정
-	-- ex. #include "../../GEngine.h" -> #include "Engine/GEngine.h"
-	includedirs { "./GameTechlabWeek2/" } 
-	
-	externalincludedirs { "./GameTechlabWeek2/nlohmann" }
+
+	-- include는 Source 기준 경로로 쓴다. 같은 폴더의 헤더만 파일 이름으로 쓴다.
+	-- ex. #include "Engine/Renderer/FRenderer.h", #include "Core/Math/FVector.h"
+	-- 의존 방향: Core <- Engine <- Editor
+	includedirs { "./Source/" }
+
+	-- 외부 라이브러리: #include "ImGui/imgui.h", #include "nlohmann/json.hpp"
+	externalincludedirs { "./ThirdParty/" }
 
 	files {
 		"**.h",
