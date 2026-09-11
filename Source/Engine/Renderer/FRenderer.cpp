@@ -1,6 +1,6 @@
 #include "pch.h"
 #pragma once
-#include "FRenderer.h"
+#include "Engine/Renderer/FRenderer.h"
 #include "Core/Math/Matrix.h"
 #include "Engine/Renderer/FVertexSimple.h"
 #include "Editor/Window/UEditorWindow.h"
@@ -51,8 +51,25 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
 	bImGuiContextCreated = true;
+
 	ImGuiIO& io = ImGui::GetIO();
-	io.Fonts->AddFontFromFileTTF("Assets/Fonts/Pretendard-Regular.ttf", 16.0f);
+	FString UIFontPath = "Assets/Fonts/Pretendard-Regular.ttf";
+
+	// TTF 파일을 읽어서 ImGui에 등록
+	ImFont* UIFont = io.Fonts->AddFontFromFileTTF(
+		UIFontPath.c_str(),
+		18.0f,
+		nullptr,
+		io.Fonts->GetGlyphRangesKorean()
+	);
+
+	if (!UIFont)
+	{
+		throw std::runtime_error("ImGui font load failed");
+	}
+
+	// ImGui에서 기본으로 사용할 폰트 지정
+	io.FontDefault = UIFont;
 
 	// Setup Platform/Renderer backends
 	bImGuiWin32Initialized = ImGui_ImplWin32_Init(HWnd);
@@ -61,11 +78,16 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	if (!bImGuiDX11Initialized) throw std::runtime_error("ImGui DX11 initialization failed");
     if (!ImGui_ImplDX11_CreateDeviceObjects())
         throw std::runtime_error("ImGui GPU resource creation failed");
+
+	Font.Initialize(D3DDevice);
+	CreateFontPipeline();
 }
 
 void FRenderer::Shutdown()
 {
     if (DeviceContext) DeviceContext->ClearState();
+    Font.Release();
+    ReleaseFontPipeline();
     ReleaseConstantBuffer();
     ReleaseShaders();
     ReleaseRasterizerState();
@@ -382,7 +404,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
 
-	for (auto& Item : RenderList)
+	for (const auto& Item : RenderList)
 	{
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
@@ -394,14 +416,14 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	}
 
 	// Render Windows
-	for (auto Item : Editor->GetWindows())
+	for (const auto& Item : Editor->GetWindows())
 	{
 		Item->Render(DeltaTime);
 	}
 
 	// Render Grid
 	UpdateTransformConstantBuffer(ViewProjMatrix);
-	for (auto Item : Editor->GetGrids())
+	for (const auto& Item : Editor->GetGrids())
 	{
 		// XY 평면용 월드 행렬 세팅 및 렌더링
 		FMatrix XY_WorldMatrix = FMatrix::Identity;
@@ -440,7 +462,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 	// Render Gizmo
 	TArray<FPrimitiveRenderData> GizmoRenderList = RenderUtil::GetGizmoList(Editor, Scene);
-	for (auto Item : GizmoRenderList)
+	for (const auto& Item : GizmoRenderList)
 	{
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
@@ -451,7 +473,40 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderGizmo(Item);
 	}
 
-	UpdateTransformConstantBuffer(ViewProjMatrix);
+	// 월드축 위치에 생성되는 편집 가능한 빌보드
+	// UUID collection can later supply Text/Position through the same FFont API.
+	static char DemoText[1024] = "한글 테스트\nABC 0123 ㄱㄴㄷ";
+	static float DemoPosition[3] = {0.0f, 0.0f, 3.0f};
+	static float DemoHeight = 0.7f;
+	ImGui::SetNextWindowPos(ImVec2(Device->GetViewport().Width - 360.0f, 40.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(340.0f, 190.0f), ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Billboard Text"))
+	{
+		ImGui::InputTextMultiline("Text", DemoText, sizeof(DemoText), ImVec2(-60.0f, 60.0f));
+		ImGui::DragFloat3("Position", DemoPosition, 0.1f);
+		ImGui::DragFloat("Height", &DemoHeight, 0.01f, 0.05f, 5.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+	}
+	ImGui::End();
+
+	const FFontMeshData TextMesh = Font.BuildMesh(DemoText,
+		FVector(DemoPosition[0], DemoPosition[1], DemoPosition[2]),
+		Camera->GetRight(), Camera->GetUp(), DemoHeight);
+	Font.UpdateMesh(TextMesh);
+	RenderText(Font.CreateRenderData(), ViewProjMatrix);
+	//
+
+	//실제 구현부
+	TArray<FTextDrawRequest> Requests;
+
+	if (Editor->IsUUIDVisible())
+	{
+		Requests = RenderUtil::GetUUIDTextRequests(Scene, 0.35f, 0.2f);
+	}
+
+	const auto UUIDRenderList = Font.BuildRenderList(Requests, Camera->GetRight(), Camera->GetUp());
+
+	for (const auto& Data : UUIDRenderList)
+		RenderText(Data, ViewProjMatrix);
 	EndFrame();
 }
 
@@ -503,6 +558,78 @@ void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
 	{
 		UE_LOG("[FRenderer] Failed to Map GridConstantBuffer. HRESULT: {}\n", hr);
 	}
+}
+
+void FRenderer::CreateFontPipeline()
+{
+    Microsoft::WRL::ComPtr<ID3DBlob> Code;
+    if (!CompileShader(L"Assets/Shaders/ShaderFont.hlsl", "VS_Font", "vs_5_0", Code.GetAddressOf()))
+        throw std::runtime_error("Font vertex shader compilation failed");
+    CheckHR(D3DDevice->CreateVertexShader(Code->GetBufferPointer(), Code->GetBufferSize(),
+        nullptr, FontVertexShader.ReleaseAndGetAddressOf()));
+    const D3D11_INPUT_ELEMENT_DESC Layout[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
+    };
+    CheckHR(D3DDevice->CreateInputLayout(Layout, ARRAYSIZE(Layout), Code->GetBufferPointer(),
+        Code->GetBufferSize(), FontInputLayout.ReleaseAndGetAddressOf()));
+    if (!CompileShader(L"Assets/Shaders/ShaderFont.hlsl", "PS_Font", "ps_5_0", Code.ReleaseAndGetAddressOf()))
+        throw std::runtime_error("Font pixel shader compilation failed");
+    CheckHR(D3DDevice->CreatePixelShader(Code->GetBufferPointer(), Code->GetBufferSize(),
+        nullptr, FontPixelShader.ReleaseAndGetAddressOf()));
+
+    D3D11_SAMPLER_DESC SamplerDesc{};
+    SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    SamplerDesc.AddressU = SamplerDesc.AddressV = SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    CheckHR(D3DDevice->CreateSamplerState(&SamplerDesc, FontSampler.ReleaseAndGetAddressOf()));
+
+    D3D11_DEPTH_STENCIL_DESC DepthDesc{};
+    DepthDesc.DepthEnable = FALSE;
+    DepthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    DepthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+    CheckHR(D3DDevice->CreateDepthStencilState(&DepthDesc, FontDepthStencilState.ReleaseAndGetAddressOf()));
+}
+
+void FRenderer::ReleaseFontPipeline()
+{
+    FontVertexShader.Reset();
+    FontPixelShader.Reset();
+    FontInputLayout.Reset();
+    FontSampler.Reset();
+    FontDepthStencilState.Reset();
+}
+
+void FRenderer::RenderText(const FPrimitiveRenderData& Data, const FMatrix& ViewProjection)
+{
+    if (!Data.VertexBuffer || !Data.IndexBuffer || !Data.Material || Data.IndexCount == 0) return;
+    const D3D11_VIEWPORT MainViewport = Device->GetViewport();
+    DeviceContext->RSSetViewports(1, &MainViewport);
+    DeviceContext->RSSetState(CullNoneRasterizerState);
+    DeviceContext->OMSetDepthStencilState(FontDepthStencilState.Get(), 0);
+    DeviceContext->OMSetBlendState(AlphaBlendState, nullptr, 0xffffffff);
+    UpdateTransformConstantBuffer(ViewProjection);
+
+    const UINT Offset = 0;
+    DeviceContext->IASetInputLayout(FontInputLayout.Get());
+    DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
+    DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    DeviceContext->IASetPrimitiveTopology(Data.Topology);
+    DeviceContext->VSSetShader(FontVertexShader.Get(), nullptr, 0);
+    DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+    DeviceContext->GSSetShader(nullptr, nullptr, 0);
+    DeviceContext->PSSetShader(FontPixelShader.Get(), nullptr, 0);
+    DeviceContext->PSSetShaderResources(0, 1, &Data.Material);
+    DeviceContext->PSSetSamplers(0, 1, FontSampler.GetAddressOf());
+	DeviceContext->DrawIndexed(Data.IndexCount, Data.StartIndexLocation, 0);
+
+
+    ID3D11ShaderResourceView* Empty = nullptr;
+    DeviceContext->PSSetShaderResources(0, 1, &Empty);
+    DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+    DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+    // ImGui follows this pass and binds its own pipeline state.
 }
 
 void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)

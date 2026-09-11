@@ -35,6 +35,8 @@ private:
 	TArray<UGrid*> Grids;
 	UGizmo* ObjectAxisGizmo = nullptr;
 
+	bool bVisibleUUID = false;
+
 	void InitializeGizmos();
 	void InitializeWindows();
 	void InitializeGrids();
@@ -99,6 +101,16 @@ public:
 	UGizmo* GetObjectAxisGizmo()const;
 
 	UObject* SpawnObject(FClassType* Type);
+
+	bool IsUUIDVisible() const
+	{
+		return bVisibleUUID;
+	}
+
+	void SetUUIDVisible(bool bVisible)
+	{
+		bVisibleUUID = bVisible;
+	}
 
 public:
 	friend TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene);

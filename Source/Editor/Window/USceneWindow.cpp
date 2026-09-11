@@ -240,6 +240,17 @@ void USceneWindow::Render(float DeltaTime)
 		bEditingCameraRotation = bRotationActive;
 		ImGui::PopItemWidth();
 		//ImGui::PopStyleVar();
+		ImGui::SeparatorText("COMMON SHOW FLAGS");
+		bool bVisibleUUID = Editor->IsUUIDVisible();
+		if (ImGui::Checkbox("Show UUID", &bVisibleUUID))
+		{
+			Editor->SetUUIDVisible(bVisibleUUID);
+		}
+		ImGui::SeparatorText("VIEW MODE");
+		bool bRenderWireFrame = true;
+		if (ImGui::Checkbox("Wire Frame", &bRenderWireFrame)) {
+
+		}
 	}
 	Editor->SetCameraLocation(CameraLocation);
 	ImGui::End();

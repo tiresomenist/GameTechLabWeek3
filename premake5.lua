@@ -71,13 +71,53 @@ project "GameTechlabWeek2"
 	filter { "configurations:Release", "toolset:msc*" }
 		linkoptions { "/OPT:NOREF", "/OPT:NOICF" }
 	
-	-- 동적 링킹
-	links {
-		"d3d11",			-- DirectX11 
-		"d3dcompiler",		-- DirectX11
-		"dxgi",				-- DirectX11
-		"user32"			-- Win32
-	}
+    -- 위의 Release 전용 필터를 해제한다.
+    filter {}
 
-	-- Standalone test entry points are not part of the editor application.
-	removefiles { "tests/**" }
+    -- 설치한 directxtex:x86-windows와 맞춘다.
+    architecture "x86"
+    staticruntime "Off"
+
+   local vcpkgRoot = os.getenv("VCPKG_ROOT")
+
+if not vcpkgRoot or vcpkgRoot == "" then
+    error("VCPKG_ROOT 환경변수에 vcpkg 설치 경로를 지정하세요.")
+end
+
+local vcpkgDir = path.join(
+    vcpkgRoot,
+    "installed/x86-windows"
+)
+
+    -- #include <DirectXTex.h>를 찾을 위치
+    externalincludedirs {
+        vcpkgDir .. "/include"
+    }
+
+    -- 모든 구성에서 연결할 라이브러리
+    links {
+        "d3d11",
+        "d3dcompiler",
+        "dxgi",
+        "user32",
+        "DirectXTex",
+        "windowscodecs",
+        "ole32"
+    }
+
+    filter "configurations:Debug"
+        runtime "Debug"
+        libdirs {
+            vcpkgDir .. "/debug/lib"
+        }
+
+    filter "configurations:Release"
+        runtime "Release"
+        libdirs {
+            vcpkgDir .. "/lib"
+        }
+
+    filter {}
+
+    -- 테스트 소스는 엔진 실행 파일에 포함하지 않는다.
+    removefiles { "tests/**" }

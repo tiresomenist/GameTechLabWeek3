@@ -34,6 +34,16 @@ public:
 		Array.push_back(Element);
 	}
 
+	void Append(std::initializer_list<T> Elements)
+	{
+		Array.insert(Array.end(), Elements.begin(), Elements.end());
+	}
+
+	void Reserve(size_t Capacity)
+	{
+		Array.reserve(Capacity);
+	}
+
 	void Empty()
 	{
 		Array.clear();
@@ -63,6 +73,11 @@ public:
 	}
 
 	T* GetData()
+	{
+		return Array.data();
+	}
+
+	const T* GetData() const
 	{
 		return Array.data();
 	}

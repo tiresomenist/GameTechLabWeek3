@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 
 // D3D11 headers
 #include <d3d11.h>
@@ -8,6 +7,7 @@
 //#include "UEngine"
 #include "Engine/Renderer/FPrimitiveRenderData.h"
 #include "GDevice.h"
+#include "Engine/Resource/FFont.h"
 #include "Core/Math/Matrix.h"
 #include "Core/Math/FQuaternion.h"
 //#include "../FVertexSimple.h"
@@ -34,6 +34,17 @@ struct FPrimitiveRenderData;
 
 class FRenderer
 {
+private:
+	FFont Font;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> FontVertexShader;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> FontPixelShader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> FontInputLayout;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> FontSampler;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> FontDepthStencilState;
+	void CreateFontPipeline();
+	void ReleaseFontPipeline();
+	void RenderText(const FPrimitiveRenderData& Data, const FMatrix& ViewProjection);
+
 public:
 	GDevice* Device = nullptr;
 	ID3D11DeviceContext* DeviceContext = nullptr;
