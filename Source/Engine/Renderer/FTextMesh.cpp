@@ -29,18 +29,73 @@ namespace
 		Context->Unmap(Buffer, 0);
 		return true;
 	}
+
+	float LineOffset(float LineWidth, ETextAlign Align)
+	{
+		switch (Align)
+		{
+		case ETextAlign::Left:
+			return 0.0f;
+		case ETextAlign::Center:
+			return -LineWidth / 2.0f;
+		case ETextAlign::Right:
+			return -LineWidth;
+		default:
+			return 0.0f;
+		}
+	}
 }
 
 void FTextMesh::Build(const FFontAtlas& Font, const FString& Text, const FTextStyle& Style)
 {
 	Vertices.Empty();
 	Indices.Empty();
+	if (Text.empty()) return;
+
 	float Scale = Style.Size / Font.GetBakedPixelHeight();
-	float PenX = 0.0f;
+
+	TArray<float> LineWidth;
+	float W = 0;
+	for (unsigned char c : Text)
+	{
+		if (c == '\n')
+		{
+			LineWidth.Add(W);
+			W = 0.0f;
+			continue;
+		}
+		else if (c == '\r')
+		{
+			continue;
+		}
+
+		const FGlyph* Glyph = Font.FindGlyph(c);
+		if (!Glyph) Glyph = Font.FindGlyph('?');
+		if (!Glyph) continue;
+
+		W += Glyph->XAdvance;
+	}
+	LineWidth.Add(W);
+
+	UINT Line = 0;
+	float PenX = LineOffset(LineWidth[0], Style.Align);
 	float PenY = Font.GetAscent();
 
 	for (unsigned char c : Text)
 	{
+		if (c == '\n')
+		{
+			Line++;
+			PenX = LineOffset(LineWidth[Line], Style.Align);
+			PenY += Font.GetLineHeight();
+			continue;
+		}
+		else if (c == '\r')
+
+		{
+			continue;
+		}
+
 		const FGlyph* Glyph = Font.FindGlyph(c);
 		if (!Glyph) Glyph = Font.FindGlyph('?');
 		if (!Glyph) continue;

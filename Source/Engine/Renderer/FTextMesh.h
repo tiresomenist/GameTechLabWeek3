@@ -5,10 +5,13 @@
 #include "Engine/Resource/FFontAtlas.h"
 #include "Engine/Renderer/FVertexText.h"
 
+enum class ETextAlign { Left, Center, Right };
+
 struct FTextStyle
 {
-	float Size = 1.f;                         // 월드 단위. 구운 높이(32px)가 이 크기가 됨
-	FVector4 Color = FVector4(1, 1, 1, 1);    
+	float Size = 1.0f;                         // 월드 단위. 구운 높이(32px)가 이 크기가 됨
+	FVector4 Color = FVector4(1, 1, 1, 1);
+	ETextAlign Align = ETextAlign::Left;
 };
 
 class FTextMesh

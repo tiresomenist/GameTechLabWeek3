@@ -433,7 +433,9 @@ void FRenderer::CreateDebugTextResources()
 	if (!DebugFont) throw std::runtime_error("Debug font load failed");
 
 	// 문자열 → 쿼드 N개(CPU) → 동적 버퍼(GPU)
-	DebugText.Build(*DebugFont, "Hello, World", FTextStyle{});
+	FTextStyle Style;
+	Style.Align = ETextAlign::Center;
+	DebugText.Build(*DebugFont, "Hello, World\ngjpq", Style);
 	if (!DebugText.Upload(D3DDevice, DeviceContext))
 		throw std::runtime_error("Debug text upload failed");
 
