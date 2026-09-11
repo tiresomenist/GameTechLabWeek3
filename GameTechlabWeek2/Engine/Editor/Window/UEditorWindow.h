@@ -23,6 +23,6 @@ public:
 
 	void DrawItemBottomLine(uint32 Color, float Thickness);
 
-	virtual ~UEditorWindow() = default;
+	virtual ~UEditorWindow() override = default;
 };
 
