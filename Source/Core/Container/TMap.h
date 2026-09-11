@@ -1,10 +1,6 @@
 #pragma once
-#include <map>
 
-template<typename T>
-class TMap
-{
-private:
-	std::map<T> Map;
+#include <unordered_map>
 
-};
+template<typename K, typename V>
+using TMap = std::unordered_map<K, V>;

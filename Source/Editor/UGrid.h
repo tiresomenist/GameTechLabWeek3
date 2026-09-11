@@ -19,7 +19,7 @@ public:
     FMeshResource* GetMeshResource() { return MeshResource; }
 
     FPrimitiveRenderData RenderData;
-    FMeshResource* MeshResource;
+    FMeshResource* MeshResource = nullptr;
 
     virtual void Render() {};
 };

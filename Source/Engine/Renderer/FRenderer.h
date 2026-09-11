@@ -15,6 +15,9 @@
 #include "Core/Container/TArray.h"
 #include "Engine/Resource/FTexture.h"
 
+// debug
+#include "Engine/Resource/FFontAtlas.h"
+
 //struct FVertexSimple;
 struct FConstants
 {
@@ -72,6 +75,7 @@ public:
 
 	ID3D11Buffer* DebugQuadVB = nullptr;
 	ID3D11Buffer* DebugQuadIB = nullptr;
+	FFontAtlas* DebugFont=nullptr;
 	void RenderDebugTextQuad(const FMatrix& ViewProj);
 
 	bool bImGuiContextCreated = false;

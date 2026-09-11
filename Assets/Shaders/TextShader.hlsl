@@ -31,6 +31,6 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-    return Atlas.Sample(Sampler, input.uv);
-
+    float a = Atlas.Sample(Sampler, input.uv).r;
+    return float4(a, a, a, 1);
 }

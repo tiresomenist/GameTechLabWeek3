@@ -25,50 +25,10 @@
 #include "Engine/Resource/MeshData/RotateBlue.h"
 #include "Engine/Resource/MeshData/Grid.h"
 #include "Core/Math/FVector.h"
-#include "stb/stb_truetype.h"
-#include "Engine/Log.h"
 #include <memory>
 #include <limits>
 #include <stdexcept>
 #include <cmath>
-#include <fstream>
-
-namespace
-{
-    // 0단계 확인용 임시 함수. 2단계에서 FFontAtlas로 옮긴다.
-    void TestLoadFont(const char* Path)
-    {
-        // ate: 파일 끝에서 열어서 tellg()로 크기를 바로 얻는다
-        std::ifstream File(Path, std::ios::binary | std::ios::ate);
-        if (!File)
-        {
-            UE_LOG("[Font] 파일을 열 수 없습니다: {}", Path);
-            return;
-        }
-
-        const std::streamsize Size = File.tellg();
-        File.seekg(0);
-        std::vector<unsigned char> Buffer(static_cast<size_t>(Size));
-        File.read(reinterpret_cast<char*>(Buffer.data()), Size);
-
-        const int NumFonts = stbtt_GetNumberOfFonts(Buffer.data());
-        const int Offset = stbtt_GetFontOffsetForIndex(Buffer.data(), 0);
-
-        stbtt_fontinfo Info;
-        if (!stbtt_InitFont(&Info, Buffer.data(), Offset))
-        {
-            UE_LOG("[Font] InitFont 실패: {}", Path);
-            return;
-        }
-
-        // 덤: 코드포인트 → 글리프 인덱스 매핑(cmap) 확인. 0이면 폰트에 없는 글자
-        const int GlyphA = stbtt_FindGlyphIndex(&Info, 'A');
-        const int GlyphGa = stbtt_FindGlyphIndex(&Info, 0xAC00); // '가'
-
-        UE_LOG("[Font] InitFont OK: {} ({} bytes, 폰트 {}개, 'A'={}, '가'={})",
-            Path, Size, NumFonts, GlyphA, GlyphGa);
-    }
-}
 
 GResourceManager* GResourceManager::GetInstance()
 {
@@ -78,118 +38,141 @@ GResourceManager* GResourceManager::GetInstance()
 
 void GResourceManager::Initialize(GDevice* InDevice)
 {
-    Device = InDevice;
-    if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowBlue", arrow_blue_vertices, arrow_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveRed", move_red_vertices, move_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveGreen", move_green_vertices, move_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveBlue", move_blue_vertices, move_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleRed", scale_red_vertices, scale_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleGreen", scale_green_vertices, scale_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleBlue", scale_blue_vertices, scale_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
-
-    TestLoadFont("Assets/Fonts/Pretendard-Regular.ttf");
+	Device = InDevice;
+	if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("ArrowBlue", arrow_blue_vertices, arrow_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("MoveRed", move_red_vertices, move_red_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("MoveGreen", move_green_vertices, move_green_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("MoveBlue", move_blue_vertices, move_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("ScaleRed", scale_red_vertices, scale_red_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("ScaleGreen", scale_green_vertices, scale_green_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("ScaleBlue", scale_blue_vertices, scale_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
+	if (!LoadFont("Pretendard", "Assets/Fonts/Pretendard-Regular.ttf", 32.f))
+		throw std::runtime_error("Required font load failed");
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
-    std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices)
+	std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices)
 {
-    auto Existing = PrimitiveCache.find(MeshName);
-    if (Existing != PrimitiveCache.end()) return Existing->second;
-    if (Vertices.empty() || Indices.empty()) return nullptr;
-    const size_t MaxBytes = (std::numeric_limits<UINT>::max)();
-    if (Vertices.size() > MaxBytes / sizeof(FVertexSimple) || Indices.size() > MaxBytes / sizeof(uint32))
-        return nullptr;
-    for (const auto& V : Vertices)
-        if (!std::isfinite(V.x) || !std::isfinite(V.y) || !std::isfinite(V.z)) return nullptr;
-    if (!Device || !Device->GetDevice()) return nullptr;
-    for (uint32 Index : Indices)
-        if (Index >= Vertices.size()) return nullptr;
+	auto Existing = PrimitiveCache.find(MeshName);
+	if (Existing != PrimitiveCache.end()) return Existing->second;
+	if (Vertices.empty() || Indices.empty()) return nullptr;
+	const size_t MaxBytes = (std::numeric_limits<UINT>::max)();
+	if (Vertices.size() > MaxBytes / sizeof(FVertexSimple) || Indices.size() > MaxBytes / sizeof(uint32))
+		return nullptr;
+	for (const auto& V : Vertices)
+		if (!std::isfinite(V.x) || !std::isfinite(V.y) || !std::isfinite(V.z)) return nullptr;
+	if (!Device || !Device->GetDevice()) return nullptr;
+	for (uint32 Index : Indices)
+		if (Index >= Vertices.size()) return nullptr;
 
-    auto Mesh = std::make_unique<FMeshResource>();
-    Mesh->vertexs.GetVector().assign(Vertices.begin(), Vertices.end());
-    Mesh->indexes.GetVector().assign(Indices.begin(), Indices.end());
-    Mesh->VertexCount = static_cast<UINT>(Vertices.size());
-    Mesh->IndexCount = static_cast<UINT>(Indices.size());
-    Mesh->Stride = sizeof(FVertexSimple);
-    Mesh->VertexBuffer = Device->CreateVertexBuffer(&Mesh->vertexs[0], Mesh->Stride * Mesh->VertexCount);
-    if (!Mesh->VertexBuffer) return nullptr;
-    Mesh->IndexBuffer = Device->CreateIndexBuffer(&Mesh->indexes[0], sizeof(uint32) * Mesh->IndexCount);
-    if (!Mesh->IndexBuffer) return nullptr;
-    Mesh->bHasBounds = false;
-    if (Mesh->vertexs.Num() > 0)
-    {
-        const auto& First = Mesh->vertexs[0];
+	auto Mesh = std::make_unique<FMeshResource>();
+	Mesh->vertexs.GetVector().assign(Vertices.begin(), Vertices.end());
+	Mesh->indexes.GetVector().assign(Indices.begin(), Indices.end());
+	Mesh->VertexCount = static_cast<UINT>(Vertices.size());
+	Mesh->IndexCount = static_cast<UINT>(Indices.size());
+	Mesh->Stride = sizeof(FVertexSimple);
+	Mesh->VertexBuffer = Device->CreateVertexBuffer(&Mesh->vertexs[0], Mesh->Stride * Mesh->VertexCount);
+	if (!Mesh->VertexBuffer) return nullptr;
+	Mesh->IndexBuffer = Device->CreateIndexBuffer(&Mesh->indexes[0], sizeof(uint32) * Mesh->IndexCount);
+	if (!Mesh->IndexBuffer) return nullptr;
+	Mesh->bHasBounds = false;
+	if (Mesh->vertexs.Num() > 0)
+	{
+		const auto& First = Mesh->vertexs[0];
 
-        Mesh->BoundsMin = FVector(First.x, First.y, First.z);   
-        Mesh->BoundsMax = Mesh->BoundsMin;
+		Mesh->BoundsMin = FVector(First.x, First.y, First.z);
+		Mesh->BoundsMax = Mesh->BoundsMin;
 
-        for (const auto& Vertex : Mesh->vertexs)
-        {
-            Mesh->BoundsMin.X = (std::min)(Mesh->BoundsMin.X, Vertex.x);
-            Mesh->BoundsMin.Y = (std::min)(Mesh->BoundsMin.Y, Vertex.y);
-            Mesh->BoundsMin.Z = (std::min)(Mesh->BoundsMin.Z, Vertex.z);
+		for (const auto& Vertex : Mesh->vertexs)
+		{
+			Mesh->BoundsMin.X = (std::min)(Mesh->BoundsMin.X, Vertex.x);
+			Mesh->BoundsMin.Y = (std::min)(Mesh->BoundsMin.Y, Vertex.y);
+			Mesh->BoundsMin.Z = (std::min)(Mesh->BoundsMin.Z, Vertex.z);
 
-            Mesh->BoundsMax.X = (std::max)(Mesh->BoundsMax.X, Vertex.x);
-            Mesh->BoundsMax.Y = (std::max)(Mesh->BoundsMax.Y, Vertex.y);
-            Mesh->BoundsMax.Z = (std::max)(Mesh->BoundsMax.Z, Vertex.z);
-        }
+			Mesh->BoundsMax.X = (std::max)(Mesh->BoundsMax.X, Vertex.x);
+			Mesh->BoundsMax.Y = (std::max)(Mesh->BoundsMax.Y, Vertex.y);
+			Mesh->BoundsMax.Z = (std::max)(Mesh->BoundsMax.Z, Vertex.z);
+		}
 
-        Mesh->bHasBounds = true;
-    }
+		Mesh->bHasBounds = true;
+	}
 
-    const auto [It, Inserted] = PrimitiveCache.emplace(MeshName, Mesh.get());
-    if (Inserted) Mesh.release();
-    return It->second;
-    
+	const auto [It, Inserted] = PrimitiveCache.emplace(MeshName, Mesh.get());
+	if (Inserted) Mesh.release();
+	return It->second;
+
 }
 
 void GResourceManager::Shutdown()
 {
-    for (auto& [type, mesh] : PrimitiveCache)
-    {
-        delete mesh;
-    }
-    PrimitiveCache.clear();
-    Device = nullptr;
+	for (auto& [type, mesh] : PrimitiveCache)
+	{
+		delete mesh;
+	}
+	PrimitiveCache.clear();
 
-    //for (auto& [path, shader] : ShaderCache)
-    //{
-    //    if (shader->VertexShader) shader->VertexShader->Release();
-    //    if (shader->PixelShader)  shader->PixelShader->Release();
-    //    if (shader->InputLayout)  shader->InputLayout->Release();
-    //    delete shader;
-    //}
-    //ShaderCache.clear();
+	for (auto& [Name, Font] : FontCache) Font->Release();   // 디바이스 살아 있을 때 GPU 리소스 해제
+	FontCache.clear();
 
-    //for (auto& [key, state] : RasterizerStateCache)
-    //    state->Release();
-    //RasterizerStateCache.clear();
+	Device = nullptr;
+
+	//for (auto& [path, shader] : ShaderCache)
+	//{
+	//    if (shader->VertexShader) shader->VertexShader->Release();
+	//    if (shader->PixelShader)  shader->PixelShader->Release();
+	//    if (shader->InputLayout)  shader->InputLayout->Release();
+	//    delete shader;
+	//}
+	//ShaderCache.clear();
+
+	//for (auto& [key, state] : RasterizerStateCache)
+	//    state->Release();
+	//RasterizerStateCache.clear();
 }
 
 FMeshResource* GResourceManager::GetPrimitive(const FString& Type)
 {
-    auto Item = PrimitiveCache.find(Type);
+	auto Item = PrimitiveCache.find(Type);
 
-    if (Item != PrimitiveCache.end())
-    {
-        return Item->second;
-    }
-    else
-    {
-        return nullptr;
-    }
+	if (Item != PrimitiveCache.end())
+	{
+		return Item->second;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+FFontAtlas* GResourceManager::LoadFont(const FString& Name, const char* Path, float PixelHeight)
+{
+	if (FFontAtlas* Existing = GetFont(Name)) return Existing;
+	if (!Device || !Device->GetDevice()) return nullptr;
+
+	auto Font = std::make_unique<FFontAtlas>();
+	if (!Font->Load(Device->GetDevice(), Path, PixelHeight)) return nullptr;
+
+	FFontAtlas* Raw = Font.get();
+	FontCache.emplace(Name, std::move(Font));   // 소유권은 캐시로
+	return Raw;                                 // 호출자는 빌려 쓰기만
+}
+
+FFontAtlas* GResourceManager::GetFont(const FString& Name)
+{
+	auto It = FontCache.find(Name);
+	return It != FontCache.end() ? It->second.get() : nullptr;
 }
 
 FShaderResource* GResourceManager::GetShader(const std::wstring& FilePath, const std::string& VSEntry, const std::string& PSEntry, const D3D11_INPUT_ELEMENT_DESC* Layout, UINT LayoutCount)

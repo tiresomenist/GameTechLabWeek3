@@ -49,7 +49,7 @@ void FRenderer::RenderDebugTextQuad(const FMatrix& ViewProj)
 	DeviceContext->VSSetShader(TextVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	ID3D11ShaderResourceView* SRV = DebugTexture.GetSRV();
+	ID3D11ShaderResourceView* SRV = DebugFont->GetTexture().GetSRV();
 	DeviceContext->PSSetShader(TextPixelShader, nullptr, 0);
 	DeviceContext->PSSetShaderResources(0, 1, &SRV);   // t0
 	DeviceContext->PSSetSamplers(0, 1, &PointSampler); // s0
@@ -72,6 +72,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
+
 	CreateDebugTextResources();
 
 	IMGUI_CHECKVERSION();
@@ -463,6 +464,8 @@ void FRenderer::CreateDebugTextResources()
 	D3D11_SUBRESOURCE_DATA IBData = {};
 	IBData.pSysMem = QuadIndices;
 	CheckHR(D3DDevice->CreateBuffer(&IBDesc, &IBData, &DebugQuadIB));
+	DebugFont = GResourceManager::GetInstance()->GetFont("Pretendard");
+	if (!DebugFont) throw std::runtime_error("Debug font load failed");
 }
 
 void FRenderer::ReleaseDebugTextResources()
@@ -479,6 +482,7 @@ void FRenderer::ReleaseDebugTextResources()
 		DebugQuadIB->Release();
 		DebugQuadIB = nullptr;
 	}
+	DebugFont = nullptr;
 }
 
 void FRenderer::BeginFrame()
@@ -572,7 +576,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 	// Render Gizmo
 	TArray<FPrimitiveRenderData> GizmoRenderList = RenderUtil::GetGizmoList(Editor, Scene);
-	for (auto Item : GizmoRenderList)
+	for (const auto& Item : GizmoRenderList)
 	{
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);

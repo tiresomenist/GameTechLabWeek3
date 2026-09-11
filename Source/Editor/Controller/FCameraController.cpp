@@ -4,10 +4,7 @@
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Log.h"
 
-
-
-
-void FCameraController::SetCamera(UCameraComponent* InCamera)
+void FCameraController::SetCamera(UCameraComponent* InCamera)                                              
 {
     Camera = InCamera;
     if (Camera) Camera->ConstrainEditorRotation();
