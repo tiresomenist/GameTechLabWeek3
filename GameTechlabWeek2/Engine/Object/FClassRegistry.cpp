@@ -1,7 +1,7 @@
+#include "pch.h"
 #include "FClassRegistry.h"
 #include "Engine/Object/FClassType.h"
 
-#include "Engine/Scene/UScene.h"
 #include "Engine/Gizmo/UGizmo.h"
 #include "Engine/Gizmo/UObjectAxisGizmo.h"
 #include "Engine/Gizmo/UWorldAxisGizmo.h"
@@ -10,6 +10,8 @@
 #include "Engine/Editor/UGrid.h"
 
 #include "Engine/Object/UObject.h"
+#include "Engine/Object/UActor.h"
+#include "Engine/Object/UActorComponent.h"
 #include "Engine/Object/USceneComponent.h"
 #include "Engine/Object/UCameraComponent.h"
 

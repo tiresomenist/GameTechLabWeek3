@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "FObjectFactory.h"
 
 #include <stdexcept>

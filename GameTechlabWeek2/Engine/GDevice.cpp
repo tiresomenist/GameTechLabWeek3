@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "GDevice.h"
 #include "Engine/Log.h"
 #include <wrl/client.h>

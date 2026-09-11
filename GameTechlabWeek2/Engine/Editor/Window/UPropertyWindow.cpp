@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Engine/Util/ScaleEdit.h"
 #include "UPropertyWindow.h"
 #include "../../../FVector.h"

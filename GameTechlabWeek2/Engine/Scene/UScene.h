@@ -1,9 +1,10 @@
 #pragma once
 #include <memory>
 #include "Container/TArray.h"
-#include "Engine/Object/UObject.h"
+#include "Engine/Object/UActor.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Renderer/RenderUtil.h"
+#include "Engine/Scene/FSceneType.h"
 #include "../Object/Primitive/UPrimitiveComponent.h"
 
 struct FPrimitiveRenderData;
@@ -11,12 +12,15 @@ class UCameraComponent;
 class FRenderer;
 class FArchive;
 
-class UScene : public UObject
+// Scene은 Actor를 소유하는 컨테이너입니다. UUID/RTTI가 필요한 UObject가 아닙니다.
+class UScene
 {
-
-	UCLASS(UScene, "Scene", UObject)
-
 public:
+	UScene() = default;
+
+	static FSceneType* GetStaticSceneType();
+	virtual FSceneType* GetSceneType() const { return GetStaticSceneType(); }
+
 	virtual void BeginPlay();
 
     virtual void Tick(float DeltaTime);
@@ -33,45 +37,45 @@ public:
 	void Deserialize(TArray<FArchive>& ObjectInfoList);
 
 	template <typename T>
-	T SpawnObject(FClassType* Type)
+	T SpawnActor(FClassType* Type, uint32 UUID = -1)
 	{
-		std::unique_ptr<UObject> Object(FObjectFactory::ConstructSceneObject(Type));
-        Objects.Add(Object.get());
-        return Cast<T>(Object.release());
-	}
+		if (Type == nullptr || !Type->IsA(UActor::GetClass()))
+		{
+			return nullptr;
+		}
 
-	template <typename T>
-	T Cast(UObject* Object)
-	{
-		T Ptr = static_cast<T>(Object);
-		return Ptr;
+		UActor* Actor = static_cast<UActor*>(FObjectFactory::ConstructSceneObject(Type, UUID));
+		Actors.Add(Actor);
+		return static_cast<T>(Actor);
 	}
 
 	void Destroy(UObject* Object);
+	void DestroyActor(UActor* Actor);
 
 	//외부에서 Primitive 접근 제공
 	template <typename Func>
 	void ForEachPrimitive(Func&& Function) const
 	{
-		for (UObject* Object : Objects)
+		for (UActor* Actor : Actors)
 		{
-			if (Object->IsA(UPrimitiveComponent::GetClass()))
+			for (UActorComponent* Component : Actor->GetComponents())
 			{
-				Function(
-					static_cast<UPrimitiveComponent*>(Object)
-				);
+				if (Component->IsA(UPrimitiveComponent::GetClass()))
+				{
+					Function(static_cast<UPrimitiveComponent*>(Component));
+				}
 			}
 		}
 	}
 
-	virtual ~UScene() override;
+	virtual ~UScene();
 
 protected:
 
 	/// <summary>
-	/// Scene에 종속된 "모든" UObject를 담는 멤버 변수
+	/// Scene에 종속된 모든 Actor를 담는 멤버 변수. Component는 Actor가 소유합니다.
 	/// </summary>
-	TArray<UObject*> Objects {};
+	TArray<UActor*> Actors {};
 	
 	/// <summary>
 	/// Scene의 렌더링을 담당할 MainCamera를 담는 멤버 변수

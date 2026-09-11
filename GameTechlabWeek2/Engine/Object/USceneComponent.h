@@ -1,16 +1,16 @@
 #pragma once
 
-#include "Engine/Object/UObject.h"
+#include "Engine/Object/UActorComponent.h"
 #include "Engine/Core.h"
 #include "FVector.h"
 #include "FQuaternion.h"
 #include "FClassType.h"
 #include "Matrix.h"
 
-class USceneComponent : public UObject
+class USceneComponent : public UActorComponent
 {
 
-    UCLASS(USceneComponent, "SceneComponent", UObject)
+    UCLASS(USceneComponent, "SceneComponent", UActorComponent)
 
 public:
     FVector& GetRelativeLocation() { return RelativeLocation; };

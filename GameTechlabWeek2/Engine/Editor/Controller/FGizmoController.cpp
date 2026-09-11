@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Engine/Editor/Controller/FGizmoController.h"
 #include "Engine/Editor/FEditor.h"
 #include "Engine/GDevice.h"

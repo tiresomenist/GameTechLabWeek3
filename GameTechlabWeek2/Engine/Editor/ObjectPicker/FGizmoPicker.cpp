@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EnGine/Editor/ObjectPicker/FGizmoPicker.h"
 #include "Engine/InputManager/GInputManager.h"
 #include "Engine/Log.h"

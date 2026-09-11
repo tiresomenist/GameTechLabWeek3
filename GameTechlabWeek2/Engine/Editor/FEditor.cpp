@@ -1,6 +1,8 @@
+#include "pch.h"
 #include "FEditor.h"
 
 #include "Engine/Object/UCameraComponent.h"
+#include "Engine/Object/UActor.h"
 #include "Engine/Editor/Window/UEditorWindow.h"
 
 #include "Engine/Editor/Window/UConsoleWindow.h"
@@ -176,7 +178,8 @@ void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
 
 	for (int i = 0; i < Count; ++i)
 	{
-		CurrentScene->SpawnObject<UObject*>(PrimitiveType);
+		UActor* Actor = CurrentScene->SpawnActor<UActor*>(UActor::GetClass());
+		Actor->CreateComponent(PrimitiveType);
 	}
 }
 
@@ -190,7 +193,7 @@ void FEditor::LoadScene(FStringView SceneName)
 {
 	SetSelectedSceneComponent(nullptr);
 	GSceneManager* SceneManager = GSceneManager::GetInstance();
-	FClassType* SceneType = GetCurrentScene()->GetInstanceClass();
+	FSceneType* SceneType = GetCurrentScene()->GetSceneType();
 
 	SceneManager->LoadScene(SceneType, SceneName);
 }

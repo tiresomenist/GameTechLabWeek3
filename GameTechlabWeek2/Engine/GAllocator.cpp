@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "GAllocator.h"
 #include "Engine/Core.h"
 #include "Engine/Log.h"

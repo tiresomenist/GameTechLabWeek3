@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UConsoleWindow.h"
 #include "../../FConsole.h"
 #include "../../../FVector.h"

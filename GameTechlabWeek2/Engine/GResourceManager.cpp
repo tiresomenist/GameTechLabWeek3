@@ -1,3 +1,4 @@
+#include "pch.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "USceneComponent.h"
 #include "Engine/Object/UObject.h"
 #include "Engine/Object/FObjectFactory.h"

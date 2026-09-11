@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "GInputManager.h"
 
 GInputManager* GInputManager::GetInstance()

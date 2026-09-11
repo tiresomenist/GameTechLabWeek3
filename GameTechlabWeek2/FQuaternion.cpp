@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "FQuaternion.h"
 
 FQuaternion FQuaternion::FromAxisAngle(const FVector& Axis, float Radian)

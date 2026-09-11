@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "RenderUtil.h"
 #include "Container/TArray.h"
 #include "Engine/Renderer/FPrimitiveRenderData.h"
@@ -19,17 +20,13 @@ namespace
 TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
 {
 	TArray<FPrimitiveRenderData> RenderList;
-	auto* SelectedComponent = Editor ? Editor->GetSelectedSceneComponent() : nullptr;
-
-	for (auto Item : Scene->Objects)
-	{
-		if (Item->IsA(UPrimitiveComponent::GetClass()))
+	Scene->ForEachPrimitive(
+		[&RenderList, Editor](UPrimitiveComponent* Primitive)
 		{
-			UPrimitiveComponent* Primitive = static_cast<UPrimitiveComponent*>(Item);
 			const bool bSelected = IsComponentSelected(Editor, Primitive);
 			RenderList.Add(Primitive->CreateRenderData(bSelected));
 		}
-	}
+	);
 
 	return RenderList;
 }
