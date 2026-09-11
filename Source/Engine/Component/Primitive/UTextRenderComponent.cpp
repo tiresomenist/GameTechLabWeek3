@@ -2,6 +2,7 @@
 #include "UTextRenderComponent.h"
 #include "Engine/Font/FFontAtlas.h"
 #include "Engine/Renderer/GDevice.h"
+#include "Engine/Actor/UActor.h"
 
 
 namespace
@@ -200,5 +201,16 @@ void UTextRenderComponent::Deserialize(FArchive& Archive)
     {
         TextSize = 1.0f;
         Text = L"";
+    }
+}
+
+void UTextRenderComponent::UpdateTextFromOwner()
+{
+    if (UActor* OwnerActor = GetOwner())
+    {
+        uint32 OwnerUUID = OwnerActor->GetUUID();
+
+        std::wstring TextStr = std::to_wstring(OwnerUUID);
+        SetText(TextStr); 
     }
 }

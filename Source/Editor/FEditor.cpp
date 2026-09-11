@@ -180,7 +180,13 @@ void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
 	for (int i = 0; i < Count; ++i)
 	{
 		UActor* Actor = CurrentScene->SpawnActor<UActor*>(UActor::GetClass());
-		Actor->CreateComponent(PrimitiveType);
+		UActorComponent* Comp = Actor->CreateComponent(PrimitiveType);
+		UActorComponent* TextCompBase = Actor->CreateComponent(UTextRenderComponent::GetClass());
+
+		if (auto* TextComp = dynamic_cast<UTextRenderComponent*>(TextCompBase))
+		{
+			TextComp->UpdateTextFromOwner();
+		}
 	}
 }
 

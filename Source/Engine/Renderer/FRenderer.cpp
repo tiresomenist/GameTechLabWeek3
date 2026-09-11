@@ -429,7 +429,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	{
 		if (UTextRenderComponent* TextComp = dynamic_cast<UTextRenderComponent*>(Primitive))
 		{
-			TextComp->UpdateBillboard(ViewMatrix, 0.0f); // 머리 위 높이(120)
+			TextComp->UpdateBillboard(ViewMatrix, 1.5f);
 		}
 	});
 

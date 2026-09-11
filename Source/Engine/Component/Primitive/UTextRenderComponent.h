@@ -33,6 +33,8 @@ public:
     virtual void Serialize(FArchive& Archive) override;
     virtual void Deserialize(FArchive& Archive) override;
 
+    void UpdateTextFromOwner();
+
 private:
     void RebuildTextMesh();
     void ReleaseBuffers();
