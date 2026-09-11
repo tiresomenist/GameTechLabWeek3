@@ -11,14 +11,11 @@ TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* 
 {
 	TArray<FPrimitiveRenderData> RenderList;
 
-	for (auto Item : Scene->Objects)
-	{
-		if (Item->IsA(UPrimitiveComponent::GetClass()))
+	Scene->ForEachPrimitive(
+		[&RenderList](UPrimitiveComponent* Primitive)
 		{
-			UPrimitiveComponent* Primitive = static_cast<UPrimitiveComponent*>(Item);
 			RenderList.Add(Primitive->GetRenderData());
-		}
-	}
+		});
 
 	return RenderList;
 }

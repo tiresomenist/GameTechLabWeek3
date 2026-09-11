@@ -1,6 +1,7 @@
 #pragma once
 #include "Container/TArray.h"
 #include "Engine/Object/UObject.h"
+#include "Engine/Object/UActor.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Renderer/RenderUtil.h"
 #include "../Object/Primitive/UPrimitiveComponent.h"
@@ -32,34 +33,33 @@ public:
 	void Deserialize(TArray<FArchive>& ObjectInfoList);
 
 	template <typename T>
-	T SpawnObject(FClassType* Type)
+	T SpawnActor(FClassType* Type, uint32 UUID = -1)
 	{
-		UObject* Object = FObjectFactory::ConstructSceneObject(Type);
-		Objects.Add(Object);
+		if (Type == nullptr || !Type->IsA(UActor::GetClass()))
+		{
+			return nullptr;
+		}
 
-		return Cast<T>(Object);
-	}
-
-	template <typename T>
-	T Cast(UObject* Object)
-	{
-		T Ptr = static_cast<T>(Object);
-		return Ptr;
+		UActor* Actor = static_cast<UActor*>(FObjectFactory::ConstructSceneObject(Type, UUID));
+		Actors.Add(Actor);
+		return static_cast<T>(Actor);
 	}
 
 	void Destroy(UObject* Object);
+	void DestroyActor(UActor* Actor);
 
 	//외부에서 Primitive 접근 제공
 	template <typename Func>
 	void ForEachPrimitive(Func&& Function) const
 	{
-		for (UObject* Object : Objects)
+		for (UActor* Actor : Actors)
 		{
-			if (Object->IsA(UPrimitiveComponent::GetClass()))
+			for (UActorComponent* Component : Actor->GetComponents())
 			{
-				Function(
-					static_cast<UPrimitiveComponent*>(Object)
-				);
+				if (Component->IsA(UPrimitiveComponent::GetClass()))
+				{
+					Function(static_cast<UPrimitiveComponent*>(Component));
+				}
 			}
 		}
 	}
@@ -69,9 +69,9 @@ public:
 protected:
 
 	/// <summary>
-	/// Scene에 종속된 "모든" UObject를 담는 멤버 변수
+	/// Scene에 종속된 모든 Actor를 담는 멤버 변수. Component는 Actor가 소유합니다.
 	/// </summary>
-	TArray<UObject*> Objects {};
+	TArray<UActor*> Actors {};
 	
 	/// <summary>
 	/// Scene의 렌더링을 담당할 MainCamera를 담는 멤버 변수
