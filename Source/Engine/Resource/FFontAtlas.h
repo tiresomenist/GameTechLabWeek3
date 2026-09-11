@@ -25,6 +25,7 @@ public:
 	const FTexture& GetTexture() const { return Texture; }
 	float GetLineHeight() const { return Ascent - Descent + LineGap; }
 	void Release();
+	float GetDescent() const { return Descent; }                  // 기준선 아래 깊이 (음수)
 	float GetAscent() const { return Ascent; }                    // 첫 줄 기준선 위치
 	float GetBakedPixelHeight() const { return BakedPixelHeight; } // 픽셀 → 월드 스케일 계산
 

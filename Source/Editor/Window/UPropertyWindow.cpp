@@ -240,4 +240,24 @@ void UPropertyWindow::DrawTextProperties(UTextComponent* TextComponent)
 	{
 		TextComponent->SetAlign(static_cast<ETextAlign>(Align));
 	}
+
+	// ETextVAlign 순서(Top, Center, Bottom)와 같아야 한다
+	const char* VAlignNames[] = { "Top", "Center", "Bottom" };
+	int VAlign = static_cast<int>(TextComponent->GetVAlign());
+	if (ImGui::Combo("Pivot", &VAlign, VAlignNames, IM_ARRAYSIZE(VAlignNames)))
+	{
+		TextComponent->SetVAlign(static_cast<ETextVAlign>(VAlign));
+	}
+
+	bool bBillboard = TextComponent->IsBillboard();
+	if (ImGui::Checkbox("Billboard", &bBillboard))
+	{
+		TextComponent->SetBillboard(bBillboard);
+	}
+	ImGui::SameLine();
+	bool bConstantScreenSize = TextComponent->IsConstantScreenSize();
+	if (ImGui::Checkbox("Constant Screen Size", &bConstantScreenSize))
+	{
+		TextComponent->SetConstantScreenSize(bConstantScreenSize);
+	}
 }

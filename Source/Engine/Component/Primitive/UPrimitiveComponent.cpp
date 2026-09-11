@@ -37,3 +37,8 @@ bool UPrimitiveComponent::GetLocalBounds(FVector& OutMin, FVector& OutMax) const
 	OutMax = MeshResource->GetBoundsMax();
 	return true;
 }
+
+const FMatrix& UPrimitiveComponent::GetRenderWorldMatrix(const UCameraComponent* Camera) const
+{
+	return GetWorldMatrix();
+}

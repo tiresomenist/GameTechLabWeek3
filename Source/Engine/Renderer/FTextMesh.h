@@ -7,11 +7,15 @@
 
 enum class ETextAlign { Left, Center, Right };
 
+// 세로 기준(피벗): 텍스트 박스의 어디를 원점에 둘지
+enum class ETextVAlign { Top, Center, Bottom };
+
 struct FTextStyle
 {
 	float Size = 1.0f;                         // 월드 단위. 구운 높이(32px)가 이 크기가 됨
 	FVector4 Color = FVector4(1, 1, 1, 1);
 	ETextAlign Align = ETextAlign::Left;
+	ETextVAlign VAlign = ETextVAlign::Top;
 };
 
 class FTextMesh

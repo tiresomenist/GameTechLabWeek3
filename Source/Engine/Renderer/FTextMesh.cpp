@@ -31,6 +31,21 @@ namespace
 		return true;
 	}
 
+	// stb 레이아웃 좌표(Y 아래로 +) 기준. 텍스트 박스를 위로 올리려면 음수
+	float VerticalOffset(float BoxHeight, ETextVAlign VAlign)
+	{
+		switch (VAlign)
+		{
+		case ETextVAlign::Center:
+			return -BoxHeight / 2.0f;
+		case ETextVAlign::Bottom:
+			return -BoxHeight;
+		case ETextVAlign::Top:
+		default:
+			return 0.0f;
+		}
+	}
+
 	float LineOffset(float LineWidth, ETextAlign Align)
 	{
 		switch (Align)
@@ -82,7 +97,9 @@ void FTextMesh::Build(const FFontAtlas& Font, const FString& Text, const FTextSt
 
 	UINT Line = 0;
 	float PenX = LineOffset(LineWidth[0], Style.Align);
-	float PenY = Font.GetAscent();
+	// 텍스트 박스 전체 높이 = (줄 수 - 1) × 줄 높이 + 한 줄의 높이(Ascent - Descent)
+	const float BoxHeight = (LineWidth.Num() - 1) * Font.GetLineHeight() + (Font.GetAscent() - Font.GetDescent());
+	float PenY = Font.GetAscent() + VerticalOffset(BoxHeight, Style.VAlign);
 
 	for (uint32 Cp : Codepoints)
 	{

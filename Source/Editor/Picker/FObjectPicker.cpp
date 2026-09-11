@@ -127,7 +127,8 @@ UPrimitiveComponent* FObjectPicker::Pick()
 			
 
 			FMatrix InverseWorld;
-			if (!Primitive->GetWorldMatrix().TryInverse(InverseWorld)) {
+			// 렌더와 같은 행렬로 검사해야 빌보드/화면 크기 고정 텍스트도 보이는 자리에서 잡힌다
+			if (!Primitive->GetRenderWorldMatrix(Editor->GetEditorCamera()).TryInverse(InverseWorld)) {
 				return;
 			}
 

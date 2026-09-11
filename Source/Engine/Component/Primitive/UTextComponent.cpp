@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "UTextComponent.h"
 #include "Engine/Object/FArchive.h"
+#include "Engine/Component/UCameraComponent.h"
 
 void UTextComponent::SetText(const FString& InText)
 {
@@ -38,12 +39,20 @@ void UTextComponent::SetAlign(ETextAlign InAlign)
 	bMeshDirty = true;
 }
 
+void UTextComponent::SetVAlign(ETextVAlign InVAlign)
+{
+	if (VAlign == InVAlign) return;
+	VAlign = InVAlign;
+	bMeshDirty = true;
+}
+
 FTextStyle UTextComponent::MakeStyle() const
 {
 	FTextStyle Style;
 	Style.Size = Size;
 	Style.Color = Color;
 	Style.Align = Align;
+	Style.VAlign = VAlign;
 	return Style;
 }
 
@@ -103,6 +112,9 @@ void UTextComponent::Serialize(FArchive& Archive)
 	Archive.SetFloat("Size", Size);
 	Archive.SetArray<float>("Color", TArray<float>{ Color.X, Color.Y, Color.Z, Color.W });
 	Archive.SetInt32("Align", static_cast<int32>(Align));
+	Archive.SetInt32("VAlign", static_cast<int32>(VAlign));
+	Archive.SetBool("Billboard", bBillboard);
+	Archive.SetBool("ConstantScreenSize", bConstantScreenSize);
 }
 
 void UTextComponent::Deserialize(FArchive& Archive)
@@ -134,4 +146,55 @@ void UTextComponent::Deserialize(FArchive& Archive)
 		if (InAlign >= static_cast<int32>(ETextAlign::Left) && InAlign <= static_cast<int32>(ETextAlign::Right))
 			SetAlign(static_cast<ETextAlign>(InAlign));
 	}
+
+	if (Archive.Contains("VAlign"))
+	{
+		const int32 InVAlign = Archive.GetInt32("VAlign");
+		if (InVAlign >= static_cast<int32>(ETextVAlign::Top) && InVAlign <= static_cast<int32>(ETextVAlign::Bottom))
+			SetVAlign(static_cast<ETextVAlign>(InVAlign));
+	}
+
+	if (Archive.Contains("Billboard")) SetBillboard(Archive.GetBool("Billboard"));
+	if (Archive.Contains("ConstantScreenSize")) SetConstantScreenSize(Archive.GetBool("ConstantScreenSize"));
+}
+
+const FMatrix& UTextComponent::GetRenderWorldMatrix(const UCameraComponent* Camera) const
+{
+	// 옵션이 모두 꺼져 있거나 카메라가 없으면 보통 컴포넌트와 같다
+	if (!Camera || (!bBillboard && !bConstantScreenSize))
+	{
+		return GetWorldMatrix();
+	}
+
+	// 화면 크기 고정: 멀어진 만큼 키워서 화면에 보이는 크기를 유지한다
+	float ScreenScale = 1.0f;
+	if (bConstantScreenSize)
+	{
+		if (Camera->GetIsPerspective())
+		{
+			// 직선 거리가 아니라 카메라 앞 방향으로의 깊이를 쓴다.
+			// 원근 투영의 화면 크기는 깊이에 반비례하므로, 화면 가장자리로 가도 크기가 같다
+			const float Depth = (RelativeLocation - Camera->GetWorldLocation()).Dot(Camera->GetForward());
+			ScreenScale = (std::max)(Depth, 0.01f) / ReferenceDistance;   // 카메라 뒤로 가도 뒤집히지 않게
+		}
+		else
+		{
+			// 직교 투영의 화면 크기는 깊이와 무관하고 OrthoHeight에 반비례한다
+			ScreenScale = Camera->GetOrthoHeight() / ReferenceOrthoHeight;
+		}
+	}
+
+	// 빌보드: 회전을 카메라 회전으로 바꿔 끼운다.
+	// 텍스트는 로컬 +X를 보며 읽고(+Y 오른쪽, +Z 위) 카메라도 +X가 앞(+Y 오른쪽, +Z 위)이라,
+	// 회전을 그대로 복사하면 좌표계가 겹쳐서 정면이 된다 (180도 뒤집기가 필요 없다)
+	const FMatrix Rotation = bBillboard
+		? Camera->GetRelativeRotation().ToRotationMatrix()
+		: RelativeRotation.ToRotationMatrix();
+
+	// USceneComponent::UpdateWorldTransform과 같은 순서: 스케일 → 회전 → 이동
+	RenderWorldMatrix = FMatrix::MakeScaleMatrix(RelativeScale3D * ScreenScale)
+		* Rotation
+		* FMatrix::MakeTranslationMatrix(RelativeLocation);
+
+	return RenderWorldMatrix;
 }
