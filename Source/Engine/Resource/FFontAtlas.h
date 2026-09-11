@@ -38,5 +38,6 @@ private:
 
 	float BakedPixelHeight = 0.f;
 	float Ascent = 0.f, Descent = 0.f, LineGap = 0.f;   // 스케일 적용 후 픽셀
-	static constexpr int AtlasSize = 512;
+	// ASCII 95자 + KS X 1001 한글 2,350자 (32px + 패딩) → 약 2.7M px² 필요 → 2048² (R8, 4MB)
+	static constexpr int AtlasSize = 2048;
 };
