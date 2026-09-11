@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "USceneWindow.h"
 
 #include <algorithm>

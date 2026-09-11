@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UPrimitiveComponent.h"
 #include "Engine/GResourceManager.h"
 #include "Engine/Primitive/FMeshResource.h"

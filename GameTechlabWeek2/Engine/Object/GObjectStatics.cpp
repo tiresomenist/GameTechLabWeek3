@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "GObjectStatics.h"
 #include "Engine/Object/UObject.h"
 

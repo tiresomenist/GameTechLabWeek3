@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UObject.h"
 #include "Engine/Object/GObjectStatics.h"
 #include "Engine/GAllocator.h"

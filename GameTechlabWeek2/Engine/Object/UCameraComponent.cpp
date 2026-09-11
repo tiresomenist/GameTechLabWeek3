@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UCameraComponent.h"
 #include "Engine/Object/UObject.h"
 

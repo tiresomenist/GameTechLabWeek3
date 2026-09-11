@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UObjectAxisGizmo.h"
 #include "Engine/Object/USceneComponent.h"
 #include "Engine/GResourceManager.h"

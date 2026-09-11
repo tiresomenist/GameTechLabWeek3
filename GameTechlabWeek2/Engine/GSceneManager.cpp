@@ -1,8 +1,8 @@
+#include "pch.h"
 #include "GSceneManager.h"
 #include "Container/FString.h"
 #include "Engine/Object/FArchive.h"
 #include "Engine/Object/FClassRegistry.h"
-#include "Engine/Object/FObjectFactory.h"
 #include "Engine/Object/GObjectStatics.h"
 #include "Engine/Scene/UScene.h"
 #include "Engine/Util/File.h"
@@ -32,7 +32,7 @@ GSceneManager* GSceneManager::GetInstance()
 
 void GSceneManager::Initialize()
 {
-	LoadScene(UScene::GetClass(), "");
+	LoadScene(UScene::GetStaticSceneType(), "");
 }
 
 void GSceneManager::Release()
@@ -59,7 +59,7 @@ void GSceneManager::Tick(float DeltaTime)
 	}
 }
 
-void GSceneManager::LoadScene(FClassType* SceneType, FStringView SerializedName)
+void GSceneManager::LoadScene(FSceneType* SceneType, FStringView SerializedName)
 {
 	NextScene = SceneType;
 	NextSceneFile = SerializedName;
@@ -124,8 +124,12 @@ bool ValidateSceneJSON(const nlohmann::json& Root)
 
 void GSceneManager::InternalLoadScene()
 {
-	// UScene의 자식인지 체크
-	if (!NextScene->IsA(UScene::GetClass())) { return; }
+	if (NextScene == nullptr || NextScene->SceneConstructor == nullptr)
+	{
+		NextScene = nullptr;
+		NextSceneFile = "";
+		return;
+	}
 
 	TArray<FArchive> ObjectInfoList;
 	uint32 NextUUID = 0;
@@ -176,8 +180,14 @@ void GSceneManager::InternalLoadScene()
 	}
 
 	GObjectStatics::SetNextUUID(EObjectDomain::EOT_Scene, NextUUID);
-	UObject* RawPtr = FObjectFactory::ConstructEngineObject(NextScene);
-	CurrentScene = static_cast<UScene*>(RawPtr);
+	CurrentScene = NextScene->SceneConstructor();
+	if (CurrentScene == nullptr)
+	{
+		UE_LOG("[SceneManger] {} Scene 생성 실패", NextScene->Name);
+		NextScene = nullptr;
+		NextSceneFile = "";
+		return;
+	}
 
 	CurrentScene->Deserialize(ObjectInfoList);
 	CurrentScene->BeginPlay();
