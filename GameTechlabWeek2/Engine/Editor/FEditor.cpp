@@ -90,20 +90,9 @@ void FEditor::Tick(float DeltaTime)
 		{
 			UPrimitiveComponent* Selected = ObjectPicker->Pick();
 
-			if (SelectedSceneComponent)
-			{
-				if (SelectedSceneComponent->IsA(UPrimitiveComponent::GetClass()))
-				{
-					UPrimitiveComponent* Comp = static_cast<UPrimitiveComponent*>(SelectedSceneComponent);
-					Comp->RenderData.isSelected = false;
-				}
-			}
-
 			SetSelectedSceneComponent(Selected);
 			if (Selected != nullptr) {
-				//SelectedSceneComponent = Selected;
 				UE_LOG("[{}] : [{}번째 오브젝트 선택]", Time, Selected->GetUUID());
-				Selected->RenderData.isSelected = true;
 			}
 		}
 	}
