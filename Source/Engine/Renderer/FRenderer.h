@@ -17,6 +17,7 @@
 
 // debug
 #include "Engine/Resource/FFontAtlas.h"
+#include "Engine/Renderer/FTextMesh.h"
 
 //struct FVertexSimple;
 struct FConstants
@@ -70,13 +71,12 @@ public:
 	ID3D11VertexShader* TextVertexShader = nullptr;
 	ID3D11PixelShader* TextPixelShader = nullptr;
 	ID3D11InputLayout* TextInputLayout = nullptr;
-	ID3D11SamplerState* PointSampler = nullptr;
+	ID3D11SamplerState* TextSampler = nullptr;
 
-	FTexture DebugTexture;
-	ID3D11Buffer* DebugQuadVB = nullptr;
-	ID3D11Buffer* DebugQuadIB = nullptr;
-	FFontAtlas* DebugFont=nullptr;
-	void RenderDebugTextQuad(const FMatrix& ViewProj);
+	// 3단계 확인용 텍스트. 4단계에서 UTextComponent로 대체한다
+	FFontAtlas* DebugFont = nullptr;   // GResourceManager 소유, 빌려 쓰기만
+	FTextMesh DebugText;
+	void RenderDebugText(const FMatrix& ViewProj);
 
 	bool bImGuiContextCreated = false;
 	bool bImGuiWin32Initialized = false;

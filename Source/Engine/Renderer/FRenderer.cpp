@@ -15,6 +15,7 @@
 #include "Engine/Resource/FMeshResource.h"
 #include "Engine/Log.h"
 #include "Engine/Renderer/FVertexText.h"
+#include "Engine/Renderer/FTextMesh.h"
 
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -35,15 +36,18 @@ namespace
 }
 
 
-void FRenderer::RenderDebugTextQuad(const FMatrix& ViewProj)
+void FRenderer::RenderDebugText(const FMatrix& ViewProj)
 {
+	if (!DebugFont || DebugText.GetIndexCount() == 0) return;
+
 	UpdateTransformConstantBuffer(ViewProj);           // 월드 행렬 = 단위 행렬 → MVP = ViewProj
 
+	ID3D11Buffer* VB = DebugText.GetVertexBuffer();
 	UINT Stride = sizeof(FVertexText);
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(TextInputLayout);
-	DeviceContext->IASetVertexBuffers(0, 1, &DebugQuadVB, &Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(DebugQuadIB, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetVertexBuffers(0, 1, &VB, &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(DebugText.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	DeviceContext->VSSetShader(TextVertexShader, nullptr, 0);
@@ -52,11 +56,24 @@ void FRenderer::RenderDebugTextQuad(const FMatrix& ViewProj)
 	ID3D11ShaderResourceView* SRV = DebugFont->GetTexture().GetSRV();
 	DeviceContext->PSSetShader(TextPixelShader, nullptr, 0);
 	DeviceContext->PSSetShaderResources(0, 1, &SRV);   // t0
-	DeviceContext->PSSetSamplers(0, 1, &PointSampler); // s0
+	DeviceContext->PSSetSamplers(0, 1, &TextSampler); // s0
 
 	DeviceContext->RSSetState(CullNoneRasterizerState); // 앞뒤 어느 쪽에서 봐도 보이게
-	DeviceContext->DrawIndexed(6, 0, 0);
-	DeviceContext->RSSetState(DefaultRasterizerState);  // 다음 드로우를 위해 되돌리기
+
+	// 반투명 패스: 글자 가장자리의 알파로 뒤 배경과 섞는다
+	// - 블렌드: 결과 = 글자색 * a + 배경 * (1 - a)
+	// - 깊이: 테스트는 해서 불투명 물체 뒤에선 가려지고, 기록은 안 해서
+	//         투명한 쿼드 가장자리가 뒤에 그려질 것을 가리지 않게 한다 (HighlightDepthStencilState와 같은 설정)
+	const float BlendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
+	DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(HighlightDepthStencilState, 0);
+
+	DeviceContext->DrawIndexed(DebugText.GetIndexCount(), 0, 0);   // 쿼드 N개를 한 번에
+
+	// 다음 드로우를 위해 되돌리기
+	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+	DeviceContext->RSSetState(DefaultRasterizerState);
 }
 
 void FRenderer::Create(HWND HWnd, GDevice* InDevice)
@@ -403,86 +420,31 @@ void FRenderer::ReleaseDepthStencilStates()
 
 void FRenderer::CreateDebugTextResources()
 {
-	constexpr UINT Size = 8;
-	uint32_t Pixels[Size * Size];
-
-	// R8G8B8A8_UNORM은 메모리에 R,G,B,A 순서 → uint32로는 0xAABBGGRR
-	constexpr uint32_t White = 0xFFFFFFFF;
-	constexpr uint32_t Gray = 0xFF404040;
-	constexpr uint32_t Red = 0xFF0000FF;
-
-	for (UINT y = 0; y < Size; ++y)
-	{
-		for (UINT x = 0; x < Size; ++x)
-		{
-			// (x + y)가 짝수/홀수냐로 번갈아 칠한다
-			Pixels[y * Size + x] = ((x + y) % 2 == 0) ? White : Gray;
-		}
-	}
-	Pixels[0] = Red;   // 좌상단 (0,0)만 빨강 → 뒤집힘 확인용
-
-	if (!DebugTexture.Create(D3DDevice, Size, Size, DXGI_FORMAT_R8G8B8A8_UNORM, 4, Pixels))
-		throw std::runtime_error("Debug texture creation failed");
-
 	D3D11_SAMPLER_DESC SamplerDesc = {};
-	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;   // 가장 가까운 텍셀 하나만 → 칸 경계가 칼같이
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;   // 가장 가까운 텍셀 하나만 → 칸 경계가 칼같이
 	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;      // UV가 0~1 밖이면 가장자리 색 유지
 	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	CheckHR(D3DDevice->CreateSamplerState(&SamplerDesc, &PointSampler));
+	CheckHR(D3DDevice->CreateSamplerState(&SamplerDesc, &TextSampler));
 
-	UE_LOG("[FRenderer] Debug texture OK: {}x{}", DebugTexture.GetWidth(), DebugTexture.GetHeight());
-
-	// 그리드가 XY 평면(Z가 위)이라 X = 0인 YZ 평면에 세운다. 한 변 2 유닛
-//   0 ── 1      UV (0,0) ── (1,0)
-//   │ ╲  │         │          │
-//   2 ── 3      UV (0,1) ── (1,1)
-	FVertexText QuadVertices[] =
-	{
-		{ 0.f, -1.f,  1.f,   0.f, 0.f,   1.f, 1.f, 1.f, 1.f },
-		{ 0.f,  1.f,  1.f,   1.f, 0.f,   1.f, 1.f, 1.f, 1.f },
-		{ 0.f, -1.f, -1.f,   0.f, 1.f,   1.f, 1.f, 1.f, 1.f },
-		{ 0.f,  1.f, -1.f,   1.f, 1.f,   1.f, 1.f, 1.f, 1.f },
-	};
-	uint32_t QuadIndices[] = { 0, 1, 2,   2, 1, 3 };
-
-	D3D11_BUFFER_DESC VBDesc = {};
-	VBDesc.ByteWidth = sizeof(QuadVertices);
-	VBDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	D3D11_SUBRESOURCE_DATA VBData = {};
-	VBData.pSysMem = QuadVertices;
-	CheckHR(D3DDevice->CreateBuffer(&VBDesc, &VBData, &DebugQuadVB));
-
-	// 인덱스 버퍼도 같은 방식 (BindFlags = D3D11_BIND_INDEX_BUFFER) — 직접 써 보세요
-	D3D11_BUFFER_DESC IBDesc = {};
-	IBDesc.ByteWidth = sizeof(QuadIndices);
-	IBDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	D3D11_SUBRESOURCE_DATA IBData = {};
-	IBData.pSysMem = QuadIndices;
-	CheckHR(D3DDevice->CreateBuffer(&IBDesc, &IBData, &DebugQuadIB));
 	DebugFont = GResourceManager::GetInstance()->GetFont("Pretendard");
 	if (!DebugFont) throw std::runtime_error("Debug font load failed");
+
+	// 문자열 → 쿼드 N개(CPU) → 동적 버퍼(GPU)
+	DebugText.Build(*DebugFont, "Hello, World", FTextStyle{});
+	if (!DebugText.Upload(D3DDevice, DeviceContext))
+		throw std::runtime_error("Debug text upload failed");
+
+	UE_LOG("[Text] verts={} indices={}", DebugText.GetVertices().Num(), DebugText.GetIndexCount());
 }
 
 void FRenderer::ReleaseDebugTextResources()
 {
-	DebugTexture.Release();
-	if (PointSampler) { PointSampler->Release(); PointSampler = nullptr; }
-	if (DebugQuadVB)
-	{
-		DebugQuadVB->Release();
-		DebugQuadVB = nullptr;
-	}
-	if (DebugQuadIB)
-	{
-		DebugQuadIB->Release();
-		DebugQuadIB = nullptr;
-	}
-	DebugFont = nullptr;
+	if (TextSampler) { TextSampler->Release(); TextSampler = nullptr; }
+	DebugText.Release();
+	DebugFont = nullptr;   // 해제는 소유자인 GResourceManager의 몫
 }
 
 void FRenderer::BeginFrame()
@@ -527,7 +489,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	}
 
 	// 디버그
-	RenderDebugTextQuad(ViewProjMatrix);
+	RenderDebugText(ViewProjMatrix);
 
 	// Render Windows
 	for (auto Item : Editor->GetWindows())

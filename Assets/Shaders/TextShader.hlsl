@@ -32,5 +32,5 @@ PS_INPUT mainVS(VS_INPUT input)
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
     float a = Atlas.Sample(Sampler, input.uv).r;
-    return float4(a, a, a, 1);
+    return float4(input.color.rgb, input.color.a * a);
 }
