@@ -25,6 +25,8 @@ public:
 	const FTexture& GetTexture() const { return Texture; }
 	float GetLineHeight() const { return Ascent - Descent + LineGap; }
 	void Release();
+	float GetAscent() const { return Ascent; }                    // 첫 줄 기준선 위치
+	float GetBakedPixelHeight() const { return BakedPixelHeight; } // 픽셀 → 월드 스케일 계산
 
 private:
 	TArray<unsigned char> TtfBuffer;   // stbtt_fontinfo가 포인터로 참조 → 아틀라스와 수명 같이

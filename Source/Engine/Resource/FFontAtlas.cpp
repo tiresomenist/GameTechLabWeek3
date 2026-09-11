@@ -81,7 +81,8 @@ bool FFontAtlas::Load(ID3D11Device* Device, const char* Path, float PixelHeight)
 
 const FGlyph* FFontAtlas::FindGlyph(uint32 Codepoint) const
 {
-	return nullptr;
+	auto it = Glyphs.find(Codepoint);
+	return (it == Glyphs.end() ? nullptr : &it->second);
 }
 
 void FFontAtlas::Release()

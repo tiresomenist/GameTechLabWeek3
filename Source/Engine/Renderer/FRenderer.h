@@ -70,9 +70,9 @@ public:
 	ID3D11VertexShader* TextVertexShader = nullptr;
 	ID3D11PixelShader* TextPixelShader = nullptr;
 	ID3D11InputLayout* TextInputLayout = nullptr;
-	FTexture DebugTexture;
 	ID3D11SamplerState* PointSampler = nullptr;
 
+	FTexture DebugTexture;
 	ID3D11Buffer* DebugQuadVB = nullptr;
 	ID3D11Buffer* DebugQuadIB = nullptr;
 	FFontAtlas* DebugFont=nullptr;
