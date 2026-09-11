@@ -100,7 +100,7 @@ void UCameraComponent::SetAspectRatio(const float& InRatio)
 void UCameraComponent::LookAt(const FVector& InTargetPosition)
 {
 	FVector Forward = (InTargetPosition - RelativeLocation);
-	if (Forward.Length() <= UEngineStatics::Epsilon) {
+	if (Forward.Length() <= EPSILON) {
 		//카메라의 위치를 바라보는 경우
 		return;
 	}
@@ -191,7 +191,7 @@ FMatrix UCameraComponent::GetPerspectiveProjectionMatrix() const
 void UCameraComponent::MoveCamera(const float& InForward, const float& InRight, const float& InUp, const float& InDeltaTime)
 {
 	FVector InVelocity = GetForward() * InForward + GetRight() * InRight + GetUp()*InUp;
-	if (InVelocity.Length() < UEngineStatics::Epsilon) return;
+	if (InVelocity.Length() < EPSILON) return;
 	InVelocity.Normalize();
 	SetRelativeLocation(RelativeLocation + InVelocity * MoveSpeed * InDeltaTime);
 }

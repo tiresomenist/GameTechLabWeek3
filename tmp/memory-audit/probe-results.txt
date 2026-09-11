@@ -1,0 +1,9 @@
+empty_location_accepted=1
+missing_location_accepted=1
+editor_type_accepted=1
+uuid_trailing_text_accepted=1
+high_uint32_accepted=high_uint32_exception=stoi argument out of range
+registry_slots_after_100000_empty_cycles=100000
+max_size_allocation_returned=1, actual_accounted_bytes=26
+negative_console_limit_retained=1000
+nan_matrix_inverse_success=1, result_is_finite=0

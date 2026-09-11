@@ -13,7 +13,11 @@
 // UScene의 BeginPlay, Tick, EndPlay는 모든 Scene에 대한 공통 로직이 필요하면 작성
 // But 아직 그런 용도가 없음 언젠가 생기면 쓰는걸로...
 void UScene::BeginPlay() {}
-void UScene::Tick(float DeltaTime) {}
+void UScene::Tick(float DeltaTime) {
+    //for (auto actor : Objects) {
+    //    actor.tick(delta);
+    //}
+}
 void UScene::EndPlay() {}
 
 void UScene::CreateMainCamera()

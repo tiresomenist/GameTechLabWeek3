@@ -1,0 +1,34 @@
+#include "Engine/GAllocator.h"
+#include "Engine/Object/GObjectStatics.h"
+#include "Engine/FConsole.h"
+#include "Engine/Object/FArchive.h"
+#include "Matrix.h"
+#include <iostream>
+#include <limits>
+extern bool ValidateSceneJSON(const nlohmann::json&);
+int main() {
+    using J = nlohmann::json;
+    auto scene = J::parse(R"({"Version":1,"NextUUID":0,"Primitives":{"0":{"Type":"Cube","Location":[],"Rotation":[0,0,0],"Scale":[1,1,1]}}})");
+    std::cout << "empty_location_accepted=" << ValidateSceneJSON(scene) << '\n';
+    scene["Primitives"]["0"].erase("Location");
+    std::cout << "missing_location_accepted=" << ValidateSceneJSON(scene) << '\n';
+    scene["Primitives"]["0"]["Type"] = "SceneWindow";
+    std::cout << "editor_type_accepted=" << ValidateSceneJSON(scene) << '\n';
+    scene["Primitives"] = J::object({{"1junk", J::object({{"Type","Cube"}})}});
+    std::cout << "uuid_trailing_text_accepted=" << ValidateSceneJSON(scene) << '\n';
+    scene["Primitives"] = J::object({{"2147483648", J::object({{"Type","Cube"}})}});
+    try { std::cout << "high_uint32_accepted=" << ValidateSceneJSON(scene) << '\n'; }
+    catch(const std::exception& e) { std::cout << "high_uint32_exception=" << e.what() << '\n'; }
+    auto initial = GObjectStatics::GetNextIndex();
+    for(int i=0;i<100000;++i) { auto index=GObjectStatics::GetNextIndex(); GObjectStatics::AddObject(nullptr); GObjectStatics::DestoryObject(index); }
+    std::cout << "registry_slots_after_100000_empty_cycles=" << GObjectStatics::GetNextIndex()-initial << '\n';
+    GObjectStatics::Release();
+    void* allocation = GAllocator::Allocate((std::numeric_limits<size_t>::max)(),16);
+    std::cout << "max_size_allocation_returned=" << (allocation!=nullptr) << ", actual_accounted_bytes=" << GAllocator::GetTotalAllocationBytes() << '\n';
+    GAllocator::Free(allocation);
+    FConsole console; console.SetMaxMessages(-1);
+    for(int i=0;i<1000;++i) console.Append("probe");
+    std::cout << "negative_console_limit_retained=" << console.Get().Num() << '\n';
+    FMatrix matrix, inverse; matrix.M[0][0]=std::numeric_limits<float>::quiet_NaN();
+    std::cout << "nan_matrix_inverse_success=" << matrix.TryInverse(inverse) << ", result_is_finite=" << std::isfinite(inverse.M[0][0]) << '\n';
+}

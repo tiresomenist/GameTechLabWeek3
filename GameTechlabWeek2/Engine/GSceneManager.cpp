@@ -4,7 +4,7 @@
 #include "Engine/Object/FClassRegistry.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Object/GObjectStatics.h"
-#include "Engine/Scene/UMainScene.h"
+#include "Engine/Scene/UScene.h"
 #include "Engine/Util/File.h"
 #include "Engine/Log.h"
 #include "nlohmann/json.hpp"
@@ -32,7 +32,7 @@ GSceneManager* GSceneManager::GetInstance()
 
 void GSceneManager::Initialize()
 {
-	LoadScene(UMainScene::GetClass(), "");
+	LoadScene(UScene::GetClass(), "");
 }
 
 void GSceneManager::Release()
@@ -166,6 +166,8 @@ void GSceneManager::InternalLoadScene()
 	}
 
 	// 검증을 통과한 뒤 기존 Scene을 교체합니다.
+
+	//2.[P1]씬 로드의 예외 경계가 너무 좁음
 	if (CurrentScene)
 	{
 		CurrentScene->EndPlay();

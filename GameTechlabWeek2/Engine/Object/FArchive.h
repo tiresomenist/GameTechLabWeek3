@@ -39,6 +39,7 @@ public:
 	void SetString(const FString& Key, const FString& Value);
 	
 	// GetArray는 필요하면 더 추가
+	//1.[P1]씬 좌표 배열 길이 미검사
 	template <typename T>
 	TArray<T> GetArray(const FString& Key)
 	{

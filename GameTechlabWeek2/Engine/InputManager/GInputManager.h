@@ -24,7 +24,6 @@ public:
 	void SetKey(EInputStatus Key, bool Status);
 	bool GetKey(EInputStatus Key);
 	void KillFocus();
-	void Update();
 	void BeginRightDrag(int32 X, int32 Y);
 	void BeginLeftDrag(int32 X, int32 Y);
 	void UpdateRightDrag(int32 X, int32 Y);
@@ -64,9 +63,6 @@ private:
 	float RightCursorY;
 	float LeftCursorX;
 	float LeftCursorY;
-	//드래그 상태랑 클릭상태 분리용
-	float LeftDragCursorX;
-	float LeftDragCursorY;
 
 	int32 RightCursorPixelX;
 	int32 LeftCursorPixelX;

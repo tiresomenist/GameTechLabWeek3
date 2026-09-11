@@ -27,7 +27,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	DeviceContext = InDevice->GetContext();
 	D3DDevice = InDevice->GetDevice();
 	ViewportInfo = InDevice->GetViewport();
-	CreateRasterizerState();
+	CreateRasterizerState(); 
 	CreateShaders();
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
@@ -50,7 +50,7 @@ void FRenderer::Shutdown()
 	ReleaseRasterizerState();
 	//ReleaseVertexBuffer();
 	ReleaseAlphaBlendState();
-
+	ReleaseDepthStencilStates();
 
 	//TESTCODE//
 	ImGui_ImplDX11_Shutdown();
@@ -62,6 +62,27 @@ void FRenderer::Shutdown()
 	// 
 	// 렌더 타겟을 초기화
 	DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+
+	// 3. ID3D11Debug 획득 및 누수 리포트 출력
+	ID3D11Debug* d3dDebug = nullptr;
+	if (D3DDevice)
+	{
+		// Device로부터 Debug 인터페이스 질의
+		if (SUCCEEDED(D3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)&d3dDebug)))
+		{
+			// 상세 누수 객체 목록 출력
+			d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+			d3dDebug->Release();
+			d3dDebug = nullptr;
+		}
+
+
+	}
+
+	// 4. C++ 힙 메모리(new/malloc) 누수 체크
+	// 전역/정적 객체가 모두 파괴된 뒤 확인하기 위해 보통 main() 반환 직전이나
+	// _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)로 main 시작 시 설정하는 것이 일반적입니다.
+	_CrtDumpMemoryLeaks();
 }
 
 bool FRenderer::CreateShaders()
@@ -120,6 +141,7 @@ bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, co
 		else
 		{
 			UE_LOG("[FRenderer] Shader file not found: {}\n", std::filesystem::path(FilePath).string());
+			errorBlob->Release();
 		}
 		return false;
 	}
@@ -339,6 +361,11 @@ void FRenderer::ReleaseDepthStencilStates()
 	{
 		GizmoDepthStencilState->Release();
 		GizmoDepthStencilState = nullptr;
+	}
+	if (HighlightDepthStencilState)
+	{
+		HighlightDepthStencilState->Release();
+		HighlightDepthStencilState = nullptr;
 	}
 }
 

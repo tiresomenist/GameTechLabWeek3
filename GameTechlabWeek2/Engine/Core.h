@@ -4,6 +4,9 @@
 
 
 #define PI 3.141592f
+#define EPSILON 1.0e-6f
+
+
 typedef int int32;
 typedef unsigned int uint32;
 

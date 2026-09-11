@@ -1,0 +1,2 @@
+#include "Models/Octopus.h"
+unsigned Probe() { return octopus_vertices.Num(); }

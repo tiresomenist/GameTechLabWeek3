@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Core.h"
+#include "Container/TArray.h"
 #include "Engine/Renderer/FVertexSimple.h"
 
 inline const FVertexSimple octopus_vertices[] = {
@@ -180009,3 +180009,4 @@ inline const uint32 octopus_indices[] = {
 	614, 512, 615,
 	513, 615, 512,
 };
+

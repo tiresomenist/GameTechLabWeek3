@@ -57,19 +57,19 @@ void GResourceManager::Initialize(GDevice* InDevice)
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
-    const TArray<FVertexSimple>& Vertices, const TArray<uint32>& Indices)
+    std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices)
 {
     auto Existing = PrimitiveCache.find(MeshName);
     if (Existing != PrimitiveCache.end()) return Existing->second;
-    if (Vertices.IsEmpty() || Indices.IsEmpty()) return nullptr;
+    if (Vertices.empty() || Indices.empty()) return nullptr;
     for (uint32 Index : Indices)
-        if (Index >= static_cast<uint32>(Vertices.Num())) return nullptr;
+        if (Index >= Vertices.size()) return nullptr;
 
     FMeshResource* Mesh = new FMeshResource;
-    Mesh->vertexs = Vertices;
-    Mesh->indexes = Indices;
-    Mesh->VertexCount = static_cast<UINT>(Vertices.Num());
-    Mesh->IndexCount = static_cast<UINT>(Indices.Num());
+    Mesh->vertexs.GetVector().assign(Vertices.begin(), Vertices.end());
+    Mesh->indexes.GetVector().assign(Indices.begin(), Indices.end());
+    Mesh->VertexCount = static_cast<UINT>(Vertices.size());
+    Mesh->IndexCount = static_cast<UINT>(Indices.size());
     Mesh->Stride = sizeof(FVertexSimple);
     Mesh->VertexBuffer = Device->CreateVertexBuffer(&Mesh->vertexs[0], Mesh->Stride * Mesh->VertexCount);
     Mesh->IndexBuffer = Device->CreateIndexBuffer(&Mesh->indexes[0], sizeof(uint32) * Mesh->IndexCount);
@@ -83,13 +83,13 @@ FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
 
         for (const auto& Vertex : Mesh->vertexs)
         {
-            Mesh->BoundsMin.X = std::max(Mesh->BoundsMin.X, Vertex.x);
-            Mesh->BoundsMin.Y = std::max(Mesh->BoundsMin.Y, Vertex.y);
-            Mesh->BoundsMin.Z = std::max(Mesh->BoundsMin.Z, Vertex.z);
+            Mesh->BoundsMin.X = (std::min)(Mesh->BoundsMin.X, Vertex.x);
+            Mesh->BoundsMin.Y = (std::min)(Mesh->BoundsMin.Y, Vertex.y);
+            Mesh->BoundsMin.Z = (std::min)(Mesh->BoundsMin.Z, Vertex.z);
 
-            Mesh->BoundsMax.X = std::min(Mesh->BoundsMax.X, Vertex.x);
-            Mesh->BoundsMax.Y = std::min(Mesh->BoundsMax.Y, Vertex.y);
-            Mesh->BoundsMax.Z = std::min(Mesh->BoundsMax.Z, Vertex.z);
+            Mesh->BoundsMax.X = (std::max)(Mesh->BoundsMax.X, Vertex.x);
+            Mesh->BoundsMax.Y = (std::max)(Mesh->BoundsMax.Y, Vertex.y);
+            Mesh->BoundsMax.Z = (std::max)(Mesh->BoundsMax.Z, Vertex.z);
         }
 
         Mesh->bHasBounds = true;

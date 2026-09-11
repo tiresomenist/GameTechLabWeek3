@@ -32,58 +32,25 @@ void UPropertyWindow::SetSelectedValue(bool bSetRotation)
 	if (SelectedComponent != nullptr)
 	{
 		SelectedComponent->SetRelativeLocation(Translation);
-		if (bSetRotation && RotationDragAxis >= 0)
+
+		if (bSetRotation)
 		{
-			FVector RotationAxis;
-			float CurrentDegree = 0.0f;
+			const FVector EulerRadians = RotationDegree * (PI / 180.0f);
 
-			switch (RotationDragAxis)
-			{
-			case 0:
-				RotationAxis = FVector(1.0f, 0.0f, 0.0f);
-				CurrentDegree = RotationDegree.X;
-				break;
-
-			case 1:
-				RotationAxis = FVector(0.0f, 1.0f, 0.0f);
-				CurrentDegree = RotationDegree.Y;
-				break;
-
-			case 2:
-				RotationAxis = FVector(0.0f, 0.0f, 1.0f);
-				CurrentDegree = RotationDegree.Z;
-				break;
-
-			default:
-				break;
-			}
-
-			const float DeltaRadian = (CurrentDegree - RotationDragStartDegree) * (PI / 180.0f);
-
-			const FQuaternion DeltaRotation = FQuaternion::FromAxisAngle(RotationAxis,DeltaRadian);
-
-			// 현재 월드 회전 기즈모와 같은 적용 순서
-			SelectedComponent->SetRelativeRotation(DeltaRotation * RotationDragStart);
+			SelectedComponent->SetRelativeRotation(
+				FQuaternion::FromEuler(EulerRadians)
+			);
 		}
+
 		SelectedComponent->SetRelativeScale3D(OScale);
 	}
 }
 
-bool UPropertyWindow::DrawRotationField(const char* ID, float& Degree, int AxisIndex, bool& bRotationActive, bool& bRotationFinished)
+bool UPropertyWindow::DrawRotationField(const char* ID, float& Degree, bool& bRotationActive)
 {
-	const float BeforeEdit = Degree;
 	const bool bChanged = ImGui::DragFloat(ID,&Degree,0.1f,0.0f,0.0f,"%.3f");
 
-	if (ImGui::IsItemActivated())
-	{
-		RotationDragStart = SelectedComponent->GetRelativeRotation();
-
-		RotationDragStartDegree = BeforeEdit;
-		RotationDragAxis = AxisIndex;
-	}
-
 	bRotationActive |= ImGui::IsItemActive();
-	bRotationFinished |= ImGui::IsItemDeactivatedAfterEdit();
 	return bChanged;
 }
 
@@ -150,13 +117,13 @@ void UPropertyWindow::Render(float DeltaTime)
 			ImGui::SameLine();
 			ImGui::Text("Translation");
 			constexpr ImGuiSliderFlags RotationFlags = ImGuiSliderFlags_WrapAround | ImGuiSliderFlags_AlwaysClamp;
-			bRotationChanged |= DrawRotationField("##rotationR", RotationDegree.X, 0, bRotationActive, bRotationFinished);
+			bRotationChanged |= DrawRotationField("##rotationR", RotationDegree.X, bRotationActive);
 			DrawItemBottomLine(IM_COL32(255, 40, 40, 255), 2.0f);
 			ImGui::SameLine();
-			bRotationChanged |= DrawRotationField("##rotationP", RotationDegree.Y, 1, bRotationActive, bRotationFinished);
+			bRotationChanged |= DrawRotationField("##rotationP", RotationDegree.Y, bRotationActive);
 			DrawItemBottomLine(IM_COL32(40, 255, 40, 255), 2.0f);
 			ImGui::SameLine();
-			bRotationChanged |= DrawRotationField("##rotationY", RotationDegree.Z, 2, bRotationActive, bRotationFinished);
+			bRotationChanged |= DrawRotationField("##rotationY", RotationDegree.Z, bRotationActive);
 			DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
 			ImGui::SameLine();
 			ImGui::Text("Rotation");
