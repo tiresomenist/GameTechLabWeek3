@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UScene.h"
 // TEMP(UI test): Gizmo implementation is currently excluded from the build.
 // #include "Engine/Gizmo/UGizmo.h"
@@ -12,6 +13,17 @@
 #include "Engine/Object/FArchive.h"
 #include "Engine/Object/FClassRegistry.h"
 #include "Engine/Log.h"
+
+FSceneType* UScene::GetStaticSceneType()
+{
+    static FSceneType Type
+    {
+        .Name = "Scene",
+        .SceneConstructor = []() -> UScene* { return new UScene(); },
+    };
+
+    return &Type;
+}
 
 // UScene의 BeginPlay, Tick, EndPlay는 모든 Scene에 대한 공통 로직이 필요하면 작성
 // But 아직 그런 용도가 없음 언젠가 생기면 쓰는걸로...

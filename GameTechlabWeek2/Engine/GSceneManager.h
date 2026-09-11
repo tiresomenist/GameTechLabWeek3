@@ -2,7 +2,7 @@
 
 #include "Container/FString.h"
 
-struct FClassType;
+struct FSceneType;
 class UScene;
 
 // Singleton
@@ -16,7 +16,7 @@ public:
 
 	void Tick(float DeltaTime);
 
-	void LoadScene(FClassType* SceneType, FStringView SerializedName = "");
+	void LoadScene(FSceneType* SceneType, FStringView SerializedName = "");
 	void SaveScene(FStringView SerializedName);
 
 	UScene* GetScene() { return CurrentScene; };
@@ -26,7 +26,7 @@ private:
 	void InternalLoadScene();
 
 	UScene* CurrentScene = nullptr;
-	FClassType* NextScene = nullptr;
+	FSceneType* NextScene = nullptr;
 	FString NextSceneFile = "";
 
 	// 싱글톤

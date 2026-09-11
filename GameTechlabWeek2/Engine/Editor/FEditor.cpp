@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "FEditor.h"
 
 #include "Engine/Object/UCameraComponent.h"
@@ -203,7 +204,7 @@ void FEditor::LoadScene(FStringView SceneName)
 {
 	SetSelectedSceneComponent(nullptr);
 	GSceneManager* SceneManager = GSceneManager::GetInstance();
-	FClassType* SceneType = GetCurrentScene()->GetInstanceClass();
+	FSceneType* SceneType = GetCurrentScene()->GetSceneType();
 
 	SceneManager->LoadScene(SceneType, SceneName);
 }

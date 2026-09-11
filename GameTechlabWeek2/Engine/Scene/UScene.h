@@ -1,9 +1,9 @@
 #pragma once
 #include "Container/TArray.h"
-#include "Engine/Object/UObject.h"
 #include "Engine/Object/UActor.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Renderer/RenderUtil.h"
+#include "Engine/Scene/FSceneType.h"
 #include "../Object/Primitive/UPrimitiveComponent.h"
 
 struct FPrimitiveRenderData;
@@ -11,12 +11,15 @@ class UCameraComponent;
 class FRenderer;
 class FArchive;
 
-class UScene : public UObject
+// Scene은 Actor를 소유하는 컨테이너입니다. UUID/RTTI가 필요한 UObject가 아닙니다.
+class UScene
 {
-
-	UCLASS(UScene, "Scene", UObject)
-
 public:
+	UScene() = default;
+
+	static FSceneType* GetStaticSceneType();
+	virtual FSceneType* GetSceneType() const { return GetStaticSceneType(); }
+
 	virtual void BeginPlay();
 
     virtual void Tick(float DeltaTime);

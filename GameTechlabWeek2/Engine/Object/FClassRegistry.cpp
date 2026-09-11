@@ -1,7 +1,7 @@
+#include "pch.h"
 #include "FClassRegistry.h"
 #include "Engine/Object/FClassType.h"
 
-#include "Engine/Scene/UScene.h"
 #include "Engine/Gizmo/UGizmo.h"
 #include "Engine/Gizmo/UObjectAxisGizmo.h"
 #include "Engine/Gizmo/UWorldAxisGizmo.h"
