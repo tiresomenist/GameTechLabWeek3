@@ -68,7 +68,7 @@ public:
 		}
 	}
 
-	virtual ~UScene() override;
+	virtual ~UScene();
 
 protected:
 

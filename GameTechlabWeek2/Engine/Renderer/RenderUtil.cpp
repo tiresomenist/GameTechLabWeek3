@@ -20,16 +20,13 @@ namespace
 TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
 {
 	TArray<FPrimitiveRenderData> RenderList;
-	auto* SelectedComponent = Editor ? Editor->GetSelectedSceneComponent() : nullptr;
-
 	Scene->ForEachPrimitive(
-		[&RenderList](UPrimitiveComponent* Primitive)
+		[&RenderList, Editor](UPrimitiveComponent* Primitive)
 		{
-			UPrimitiveComponent* Primitive = static_cast<UPrimitiveComponent*>(Item);
 			const bool bSelected = IsComponentSelected(Editor, Primitive);
 			RenderList.Add(Primitive->CreateRenderData(bSelected));
 		}
-	}
+	);
 
 	return RenderList;
 }
