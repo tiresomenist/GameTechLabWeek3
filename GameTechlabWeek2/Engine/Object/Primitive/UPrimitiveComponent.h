@@ -11,22 +11,15 @@ class UPrimitiveComponent : public USceneComponent
 
     UCLASS(UPrimitiveComponent, "PrimitiveComponent", USceneComponent)
 
-protected:
-
-    static FPrimitiveRenderData CreateRenderData(FStringView Type);
-
 public:
 
     virtual void Initialize() override;
 
-    // 렌더러에게 전달할 렌더 정보
-    const FPrimitiveRenderData& GetRenderData() const { return RenderData; }
+    virtual FPrimitiveRenderData CreateRenderData() const;
 
     FMeshResource* GetMeshResource() const
     {
         return GResourceManager::GetInstance()->GetPrimitive(FString(GetInstanceClass()->Name));
     }
-
-    FPrimitiveRenderData RenderData;
 };
 

@@ -5,25 +5,22 @@
 void UPrimitiveComponent::Initialize()
 {
 	Super::Initialize();
-
-	FClassType* ClassType = GetInstanceClass();
-	RenderData = CreateRenderData(ClassType->Name);
-	RenderData.WorldMatrix = &GetWorldMatrix();
 }
 
-FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(FStringView Type)
+FPrimitiveRenderData UPrimitiveComponent::CreateRenderData() const
 {
-	GResourceManager& ResourceManager = *GResourceManager::GetInstance();
-	FMeshResource* MeshResource = ResourceManager.GetPrimitive(FString{ Type });
+	FClassType* ClassType = GetInstanceClass();
+	FMeshResource* MeshResource = GResourceManager::GetInstance()->GetPrimitive(FString{ ClassType->Name });
 
-	FPrimitiveRenderData RenderData{};
-	if (MeshResource == nullptr) { return RenderData; }
+	FPrimitiveRenderData OutData{};
+	if (MeshResource == nullptr) { return OutData; }
 
-	RenderData.VertexBuffer = MeshResource->VertexBuffer;
-	RenderData.IndexBuffer = MeshResource->IndexBuffer;
-	RenderData.IndexCount = MeshResource->IndexCount;
-	RenderData.Stride = MeshResource->Stride;
+	OutData.VertexBuffer = MeshResource->VertexBuffer;
+	OutData.IndexBuffer = MeshResource->IndexBuffer;
+	OutData.IndexCount = MeshResource->IndexCount;
+	OutData.Stride = MeshResource->Stride;
+	OutData.WorldMatrix = &GetWorldMatrix();
 	// RenderData.Material			= &GetMaterial();
 
-	return RenderData;
+	return OutData;
 }

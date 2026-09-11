@@ -10,13 +10,21 @@
 TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
 {
 	TArray<FPrimitiveRenderData> RenderList;
+	auto* SelectedComponent = Editor ? Editor->GetSelectedSceneComponent() : nullptr;
 
 	for (auto Item : Scene->Objects)
 	{
 		if (Item->IsA(UPrimitiveComponent::GetClass()))
 		{
 			UPrimitiveComponent* Primitive = static_cast<UPrimitiveComponent*>(Item);
-			RenderList.Add(Primitive->GetRenderData());
+			FPrimitiveRenderData RenderData = Primitive->CreateRenderData();
+			
+			if (SelectedComponent && Primitive == SelectedComponent)
+			{
+				RenderData.isSelected = true;
+			}
+
+			RenderList.Add(RenderData);
 		}
 	}
 
