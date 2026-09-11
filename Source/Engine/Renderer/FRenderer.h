@@ -4,7 +4,7 @@
 // D3D11 headers
 #include <d3d11.h>
 #include <d3dcompiler.h>
-
+#include <Engine/Component/Primitive/UTextRenderComponent.h>
 //#include "UEngine"
 #include "Engine/Renderer/FPrimitiveRenderData.h"
 #include "GDevice.h"
@@ -76,7 +76,7 @@ public:
 	void Shutdown();
 
 	bool CreateShaders();
-	bool CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob);
+	bool CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, Microsoft::WRL::ComPtr<ID3DBlob>& OutBlob);
 	void PrepareRTVDSV();
 	void ReleaseShaders();
 
@@ -93,6 +93,9 @@ public:
 
 	void CreateAlphaBlendState();
 	void ReleaseAlphaBlendState();
+
+	void CreateFontSamplerState();
+	void ReleaseFontSamplerState();
 
 	void CreateDepthStencilStates();
 	void ReleaseDepthStencilStates();

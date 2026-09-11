@@ -46,6 +46,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	if (!CreateShaders()) throw std::runtime_error("Shader compilation failed");
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
+	CreateFontSamplerState();
 	CreateDepthStencilStates();
 
 	IMGUI_CHECKVERSION();
@@ -70,6 +71,7 @@ void FRenderer::Shutdown()
     ReleaseShaders();
     ReleaseRasterizerState();
     ReleaseAlphaBlendState();
+	ReleaseFontSamplerState();
     ReleaseDepthStencilStates();
 
     if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
@@ -83,64 +85,58 @@ void FRenderer::Shutdown()
 
 bool FRenderer::CreateShaders()
 {
-	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob;
+	Microsoft::WRL::ComPtr<ID3DBlob> ShaderBlob;
 
 	// Simple Shader (VS & PS)
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainVS", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimpleVertexShader));
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainVS", "vs_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &SimpleVertexShader));
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	CheckHR(D3DDevice->CreateInputLayout(layout, ARRAYSIZE(layout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &SimpleInputLayout));
-	shaderBlob.Reset();
+	CheckHR(D3DDevice->CreateInputLayout(layout, ARRAYSIZE(layout), ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), &SimpleInputLayout));
 
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimplePixelShader));
-	shaderBlob.Reset();
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainPS", "ps_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &SimplePixelShader));
 
 	// Highlight Shader (VS & PS)
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "VS_Highlight", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightVertexShader));
-	shaderBlob.Reset();
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "VS_Highlight", "vs_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &HighlightVertexShader));
 
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "PS_Highlight", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightPixelShader));
-	shaderBlob.Reset();
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "PS_Highlight", "ps_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &HighlightPixelShader));
 
 	// Grid Shader (VS & PS)
-	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "VS_Grid", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridVertexShader));
-	shaderBlob.Reset();
+	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "VS_Grid", "vs_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &GridVertexShader));
 
-	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "PS_Grid", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridPixelShader));
-	shaderBlob.Reset();
+	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "PS_Grid", "ps_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &GridPixelShader));
 
-	if (!CompileShader(L"Assets/Shaders/FontShader.hlsl", "FontVS", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &FontVertexShader));
+	// Font Shader (VS & PS)
+	if (!CompileShader(L"Assets/Shaders/FontShader.hlsl", "FontVS", "vs_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &FontVertexShader));
+	CheckHR(D3DDevice->CreateInputLayout(FFontVertex::Layout, FFontVertex::LayoutCount, ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), &FontInputLayout));
 
-	CheckHR(D3DDevice->CreateInputLayout(FFontVertex::Layout, FFontVertex::LayoutCount, shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &FontInputLayout));
-	shaderBlob.Reset();
-
-	if (!CompileShader(L"Assets/Shaders/FontShader.hlsl", "FontPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &FontPixelShader));
-	shaderBlob.Reset();
+	if (!CompileShader(L"Assets/Shaders/FontShader.hlsl", "FontPS", "ps_5_0", ShaderBlob)) return false;
+	CheckHR(D3DDevice->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &FontPixelShader));
 
 	return true;
 }
-bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob)
+bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, Microsoft::WRL::ComPtr<ID3DBlob>& OutBlob)
 {
-    if (!OutBlob) return false;
-    *OutBlob = nullptr;
-    Microsoft::WRL::ComPtr<ID3DBlob> ErrorBlob;
-    const HRESULT Hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel,
-        0, 0, OutBlob, ErrorBlob.GetAddressOf());
-    if (ErrorBlob)
-        UE_LOG("Shader diagnostic: {}", static_cast<const char*>(ErrorBlob->GetBufferPointer()));
-    return SUCCEEDED(Hr);
+	OutBlob.Reset();
+	Microsoft::WRL::ComPtr<ID3DBlob> ErrorBlob;
+	const HRESULT Hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel,
+		0, 0, OutBlob.GetAddressOf(), ErrorBlob.GetAddressOf());
+
+	if (FAILED(Hr) && ErrorBlob)
+	{
+		UE_LOG("Shader diagnostic: {}", static_cast<const char*>(ErrorBlob->GetBufferPointer()));
+	}
+	return SUCCEEDED(Hr);
 }
 
 void FRenderer::ReleaseShaders()
@@ -326,6 +322,29 @@ void FRenderer::ReleaseAlphaBlendState()
 	}
 }
 
+void FRenderer::CreateFontSamplerState()
+{
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	samplerDesc.MinLOD = 0;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	CheckHR(D3DDevice->CreateSamplerState(&samplerDesc, &FontSamplerState));
+}
+
+void FRenderer::ReleaseFontSamplerState()
+{
+	if (FontSamplerState)
+	{
+		FontSamplerState->Release();
+		FontSamplerState = nullptr;
+	}
+}
+
 void FRenderer::CreateDepthStencilStates()
 {
 	D3D11_DEPTH_STENCIL_DESC DSDesc = {};
@@ -369,6 +388,11 @@ void FRenderer::ReleaseDepthStencilStates()
 		HighlightDepthStencilState->Release();
 		HighlightDepthStencilState = nullptr;
 	}
+	if (TranslucentDepthStencilState)
+	{
+		TranslucentDepthStencilState->Release();
+		TranslucentDepthStencilState = nullptr;
+	}
 }
 
 void FRenderer::BeginFrame()
@@ -398,7 +422,17 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	UCameraComponent* Camera = Editor->GetEditorCamera();
 
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
-	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
+	FMatrix ViewMatrix = Camera->GetViewMatrix();
+	FMatrix ViewProjMatrix = ViewMatrix * Camera->GetProjectionMatrix();
+
+	Scene->ForEachPrimitive([&ViewMatrix](UPrimitiveComponent* Primitive)
+	{
+		if (UTextRenderComponent* TextComp = dynamic_cast<UTextRenderComponent*>(Primitive))
+		{
+			TextComp->UpdateBillboard(ViewMatrix, 0.0f); // 머리 위 높이(120)
+		}
+	});
+
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
 
 	for (auto& Item : RenderList)
@@ -623,7 +657,7 @@ void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(DefaultRasterizerState);
+	DeviceContext->RSSetState(CullNoneRasterizerState);
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 

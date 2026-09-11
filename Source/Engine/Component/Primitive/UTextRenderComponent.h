@@ -7,7 +7,11 @@
 
 class UTextRenderComponent : public UPrimitiveComponent
 {
-    UCLASS(UTextRenderComponent, "TextRenderComponent", UPrimitiveComponent)
+    UCLASS(UTextRenderComponent, "Text", UPrimitiveComponent)
+
+public:
+    bool bUseBillboard = true;
+    FMatrix BillboardMatrix = FMatrix::Identity;
 
 public:
     UTextRenderComponent() = default;
@@ -15,6 +19,8 @@ public:
 
     virtual void Initialize() override;
     virtual FPrimitiveRenderData CreateRenderData(bool bSelected = false) const override;
+
+    void UpdateBillboard(const FMatrix& ViewMatrix, float HeadOffsetZ = 120.0f);
 
     // 텍스트 및 속성 설정
     void SetText(const std::wstring& InText);

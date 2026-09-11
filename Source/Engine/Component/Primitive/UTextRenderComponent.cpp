@@ -140,6 +140,22 @@ void UTextRenderComponent::RebuildTextMesh()
     IndexCount = static_cast<UINT>(Indices.Num());
 }
 
+void UTextRenderComponent::UpdateBillboard(const FMatrix& ViewMatrix, float HeadOffsetZ)
+{
+    FVector TextPos = GetWorldLocation() + FVector(0.0f, 0.0f, HeadOffsetZ);
+
+    FVector Scale = GetRelativeScale3D();
+
+    FMatrix InvView = ViewMatrix.Inverse();
+
+    BillboardMatrix = FMatrix(
+        InvView.M[0][0] * Scale.X, InvView.M[0][1] * Scale.X, InvView.M[0][2] * Scale.X, 0.0f,
+        InvView.M[1][0] * Scale.Y, InvView.M[1][1] * Scale.Y, InvView.M[1][2] * Scale.Y, 0.0f,
+        InvView.M[2][0] * Scale.Z, InvView.M[2][1] * Scale.Z, InvView.M[2][2] * Scale.Z, 0.0f,
+        TextPos.X, TextPos.Y, TextPos.Z, 1.0f
+    );
+}
+
 FPrimitiveRenderData UTextRenderComponent::CreateRenderData(bool bSelected) const
 {
     FPrimitiveRenderData OutData{};
@@ -150,7 +166,8 @@ FPrimitiveRenderData UTextRenderComponent::CreateRenderData(bool bSelected) cons
     OutData.IndexCount = IndexCount;
     OutData.Stride = sizeof(FFontVertex);
     OutData.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    OutData.WorldMatrix = &GetWorldMatrix();
+    if (bUseBillboard)   OutData.WorldMatrix = &BillboardMatrix;
+    else   OutData.WorldMatrix = &GetWorldMatrix();
     OutData.isSelected = bSelected;
     OutData.RenderPass = ERenderPass::Translucent;
 

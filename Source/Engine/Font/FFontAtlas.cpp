@@ -7,8 +7,8 @@ bool FFontAtlas::Initialize(ID3D11Device* InDevice, const std::wstring& InFilePa
     HRESULT hr = DirectX::CreateDDSTextureFromFile(
         InDevice,
         InFilePath.c_str(),
-        AtlasTexture.GetAddressOf(),
-        TextureSRV.GetAddressOf()
+        AtlasTexture.ReleaseAndGetAddressOf(),
+        TextureSRV.ReleaseAndGetAddressOf()
     );
 
     if (FAILED(hr)) return false;

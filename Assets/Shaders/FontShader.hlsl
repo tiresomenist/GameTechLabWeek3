@@ -30,5 +30,9 @@ float4 FontPS(PS_FONT_INPUT input) : SV_TARGET
 {
     float4 texColor = g_FontTexture.Sample(g_FontSampler, input.uv);
 
-    return float4(1.0f, 1.0f, 1.0f, texColor.r);
+    float alpha = texColor.r;
+
+    clip(alpha - 0.05f);
+
+    return float4(1.0f, 1.0f, 1.0f, alpha);
 }
