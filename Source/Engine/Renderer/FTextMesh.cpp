@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "FTextMesh.h"
+#include "Core/Container/Utf8.h"
 
 #include <cstring>
 
@@ -52,24 +53,25 @@ void FTextMesh::Build(const FFontAtlas& Font, const FString& Text, const FTextSt
 	Indices.Empty();
 	if (Text.empty()) return;
 
+	const TArray<uint32> Codepoints = Utf8::Decode(Text);
 	float Scale = Style.Size / Font.GetBakedPixelHeight();
 
 	TArray<float> LineWidth;
 	float W = 0;
-	for (unsigned char c : Text)
+	for (uint32 Cp : Codepoints)
 	{
-		if (c == '\n')
+		if (Cp == '\n')
 		{
 			LineWidth.Add(W);
 			W = 0.0f;
 			continue;
 		}
-		else if (c == '\r')
+		else if (Cp == '\r')
 		{
 			continue;
 		}
 
-		const FGlyph* Glyph = Font.FindGlyph(c);
+		const FGlyph* Glyph = Font.FindGlyph(Cp);
 		if (!Glyph) Glyph = Font.FindGlyph('?');
 		if (!Glyph) continue;
 
@@ -81,22 +83,22 @@ void FTextMesh::Build(const FFontAtlas& Font, const FString& Text, const FTextSt
 	float PenX = LineOffset(LineWidth[0], Style.Align);
 	float PenY = Font.GetAscent();
 
-	for (unsigned char c : Text)
+	for (uint32 Cp : Codepoints)
 	{
-		if (c == '\n')
+		if (Cp == '\n')
 		{
 			Line++;
 			PenX = LineOffset(LineWidth[Line], Style.Align);
 			PenY += Font.GetLineHeight();
 			continue;
 		}
-		else if (c == '\r')
+		else if (Cp == '\r')
 
 		{
 			continue;
 		}
 
-		const FGlyph* Glyph = Font.FindGlyph(c);
+		const FGlyph* Glyph = Font.FindGlyph(Cp);
 		if (!Glyph) Glyph = Font.FindGlyph('?');
 		if (!Glyph) continue;
 
