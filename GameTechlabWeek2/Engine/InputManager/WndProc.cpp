@@ -26,7 +26,7 @@ LRESULT HandleInput(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	if (message == WM_KEYDOWN || message == WM_KEYUP)
 	{
-		if (DisableKeyboard)
+		if (DisableKeyboard && message == WM_KEYDOWN)
 		{
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}

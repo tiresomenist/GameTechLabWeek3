@@ -1,92 +1,68 @@
 #include "pch.h"
 #include "GDevice.h"
 #include "Engine/Log.h"
+#include <wrl/client.h>
+#include <stdexcept>
 
 GDevice* GDevice::GetInstance()
 {
-    static GDevice* Device = new GDevice();
-    return Device;
+    static GDevice Instance{};
+    return &Instance;
 }
 
 void GDevice::Initialize(HWND hWindow, uint32 InWidth, uint32 InHeight)
 {
-    CreateDeviceAndSwapChain(hWindow, InWidth, InHeight);
-    CreateFrameBuffer();
-    CreateDepthStencilBuffer(static_cast<int32>(ViewportInfo.Width), static_cast<int32>(ViewportInfo.Height));
+    bRenderReady = false;
+    bGraphicsFailed = false;
+    if (!InWidth || !InHeight || !CreateDeviceAndSwapChain(hWindow, InWidth, InHeight) ||
+        !CreateFrameBuffer() || !CreateDepthStencilBuffer(InWidth, InHeight))
+    {
+        Release();
+        throw std::runtime_error("D3D device initialization failed");
+    }
+    bRenderReady = true;
 }
 
 void GDevice::Release()
 {
-    ReleaseDeviceAndSwapChain();
+    bRenderReady = false;
+    Microsoft::WRL::ComPtr<ID3D11Debug> Debug;
+    if (Device) Device->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(Debug.GetAddressOf()));
+    if (DeviceContext) DeviceContext->ClearState();
     ReleaseFrameBuffer();
     ReleaseDepthStencilBuffer();
+    ReleaseDeviceAndSwapChain();
+    // The reporting interface itself intentionally retains the device here.
+    if (Debug) Debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
 }
 
 void GDevice::OnResize(uint32 Width, uint32 Height)
 {
-    // 최소화되었을 때 Width/Height가 0으로 들어올 수 있음
-    if (Width == 0 || Height == 0)
-    {
-        return;
-    }
-
-    // Device 초기화 전에 WM_SIZE가 들어올 수 있음
-    if (Device == nullptr ||
-        DeviceContext == nullptr ||
-        SwapChain == nullptr)
-    {
-        return;
-    }
-
-    // 기존 RTV/DSV 바인딩 해제
+    bRenderReady = false;
+    if (!Width || !Height || !Device || !DeviceContext || !SwapChain || bGraphicsFailed) return;
     DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
-
-    // 기존 크기에 종속된 리소스 해제
     ReleaseDepthStencilBuffer();
     ReleaseFrameBuffer();
-
     DeviceContext->Flush();
-
-    // 스왑체인 백 버퍼 크기 변경
-    const HRESULT Result = SwapChain->ResizeBuffers(
-        0,                      // 기존 BufferCount 유지
-        Width,
-        Height,
-        DXGI_FORMAT_UNKNOWN,    // 기존 포맷 유지
-        0
-    );
-
+    const HRESULT Result = SwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, 0);
     if (FAILED(Result))
     {
+        bGraphicsFailed = true;
+        PostQuitMessage(EXIT_FAILURE);
         return;
     }
-
-    // 새로운 크기로 뷰포트 갱신
-    ViewportInfo.TopLeftX = 0.0f;
-    ViewportInfo.TopLeftY = 0.0f;
-    ViewportInfo.Width = static_cast<float>(Width);
-    ViewportInfo.Height = static_cast<float>(Height);
-    ViewportInfo.MinDepth = 0.0f;
-    ViewportInfo.MaxDepth = 1.0f;
-
-    // 새로운 백 버퍼를 이용해 RTV/DSV 재생성
-    CreateFrameBuffer();
-
-    if (!CreateDepthStencilBuffer(
-        static_cast<int32>(Width),
-        static_cast<int32>(Height)))
+    ViewportInfo = {0.0f, 0.0f, static_cast<float>(Width), static_cast<float>(Height), 0.0f, 1.0f};
+    if (!CreateFrameBuffer() || !CreateDepthStencilBuffer(Width, Height))
     {
+        ReleaseFrameBuffer();
+        ReleaseDepthStencilBuffer();
+        bGraphicsFailed = true;
+        PostQuitMessage(EXIT_FAILURE);
         return;
     }
-
-    // 새 렌더 타깃과 뷰포트 적용
-    DeviceContext->OMSetRenderTargets(
-        1,
-        &FrameBufferRTV,
-        DepthStencilView
-    );
-
+    DeviceContext->OMSetRenderTargets(1, &FrameBufferRTV, DepthStencilView);
     DeviceContext->RSSetViewports(1, &ViewportInfo);
+    bRenderReady = true;
 }
 
 bool GDevice::CreateDeviceAndSwapChain(HWND hWindow, uint32 Width, uint32 Height)
@@ -123,7 +99,7 @@ bool GDevice::CreateDeviceAndSwapChain(HWND hWindow, uint32 Width, uint32 Height
         return false;
     }
 
-    SwapChain->GetDesc(&swapchaindesc);
+    if (FAILED(SwapChain->GetDesc(&swapchaindesc))) return false;
 
     ViewportInfo = { 0.0f, 0.0f, (float)swapchaindesc.BufferDesc.Width, (float)swapchaindesc.BufferDesc.Height, 0.0f, 1.0f };
 
@@ -160,6 +136,7 @@ bool GDevice::CreateFrameBuffer()
     if (FAILED(hr))
     {
         UE_LOG("[GDevice] Failed to get back buffer from SwapChain. HRESULT: {}\n", hr);
+        ReleaseFrameBuffer();
         return false;
     }
 
@@ -176,6 +153,7 @@ bool GDevice::CreateFrameBuffer()
             FrameBuffer->Release();
             FrameBuffer = nullptr;
         }
+        ReleaseFrameBuffer();
         return false;
     }
     return true;
@@ -215,6 +193,7 @@ bool GDevice::CreateDepthStencilBuffer(int32 InWidth, int32 inHeight)
     hr = Device->CreateTexture2D(&DepthStencilDesc, nullptr, &DepthStencilBuffer);
     if (FAILED(hr))
     {
+        ReleaseDepthStencilBuffer();
         return false;
     }
 
@@ -226,6 +205,7 @@ bool GDevice::CreateDepthStencilBuffer(int32 InWidth, int32 inHeight)
     hr = Device->CreateDepthStencilView(DepthStencilBuffer, &DSVDesc, &DepthStencilView);
     if (FAILED(hr))
     {
+        ReleaseDepthStencilBuffer();
         return false;
     }
 
@@ -308,5 +288,12 @@ void GDevice::ReleaseIndexBuffer(ID3D11Buffer* indexBuffer)
 
 void GDevice::SwapBuffer()
 {
-    SwapChain->Present(1, 0);
+    if (!IsRenderReady() || !SwapChain) return;
+    const HRESULT Result = SwapChain->Present(1, 0);
+    if (FAILED(Result))
+    {
+        bRenderReady = false;
+        bGraphicsFailed = true;
+        PostQuitMessage(EXIT_FAILURE);
+    }
 }

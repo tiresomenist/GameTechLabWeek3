@@ -8,15 +8,28 @@
 #include "Engine/Gizmo/UGizmo.h"
 #include "Engine/Editor/UGrid.h"
 
+namespace
+{
+	bool IsComponentSelected(const FEditor* Editor, const USceneComponent* Component)
+	{
+		if (!Editor || !Component) return false;
+		return Editor->GetSelectedSceneComponent() == Component;
+	}
+}
+
 TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
 {
 	TArray<FPrimitiveRenderData> RenderList;
+	auto* SelectedComponent = Editor ? Editor->GetSelectedSceneComponent() : nullptr;
 
 	Scene->ForEachPrimitive(
 		[&RenderList](UPrimitiveComponent* Primitive)
 		{
-			RenderList.Add(Primitive->GetRenderData());
-		});
+			UPrimitiveComponent* Primitive = static_cast<UPrimitiveComponent*>(Item);
+			const bool bSelected = IsComponentSelected(Editor, Primitive);
+			RenderList.Add(Primitive->CreateRenderData(bSelected));
+		}
+	}
 
 	return RenderList;
 }

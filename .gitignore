@@ -417,3 +417,7 @@ FodyWeavers.xsd
 
 ## Imgui
 imgui.ini
+
+# Tests and temporary files
+/tests/
+/tmp/

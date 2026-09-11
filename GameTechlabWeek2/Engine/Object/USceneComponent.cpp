@@ -7,6 +7,7 @@
 
 void USceneComponent::SetRelativeLocation(const FVector& Location)
 {
+    if (!std::isfinite(Location.X) || !std::isfinite(Location.Y) || !std::isfinite(Location.Z)) return;
 	RelativeLocation = Location;
     UpdateWorldTransform();
 }
@@ -31,6 +32,7 @@ void USceneComponent::AddWorldRotation(const FQuaternion& Delta)
 
 void USceneComponent::SetRelativeScale3D(const FVector& Scale3D)
 {
+    if (!std::isfinite(Scale3D.X) || !std::isfinite(Scale3D.Y) || !std::isfinite(Scale3D.Z)) return;
 	RelativeScale3D = Scale3D;
     UpdateWorldTransform();
 }
@@ -98,33 +100,11 @@ void USceneComponent::Serialize(FArchive& Archive)
 void USceneComponent::Deserialize(FArchive& Archive)
 {
     Super::Deserialize(Archive);
-
-    // Location
-    TArray<float> Location = Archive.GetArray<float>("Location");
-    if (Location.Num() != 3) return;
-    RelativeLocation.X = Location[0];
-    RelativeLocation.Y = Location[1];
-    RelativeLocation.Z = Location[2];
-
-    // Rotation
-    TArray<float> Rotation = Archive.GetArray<float>("Rotation");
-    if (Rotation.Num() != 3) return;
-
-    FVector EulerRotation
-    {
-        Rotation[0],
-        Rotation[1],
-        Rotation[2],
-    };
-    RelativeRotation = FQuaternion::FromEuler(EulerRotation);
-    
-    // Scale
-    TArray<float> Scale = Archive.GetArray<float>("Scale");
-    if (Scale.Num() != 3) return;
-
-    RelativeScale3D.X = Scale[0];
-    RelativeScale3D.Y = Scale[1];
-    RelativeScale3D.Z = Scale[2];
-
+    const auto Location = Archive.GetVector3OrDefault("Location", 0.0f);
+    const auto Rotation = Archive.GetVector3OrDefault("Rotation", 0.0f);
+    const auto Scale = Archive.GetVector3OrDefault("Scale", 1.0f);
+    RelativeLocation = FVector(Location[0], Location[1], Location[2]);
+    RelativeRotation = FQuaternion::FromEuler(FVector(Rotation[0], Rotation[1], Rotation[2]));
+    RelativeScale3D = FVector(Scale[0], Scale[1], Scale[2]);
     UpdateWorldTransform();
 }

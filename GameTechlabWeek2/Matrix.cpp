@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Matrix.h"
 #include "FQuaternion.h"
+#include <limits>
 
 const FMatrix FMatrix::Identity = FMatrix(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -104,72 +105,44 @@ FMatrix FMatrix::Transpose() const
 bool FMatrix::TryInverse(FMatrix& OutInverse) const
 {
     constexpr int Size = 4;
-	
-	// [원본 행렬 | 단위행렬] 형태의 첨가행렬
-    float Augmented[Size][Size * 2] = {};
-
-    for (int Row = 0; Row < Size; ++Row) {
-        for (int Column = 0; Column < Size; Column++) {
-            Augmented[Row][Column] = M[Row][Column];
-            Augmented[Row][Column + Size] = (Row == Column) ? 1.0f : 0.0f;
-        }
-    }
-
-    for (int PivotColumn = 0;PivotColumn < Size;++PivotColumn) {
-        //부분피벗팅
-        int PivotRow = PivotColumn;
-        float MaxValue = std::fabs(Augmented[PivotRow][PivotColumn]);
-
-		for (int Row = PivotColumn + 1; Row < Size;Row++) {
-            const float Value =std::fabs(Augmented[Row][PivotColumn]);
-            if (Value > MaxValue){
-                MaxValue = Value;
-                PivotRow = Row;
-            }
-        }
-
-        // 피벗이 거의 0일때 역행렬 존재X
-        if (MaxValue <= 1.0e-8f) {
-            return false;
-        }
-
-        // 현재 행과 피벗 행 교환
-        if (PivotRow != PivotColumn) {
-			for (int Column = 0; Column < Size * 2;Column++) {
-				std::swap(Augmented[PivotRow][Column], Augmented[PivotColumn][Column]);
-            }
-        }
-
-        // 피벗을 1로 만든다.
-        const float Pivot = Augmented[PivotColumn][PivotColumn];
-
-        for (int Column = 0;Column < Size * 2;Column++) {
-            Augmented[PivotColumn][Column] /= Pivot;
-        }
-
-        // 피벗 행을 제외한 나머지 행의 현재 열을 0으로 만든다.
-        for (int Row = 0; Row < Size; Row++) {
-            if (Row == PivotColumn){
-                continue;
-            }
-            const float Factor = Augmented[Row][PivotColumn];
-
-            for (int Column = 0; Column < Size * 2;Column++) {
-				Augmented[Row][Column] -= Factor * Augmented[PivotColumn][Column];
-            }
-        }
-    }
-
-    // 붙였던 4x4단위행렬부분을 역행렬로 취함
-    for (int Row = 0; Row < Size; ++Row)
-    {
-        for (int Column = 0; Column < Size; ++Column)
+    double Augmented[Size][Size * 2]{};
+    for (int R = 0; R < Size; ++R)
+        for (int C = 0; C < Size; ++C)
         {
-            OutInverse.M[Row][Column] =
-                Augmented[Row][Column + Size];
+            if (!std::isfinite(M[R][C])) return false;
+            Augmented[R][C] = M[R][C];
+            Augmented[R][C + Size] = R == C ? 1.0 : 0.0;
+        }
+    for (int C = 0; C < Size; ++C)
+    {
+        int PivotRow = C;
+        for (int R = C + 1; R < Size; ++R)
+            if (std::fabs(Augmented[R][C]) > std::fabs(Augmented[PivotRow][C])) PivotRow = R;
+        const double Pivot = Augmented[PivotRow][C];
+        if (!std::isfinite(Pivot) || std::fabs(Pivot) <= 1.0e-8) return false;
+        for (int K = 0; K < Size * 2; ++K) std::swap(Augmented[C][K], Augmented[PivotRow][K]);
+        for (int K = 0; K < Size * 2; ++K) Augmented[C][K] /= Pivot;
+        for (int R = 0; R < Size; ++R)
+        {
+            if (R == C) continue;
+            const double Factor = Augmented[R][C];
+            for (int K = 0; K < Size * 2; ++K)
+            {
+                Augmented[R][K] -= Factor * Augmented[C][K];
+                if (!std::isfinite(Augmented[R][K])) return false;
+            }
         }
     }
-
+    FMatrix Candidate{};
+    const double Limit = (std::numeric_limits<float>::max)();
+    for (int R = 0; R < Size; ++R)
+        for (int C = 0; C < Size; ++C)
+        {
+            const double Value = Augmented[R][C + Size];
+            if (!std::isfinite(Value) || Value < -Limit || Value > Limit) return false;
+            Candidate.M[R][C] = static_cast<float>(Value);
+        }
+    OutInverse = Candidate;
     return true;
 }
 

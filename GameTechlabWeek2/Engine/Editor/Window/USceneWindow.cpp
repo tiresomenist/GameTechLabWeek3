@@ -118,8 +118,8 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Text("PEPE Engine");
 		ImGui::Text("FPS %.00f (%.00f ms)", 1000 / MilliSeconds, MilliSeconds);
 		ImGui::Separator();
-		ImGui::Text("UObject Heap Memory 사용량: %d바이트", AllocationBytes);
-		ImGui::Text("UObject Heap Memory 객체 수: %d개", AllocationCount);
+		ImGui::Text("UObject Heap Memory 사용량: %zu바이트", AllocationBytes);
+		ImGui::Text("UObject Heap Memory 객체 수: %zu개", AllocationCount);
 		ImGui::Separator();
 
 		ImGui::PushItemWidth(WideItemWidth);

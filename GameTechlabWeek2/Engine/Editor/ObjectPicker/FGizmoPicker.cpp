@@ -132,15 +132,15 @@ int FGizmoPicker::Pick(UGizmo* InGizmos)
         const FMeshResource* Mesh = Handle.Mesh;
         if (!Mesh || Handle.Axis < 0 || Handle.Axis > 2) continue;
 
-        const uint32 Count = (std::min)(Mesh->IndexCount, uint32(Mesh->indexes.Num()));
+        const uint32 Count = (std::min)(Mesh->GetIndexCount(), uint32(Mesh->GetIndices().Num()));
 
         if (Handle.Topology == 0) {
             for (uint32 Index = 0; Index + 1 < Count; Index += 2)
             {
-                const uint32 I0 = Mesh->indexes[Index], I1 = Mesh->indexes[Index + 1];
-                if (I0 >= uint32(Mesh->vertexs.Num()) || I1 >= uint32(Mesh->vertexs.Num())) continue;
-                const auto& V0 = Mesh->vertexs[I0];
-                const auto& V1 = Mesh->vertexs[I1];
+                const uint32 I0 = Mesh->GetIndices()[Index], I1 = Mesh->GetIndices()[Index + 1];
+                if (I0 >= uint32(Mesh->GetVertices().Num()) || I1 >= uint32(Mesh->GetVertices().Num())) continue;
+                const auto& V0 = Mesh->GetVertices()[I0];
+                const auto& V1 = Mesh->GetVertices()[I1];
 
                 //월드 좌표계에서 선분 정점 위치 계산
                 FVector A(FVector4(V0.x, V0.y, V0.z, 1) * Handle.WorldMatrix);
@@ -177,15 +177,15 @@ int FGizmoPicker::Pick(UGizmo* InGizmos)
             const FMatrix* World = &Handle.WorldMatrix;
             for (uint32 Index = 0; Index + 2 < Count; Index += 3)
             {
-                const uint32 I0 = Mesh->indexes[Index];
-                const uint32 I1 = Mesh->indexes[Index + 1];
-                const uint32 I2 = Mesh->indexes[Index + 2];
+                const uint32 I0 = Mesh->GetIndices()[Index];
+                const uint32 I1 = Mesh->GetIndices()[Index + 1];
+                const uint32 I2 = Mesh->GetIndices()[Index + 2];
 
-                if (I0 >= uint32(Mesh->vertexs.Num()) || I1 >= uint32(Mesh->vertexs.Num())|| I2 >= uint32(Mesh->vertexs.Num())) continue;
+                if (I0 >= uint32(Mesh->GetVertices().Num()) || I1 >= uint32(Mesh->GetVertices().Num())|| I2 >= uint32(Mesh->GetVertices().Num())) continue;
 
-                const FVertexSimple& V0 = Mesh->vertexs[I0];
-                const FVertexSimple& V1 = Mesh->vertexs[I1];
-                const FVertexSimple& V2 = Mesh->vertexs[I2];
+                const FVertexSimple& V0 = Mesh->GetVertices()[I0];
+                const FVertexSimple& V1 = Mesh->GetVertices()[I1];
+                const FVertexSimple& V2 = Mesh->GetVertices()[I2];
 
                 FVector A(V0.x, V0.y, V0.z);
                 FVector B(V1.x, V1.y, V1.z);

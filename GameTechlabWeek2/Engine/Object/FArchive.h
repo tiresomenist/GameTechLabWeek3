@@ -4,6 +4,9 @@
 #include "Container/TArray.h"
 #include "Engine/Core.h"
 #include <type_traits>
+#include <array>
+#include <cmath>
+#include <limits>
 
 #include "nlohmann/json.hpp"
 
@@ -19,6 +22,23 @@ public:
 	explicit FArchive(const nlohmann::json& InObject);
 
 	nlohmann::json GetJSON() const { return Object; }
+
+    std::array<float, 3> GetVector3OrDefault(const FString& Key, float Default) const
+    {
+        std::array<float, 3> Result{Default, Default, Default};
+        const auto It = Object.find(Key);
+        if (It == Object.end() || !It->is_array() || It->size() != 3) return Result;
+        const double Limit = (std::numeric_limits<float>::max)();
+        for (size_t I = 0; I < 3; ++I)
+        {
+            const auto& Value = (*It)[I];
+            if (!Value.is_number()) continue;
+            const double Number = Value.get<double>();
+            if (std::isfinite(Number) && Number >= -Limit && Number <= Limit)
+                Result[I] = static_cast<float>(Number);
+        }
+        return Result;
+    }
 
 	int32 GetInt32(const FString& Key);
 	void SetInt32(const FString& Key, int32 Value);

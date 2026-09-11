@@ -21,133 +21,115 @@
 
 #include <format>
 #include <filesystem>
+#include <wrl/client.h>
+#include <stdexcept>
+
+namespace
+{
+    void CheckHR(HRESULT Result)
+    {
+        if (FAILED(Result))
+            throw std::runtime_error(std::format("D3D resource creation failed: {}", Result));
+    }
+}
+
 
 void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 {
+    if (!InDevice || !InDevice->GetDevice() || !InDevice->GetContext())
+        throw std::runtime_error("Renderer requires an initialized device");
 	Device = InDevice;
 	DeviceContext = InDevice->GetContext();
 	D3DDevice = InDevice->GetDevice();
 	ViewportInfo = InDevice->GetViewport();
 	CreateRasterizerState(); 
-	CreateShaders();
+	if (!CreateShaders()) throw std::runtime_error("Shader compilation failed");
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
 
 	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
+	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
+	bImGuiContextCreated = true;
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->AddFontFromFileTTF("Assets/Fonts/Pretendard-Regular.ttf", 16.0f);
 
 	// Setup Platform/Renderer backends
-	ImGui_ImplWin32_Init(HWnd);
-	ImGui_ImplDX11_Init(D3DDevice, DeviceContext);
+	bImGuiWin32Initialized = ImGui_ImplWin32_Init(HWnd);
+	if (!bImGuiWin32Initialized) throw std::runtime_error("ImGui Win32 initialization failed");
+	bImGuiDX11Initialized = ImGui_ImplDX11_Init(D3DDevice, DeviceContext);
+	if (!bImGuiDX11Initialized) throw std::runtime_error("ImGui DX11 initialization failed");
+    if (!ImGui_ImplDX11_CreateDeviceObjects())
+        throw std::runtime_error("ImGui GPU resource creation failed");
 }
 
 void FRenderer::Shutdown()
 {
-	ReleaseConstantBuffer();
-	ReleaseShaders();
-	ReleaseRasterizerState();
-	//ReleaseVertexBuffer();
-	ReleaseAlphaBlendState();
-	ReleaseDepthStencilStates();
-
-	//TESTCODE//
-	ImGui_ImplDX11_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-	////////////
-
-	//24번 해야함
-	// 
-	// 렌더 타겟을 초기화
-	DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
-
-	// 3. ID3D11Debug 획득 및 누수 리포트 출력
-	ID3D11Debug* d3dDebug = nullptr;
-	if (D3DDevice)
-	{
-		// Device로부터 Debug 인터페이스 질의
-		if (SUCCEEDED(D3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)&d3dDebug)))
-		{
-			// 상세 누수 객체 목록 출력
-			d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
-			d3dDebug->Release();
-			d3dDebug = nullptr;
-		}
-
-
-	}
-
-	// 4. C++ 힙 메모리(new/malloc) 누수 체크
-	// 전역/정적 객체가 모두 파괴된 뒤 확인하기 위해 보통 main() 반환 직전이나
-	// _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)로 main 시작 시 설정하는 것이 일반적입니다.
-	_CrtDumpMemoryLeaks();
+    if (DeviceContext) DeviceContext->ClearState();
+    ReleaseConstantBuffer();
+    ReleaseShaders();
+    ReleaseRasterizerState();
+    ReleaseAlphaBlendState();
+    ReleaseDepthStencilStates();
+    if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
+    if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
+    if (bImGuiContextCreated) ImGui::DestroyContext();
+    bImGuiDX11Initialized = bImGuiWin32Initialized = bImGuiContextCreated = false;
+    DeviceContext = nullptr;
+    D3DDevice = nullptr;
+    Device = nullptr;
 }
 
 bool FRenderer::CreateShaders()
 {
-	ID3DBlob* shaderBlob = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob;
 
 	// Simple Shader (VS & PS)
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainVS", "vs_5_0", &shaderBlob)) return false;
-	D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimpleVertexShader);
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainVS", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimpleVertexShader));
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	D3DDevice->CreateInputLayout(layout, ARRAYSIZE(layout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &SimpleInputLayout);
-	shaderBlob->Release();
+	CheckHR(D3DDevice->CreateInputLayout(layout, ARRAYSIZE(layout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &SimpleInputLayout));
+	shaderBlob.Reset();
 
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainPS", "ps_5_0", &shaderBlob)) return false;
-	D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimplePixelShader);
-	shaderBlob->Release();
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimplePixelShader));
+	shaderBlob.Reset();
 
 	// Highlight Shader (VS & PS)
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "VS_Highlight", "vs_5_0", &shaderBlob)) return false;
-	D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightVertexShader);
-	shaderBlob->Release();
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "VS_Highlight", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightVertexShader));
+	shaderBlob.Reset();
 
-	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "PS_Highlight", "ps_5_0", &shaderBlob)) return false;
-	D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightPixelShader);
-	shaderBlob->Release();
+	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "PS_Highlight", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightPixelShader));
+	shaderBlob.Reset();
 
 	// Grid Shader (VS & PS)
-	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "VS_Grid", "vs_5_0", &shaderBlob)) return false;
-	D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridVertexShader);
-	shaderBlob->Release();
+	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "VS_Grid", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridVertexShader));
+	shaderBlob.Reset();
 
-	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "PS_Grid", "ps_5_0", &shaderBlob)) return false;
-	D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridPixelShader);
-	shaderBlob->Release();
+	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "PS_Grid", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridPixelShader));
+	shaderBlob.Reset();
 
 	return true;
 }
 bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob)
 {
-	ID3DBlob* errorBlob = nullptr;
-
-	HRESULT hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel, 0, 0, OutBlob, &errorBlob);
-
-	if (FAILED(hr))
-	{
-		if (errorBlob)
-		{
-			UE_LOG("[FRenderer] Shader Compile Error in {} ({}): {}\n", std::filesystem::path(FilePath).string(), EntryPoint, (char*)errorBlob->GetBufferPointer());
-			errorBlob->Release();
-		}
-		else
-		{
-			UE_LOG("[FRenderer] Shader file not found: {}\n", std::filesystem::path(FilePath).string());
-			errorBlob->Release();
-		}
-		return false;
-	}
-
-	return true;
+    if (!OutBlob) return false;
+    *OutBlob = nullptr;
+    Microsoft::WRL::ComPtr<ID3DBlob> ErrorBlob;
+    const HRESULT Hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel,
+        0, 0, OutBlob, ErrorBlob.GetAddressOf());
+    if (ErrorBlob)
+        UE_LOG("Shader diagnostic: {}", static_cast<const char*>(ErrorBlob->GetBufferPointer()));
+    return SUCCEEDED(Hr);
 }
 
 void FRenderer::ReleaseShaders()
@@ -214,9 +196,9 @@ ID3D11Buffer* FRenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWi
 
 	D3D11_SUBRESOURCE_DATA vertexbufferSRD = { vertices };
 
-	ID3D11Buffer* vertexBuffer;
+	ID3D11Buffer* vertexBuffer = nullptr;
 
-	D3DDevice->CreateBuffer(&vertexbufferdesc, &vertexbufferSRD, &vertexBuffer);
+	CheckHR(D3DDevice->CreateBuffer(&vertexbufferdesc, &vertexbufferSRD, &vertexBuffer));
 
 	return vertexBuffer;
 }
@@ -232,20 +214,20 @@ void FRenderer::ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer)
 void FRenderer::CreateConstantBuffer()
 {
 	D3D11_BUFFER_DESC constantbufferdesc = {};
-	constantbufferdesc.ByteWidth = sizeof(FConstants) + 0xf & 0xfffffff0;
+	constantbufferdesc.ByteWidth = (sizeof(FConstants) + 0xf) & 0xfffffff0;
 	constantbufferdesc.Usage = D3D11_USAGE_DYNAMIC;
 	constantbufferdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	constantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-	D3DDevice->CreateBuffer(&constantbufferdesc, nullptr, &TransformConstantBuffer);
+	CheckHR(D3DDevice->CreateBuffer(&constantbufferdesc, nullptr, &TransformConstantBuffer));
 
 	D3D11_BUFFER_DESC gridconstantbufferdesc = {};
-	gridconstantbufferdesc.ByteWidth = sizeof(FConstants) + 0xf & 0xfffffff0;
+	gridconstantbufferdesc.ByteWidth = (sizeof(FGridConstants) + 0xf) & 0xfffffff0;
 	gridconstantbufferdesc.Usage = D3D11_USAGE_DYNAMIC;
 	gridconstantbufferdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	gridconstantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-	D3DDevice->CreateBuffer(&gridconstantbufferdesc, nullptr, &GridConstantBuffer);
+	CheckHR(D3DDevice->CreateBuffer(&gridconstantbufferdesc, nullptr, &GridConstantBuffer));
 }
 
 void FRenderer::ReleaseConstantBuffer()
@@ -267,17 +249,17 @@ void FRenderer::CreateRasterizerState()
 	D3D11_RASTERIZER_DESC rasterizerdesc = {};
 	rasterizerdesc.FillMode = D3D11_FILL_SOLID;
 	rasterizerdesc.CullMode = D3D11_CULL_BACK;  // 백 페이스 컬링
-	D3DDevice->CreateRasterizerState(&rasterizerdesc, &DefaultRasterizerState);
+	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdesc, &DefaultRasterizerState));
 
 	D3D11_RASTERIZER_DESC rasterizerdescHighlight = {};
 	rasterizerdescHighlight.FillMode = D3D11_FILL_SOLID;
 	rasterizerdescHighlight.CullMode = D3D11_CULL_NONE;  // 프론트 페이스 컬링
-	D3DDevice->CreateRasterizerState(&rasterizerdescHighlight, &CullFrontRasterizerState);
+	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdescHighlight, &CullFrontRasterizerState));
 
 	D3D11_RASTERIZER_DESC rasterizerdescGrid = {};
 	rasterizerdescGrid.FillMode = D3D11_FILL_SOLID;
 	rasterizerdescGrid.CullMode = D3D11_CULL_NONE;
-	D3DDevice->CreateRasterizerState(&rasterizerdescGrid, &CullNoneRasterizerState);
+	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdescGrid, &CullNoneRasterizerState));
 }
 
 void FRenderer::ReleaseRasterizerState()
@@ -318,7 +300,7 @@ void FRenderer::CreateAlphaBlendState()
 
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-	D3DDevice->CreateBlendState(&blendDesc, &AlphaBlendState);
+	CheckHR(D3DDevice->CreateBlendState(&blendDesc, &AlphaBlendState));
 }
 
 void FRenderer::ReleaseAlphaBlendState()
@@ -337,18 +319,18 @@ void FRenderer::CreateDepthStencilStates()
 	DSDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	DSDesc.DepthFunc = D3D11_COMPARISON_LESS;
 	DSDesc.StencilEnable = FALSE;
-	D3DDevice->CreateDepthStencilState(&DSDesc, &DefaultDepthStencilState);
+	CheckHR(D3DDevice->CreateDepthStencilState(&DSDesc, &DefaultDepthStencilState));
 
 	D3D11_DEPTH_STENCIL_DESC GizmoDSDesc = DSDesc;
 	GizmoDSDesc.DepthEnable = FALSE;
-	D3DDevice->CreateDepthStencilState(&GizmoDSDesc, &GizmoDepthStencilState);
+	CheckHR(D3DDevice->CreateDepthStencilState(&GizmoDSDesc, &GizmoDepthStencilState));
 
 	D3D11_DEPTH_STENCIL_DESC HighlightDesc = {};
 	HighlightDesc.DepthEnable = TRUE;  // 깊이 검사는 유지
 	HighlightDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 기록 안 함
 	HighlightDesc.DepthFunc = D3D11_COMPARISON_LESS;
 
-	D3DDevice->CreateDepthStencilState(&HighlightDesc, &HighlightDepthStencilState);
+	CheckHR(D3DDevice->CreateDepthStencilState(&HighlightDesc, &HighlightDepthStencilState));
 }
 
 void FRenderer::ReleaseDepthStencilStates()
@@ -391,13 +373,15 @@ void FRenderer::EndFrame()
 
 void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 {
+    if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
 	BeginFrame();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
 
+	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
-	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
+
 	for (auto& Item : RenderList)
 	{
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
@@ -473,14 +457,13 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 void FRenderer::UpdateTransformConstantBuffer(const FMatrix& MVP)
 {
-	if (!TransformConstantBuffer)
+	if (!DeviceContext || !TransformConstantBuffer)
 	{
 		return;
 	}
-	D3D11_MAPPED_SUBRESOURCE constantbufferMSR;
+	D3D11_MAPPED_SUBRESOURCE constantbufferMSR{};
 
 	HRESULT hr = DeviceContext->Map(TransformConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-	FConstants* constants = (FConstants*)constantbufferMSR.pData;
 	if (SUCCEEDED(hr))
 	{
 		FConstants* constants = (FConstants*)constantbufferMSR.pData;
@@ -498,15 +481,14 @@ void FRenderer::UpdateTransformConstantBuffer(const FMatrix& MVP)
 
 void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
 {
-	if (!GridConstantBuffer)
+	if (!DeviceContext || !GridConstantBuffer)
 	{
 		return;
 	}
 
-	D3D11_MAPPED_SUBRESOURCE constantbufferMSR;
+	D3D11_MAPPED_SUBRESOURCE constantbufferMSR{};
 
 	HRESULT hr = DeviceContext->Map(GridConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-	FGridConstants* constants = (FGridConstants*)constantbufferMSR.pData;
 	if (SUCCEEDED(hr))
 	{
 		FGridConstants* constants = (FGridConstants*)constantbufferMSR.pData;
@@ -566,10 +548,13 @@ void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 
 void FRenderer::RenderGrid(FMeshResource* Data)
 {
+    if (!Data) return;
+    ID3D11Buffer* VertexBuffer = Data->GetVertexBuffer();
+    const UINT Stride = Data->GetStride();
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(SimpleInputLayout);
-	DeviceContext->IASetVertexBuffers(0, 1, &Data->VertexBuffer, &Data->Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(Data->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(Data->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	DeviceContext->VSSetShader(GridVertexShader, nullptr, 0);
@@ -586,7 +571,7 @@ void FRenderer::RenderGrid(FMeshResource* Data)
 	DeviceContext->OMSetBlendState(AlphaBlendState, blendFactor, sampleMask);
 	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
 
-	DeviceContext->DrawIndexed(Data->IndexCount, 0, 0);
+	DeviceContext->DrawIndexed(Data->GetIndexCount(), 0, 0);
 }
 
 void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)

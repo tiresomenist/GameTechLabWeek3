@@ -123,10 +123,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetTranslateRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		// UObjectAxisGizmo의 멤버 행렬
 		Data.WorldMatrix = &Handles[0].WorldMatrix;
@@ -138,10 +138,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetTranslateRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		// UObjectAxisGizmo의 멤버 행렬
 		Data.WorldMatrix = &Handles[1].WorldMatrix;
@@ -153,10 +153,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetTranslateRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		// UObjectAxisGizmo의 멤버 행렬
@@ -180,10 +180,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetRotateRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 		// UObjectAxisGizmo의 멤버 행렬
 		Data.WorldMatrix = &Handles[0].WorldMatrix;
@@ -195,10 +195,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetRotateRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 		// UObjectAxisGizmo의 멤버 행렬
 		Data.WorldMatrix = &Handles[1].WorldMatrix;
@@ -210,10 +210,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetRotateRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 
 		// UObjectAxisGizmo의 멤버 행렬
@@ -238,10 +238,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetScaleRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		// UObjectAxisGizmo의 멤버 행렬
 		Data.WorldMatrix = &Handles[0].WorldMatrix;
@@ -253,10 +253,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetScaleRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		// UObjectAxisGizmo의 멤버 행렬
 		Data.WorldMatrix = &Handles[1].WorldMatrix;
@@ -268,10 +268,10 @@ TArray<FPrimitiveRenderData> UObjectAxisGizmo::GetScaleRenderData()
 	if (Mesh != nullptr)
 	{
 		FPrimitiveRenderData Data;
-		Data.VertexBuffer = Mesh->VertexBuffer;
-		Data.IndexBuffer = Mesh->IndexBuffer;
-		Data.Stride = Mesh->Stride;
-		Data.IndexCount = Mesh->IndexCount;
+		Data.VertexBuffer = Mesh->GetVertexBuffer();
+		Data.IndexBuffer = Mesh->GetIndexBuffer();
+		Data.Stride = Mesh->GetStride();
+		Data.IndexCount = Mesh->GetIndexCount();
 		Data.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		// UObjectAxisGizmo의 멤버 행렬
@@ -321,7 +321,7 @@ void UObjectAxisGizmo::SetMode(EGizmoMode InMode)
 		if (!Mesh) continue;
 		// 이동/스케일은 원점부터 Z축 끝까지, 회전은 XY 평면의 반지름.
 		// 메시 정점 순회는 모드 변경 때만 수행한다.
-		for (const auto& Vertex : Mesh->vertexs)
+		for (const auto& Vertex : Mesh->GetVertices())
 		{
 			const float Length = Mode == EGizmoMode::Rotate
 				? std::hypot(Vertex.x * GizmoScale.X, Vertex.y * GizmoScale.Y)

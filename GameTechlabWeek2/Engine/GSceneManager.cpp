@@ -9,6 +9,11 @@
 #include "Engine/Log.h"
 #include "nlohmann/json.hpp"
 
+#include "Engine/Scene/SceneValidation.h"
+#include <array>
+#include <memory>
+#include <unordered_set>
+#include <vector>
 #include <charconv>
 #include <filesystem>
 #include <limits>
@@ -19,15 +24,27 @@ namespace
 	constexpr FStringView SceneDirectory = "Scenes";
 
 	FString GetScenePath(FStringView SceneName)
-	{
-		return (std::filesystem::path(SceneDirectory) / (FString{ SceneName } + ".json")).generic_string();
-	}
+    {
+        FString Name{SceneName};
+        if (Name.empty() || Name.back() == '.' || Name.back() == ' ' ||
+            Name.find_first_of("\\/:*?\"<>|") != FString::npos)
+            throw std::runtime_error("Invalid scene name");
+        for (unsigned char C : Name)
+            if (C < 32) throw std::runtime_error("Invalid scene name");
+        FString Base = Name.substr(0, Name.find('.'));
+        for (char& C : Base) if (C >= 'a' && C <= 'z') C -= ('a' - 'A');
+        const bool Numbered = Base.size() == 4 &&
+            (Base.starts_with("COM") || Base.starts_with("LPT")) && Base[3] >= '1' && Base[3] <= '9';
+        if (Base == "CON" || Base == "PRN" || Base == "AUX" || Base == "NUL" || Numbered)
+            throw std::runtime_error("Reserved scene name");
+        return (std::filesystem::path(SceneDirectory) / (Name + ".json")).generic_string();
+    }
 }
 
 GSceneManager* GSceneManager::GetInstance()
 {
-	static GSceneManager* SceneManager = new GSceneManager();
-	return SceneManager;
+    static GSceneManager Instance{};
+    return &Instance;
 }
 
 void GSceneManager::Initialize()
@@ -37,6 +54,8 @@ void GSceneManager::Initialize()
 
 void GSceneManager::Release()
 {
+    NextScene = nullptr;
+    NextSceneFile.clear();
 	if (CurrentScene)
 	{
 		CurrentScene->EndPlay();
@@ -72,54 +91,27 @@ void GSceneManager::LoadScene(FSceneType* SceneType, FStringView SerializedName)
 
 bool ValidateSceneJSON(const nlohmann::json& Root)
 {
-	if (!Root.is_object())
-	{
-		// 주어진 JSON이 객체가 아님
-		return false;
-	}
-
-	if (Root.at("Version").get<int32>() != 1)
-	{
-		// 버전이 다름
-		return false;
-	}
-
-	const uint32 NextUUID = Root.at("NextUUID").get<uint32>();
-	const nlohmann::json& Primitives = Root.at("Primitives");
-
-	if (!Primitives.is_object())
-	{
-		// Primitives가 존재하지 않거나 객체가 아님
-		return false;
+    try
+    {
+        if (!Root.is_object() || !Root.at("Version").is_number_integer() || Root.at("Version") != 1)
+            return false;
+        const auto& Next = Root.at("NextUUID");
+        if (!Next.is_number_integer()) return false;
+        const uint32 NextUUID = ParseSceneUUID(Next.dump(), true);
+        const auto& Primitives = Root.at("Primitives");
+        if (!Primitives.is_object()) return false;
+        for (const auto& Item : Primitives.items())
+        {
+            if (ParseSceneUUID(Item.key()) >= NextUUID) return false;
+            const auto& Object = Item.value();
+            if (!Object.is_object() || !Object.at("Type").is_string()) return false;
+            const FString Type = Object.at("Type").get<FString>();
+            if (!IsAllowedSceneType(Type) || !FClassRegistry::FindClassType(Type)) return false;
+        }
+        return true;
     }
-
-	for (const auto& Item : Primitives.items())
-	{
-		const uint32 UUID = std::stoi(Item.key());
-		const nlohmann::json& Primitive = Item.value();
-
-		if (!Primitive.is_object())
-		{
-			// Primitives 객체의 value가 객체가 아님
-			return false;
-		}
-
-		const nlohmann::json& Type = Primitive.at("Type");
-		if (!Type.is_string())
-		{
-			// 객체에 Type가 없음
-			return false;
-		}
-
-		const FString TypeName = Type.get<FString>();
-		if (FClassRegistry::FindClassType(TypeName) == nullptr)
-		{
-			// 주어진 객체의 Type이 프로그램에 존재하지 않음
-			return false;
-		}
-	}
-
-	return true;
+    catch (const nlohmann::json::exception&) { return false; }
+    catch (const std::runtime_error&) { return false; }
 }
 
 void GSceneManager::InternalLoadScene()
@@ -200,37 +192,29 @@ void GSceneManager::InternalLoadScene()
 
 void GSceneManager::SaveScene(FStringView SerializedName)
 {
-	if (CurrentScene == nullptr) { return; }
-	if (SerializedName == "") { return; }
-
-	TArray<FArchive> ObjectInfoList;
-	CurrentScene->Serialize(ObjectInfoList);
-	
-	nlohmann::json ObjectArray = nlohmann::json::object();
-
-	for (auto& Item : ObjectInfoList)
-	{
-		FString UUID = std::to_string(Item.GetUInt32("UUID"));
-		ObjectArray[UUID] = Item.GetJSON();
-	}
-
-	uint32 NextUUID = GObjectStatics::GetNextUUID(EObjectDomain::EOT_Scene);
-
-	nlohmann::json FileJSON;
-	FileJSON["Version"] = 1;
-	FileJSON["NextUUID"] = NextUUID;
-	FileJSON["Primitives"] = ObjectArray;
-
-	const FString FileName = GetScenePath(SerializedName);
-
-	try
-	{
-		std::filesystem::create_directories(SceneDirectory);
-		FString FileText = FileJSON.dump();
-		File::WriteText(FileName, FileText);
-	}
-	catch (const std::exception& Error)
-	{
-		UE_LOG("[SceneManger] {} 씬 저장 실패: {}", FileName, Error.what());
-	}
+    if (!CurrentScene || SerializedName.empty()) return;
+    try
+    {
+        const FString FileName = GetScenePath(SerializedName);
+        TArray<FArchive> ObjectInfoList;
+        CurrentScene->Serialize(ObjectInfoList);
+        auto Objects = nlohmann::json::object();
+        for (auto& Item : ObjectInfoList)
+        {
+            const FString UUID = std::to_string(Item.GetUInt32("UUID"));
+            if (Objects.contains(UUID)) throw std::runtime_error("Duplicate UUID while saving");
+            Objects[UUID] = Item.GetJSON();
+        }
+        nlohmann::json Root;
+        Root["Version"] = 1;
+        Root["NextUUID"] = GObjectStatics::GetNextUUID(EObjectDomain::EOT_Scene);
+        Root["Primitives"] = std::move(Objects);
+        if (!ValidateSceneJSON(Root)) throw std::runtime_error("Invalid scene data while saving");
+        std::filesystem::create_directories(SceneDirectory);
+        File::WriteText(FileName, Root.dump());
+    }
+    catch (const std::exception& Error)
+    {
+        UE_LOG("[SceneManager] Save {} failed: {}", SerializedName, Error.what());
+    }
 }

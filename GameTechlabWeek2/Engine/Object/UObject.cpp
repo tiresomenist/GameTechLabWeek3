@@ -53,15 +53,19 @@ void UObject::Initialize()
 
 void* UObject::operator new(size_t Size)
 {
-	return GAllocator::Allocate(Size);
+    void* Ptr = GAllocator::Allocate(Size);
+    if (!Ptr) throw std::bad_alloc();
+    return Ptr;
 }
 
 void* UObject::operator new(size_t Size, std::align_val_t Alignment)
 {
-	return GAllocator::Allocate(
+    void* Ptr = GAllocator::Allocate(
 		Size,
 		static_cast<size_t>(Alignment)
 	);
+    if (!Ptr) throw std::bad_alloc();
+    return Ptr;
 }
 
 void UObject::operator delete(void* Ptr)
@@ -69,9 +73,14 @@ void UObject::operator delete(void* Ptr)
 	GAllocator::Free(Ptr);
 }
 
+void UObject::operator delete(void* Ptr, std::align_val_t)
+{
+    GAllocator::Free(Ptr);
+}
+
 UObject::~UObject()
 {
-	GObjectStatics::DestoryObject(InternalIndex);
+	GObjectStatics::Unregister(InternalIndex, this);
 }
 
 void UObject::Serialize(FArchive& Archive)

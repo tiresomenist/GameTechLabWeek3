@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "Container/TArray.h"
 #include "Engine/Object/UActor.h"
 #include "Engine/Object/FObjectFactory.h"
@@ -67,7 +68,7 @@ public:
 		}
 	}
 
-	virtual ~UScene();
+	virtual ~UScene() override;
 
 protected:
 

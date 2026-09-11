@@ -10,35 +10,26 @@
 
 UObject* FObjectFactory::_ConstructObject(FClassType* Type, EObjectDomain Domain, uint32 UUID)
 {
-	if (Type == nullptr)
-	{
-		throw std::logic_error("ConstructObject: Type is nullptr");
-	}
-
-	if (UUID == -1)
-	{
-		// Note: uint32에서 -1 ==> (2^32 - 1)로 변환됨
-		UUID = GObjectStatics::GenerateUUID(Domain);
-	}
-
-	const FObjectCreateInfo Info
-	{
-		.UUID = UUID,
-		.InternalIndex = GObjectStatics::GetNextIndex(),
-		.ClassType = Type,
-		.Domain = Domain,
-	};
-
-	UE_LOG("[Object Created] Name:{} UUID:{} Domain:{} ", Type->Name, UUID, static_cast<size_t>(Domain));
-
-	//
-	UObject* Object = Type->ClassConstructor(Info);
-
-	Object->Initialize();
-
-	GObjectStatics::AddObject(Object);
-
-	return Object;
+    if (!Type) throw std::logic_error("ConstructObject: Type is nullptr");
+    if (UUID == static_cast<uint32>(-1)) UUID = GObjectStatics::GenerateUUID(Domain);
+    const uint32 Index = GObjectStatics::ReserveSlot();
+    UObject* Object = nullptr;
+    try
+    {
+        const FObjectCreateInfo Info{.UUID = UUID, .InternalIndex = Index, .ClassType = Type, .Domain = Domain};
+        Object = Type->ClassConstructor(Info);
+        if (!Object) throw std::runtime_error("Object construction failed");
+        GObjectStatics::CommitSlot(Index, Object);
+        Object->Initialize();
+        UE_LOG("[Object Created] Name:{} UUID:{} Domain:{}", Type->Name, UUID, static_cast<size_t>(Domain));
+        return Object;
+    }
+    catch (...)
+    {
+        if (Object) delete Object;
+        else GObjectStatics::CancelSlot(Index);
+        throw;
+    }
 }
 
 UObject* FObjectFactory::ConstructSceneObject(FClassType* Type, uint32 UUID)

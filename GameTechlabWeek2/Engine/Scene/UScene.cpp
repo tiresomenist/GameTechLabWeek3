@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "UScene.h"
+#include "SceneValidation.h"
+#include <memory>
+#include <stdexcept>
 // TEMP(UI test): Gizmo implementation is currently excluded from the build.
 // #include "Engine/Gizmo/UGizmo.h"
 
@@ -78,6 +81,7 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
     for (auto& Item : ObjectInfoList)
     {
         FString TypeName = Item.GetString("Type");
+        if (!IsAllowedSceneType(TypeName)) throw std::runtime_error("Unsupported scene type");
         FClassType* Type = FClassRegistry::FindClassType(TypeName);
 
         uint32 UUID = Item.GetUInt32("UUID");
