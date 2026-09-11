@@ -35,6 +35,11 @@ public:
 	const TArray<FVertexText>& GetVertices() const { return Vertices; }
 	const TArray<uint32>& GetIndices() const { return Indices; }
 
+	// 로컬 공간 AABB (피킹용). 그릴 쿼드가 없으면 HasBounds() == false
+	bool HasBounds() const { return bHasBounds; }
+	const FVector& GetBoundsMin() const { return BoundsMin; }
+	const FVector& GetBoundsMax() const { return BoundsMax; }
+
 private:
 	TArray<FVertexText> Vertices;
 	TArray<uint32> Indices;
@@ -44,4 +49,8 @@ private:
 	UINT VBCapacity = 0;    // 버퍼에 들어갈 수 있는 정점 수
 	UINT IBCapacity = 0;    // 인덱스 수
 	UINT IndexCount = 0;    // 실제로 그릴 인덱스 수
+
+	FVector BoundsMin;
+	FVector BoundsMax;
+	bool bHasBounds = false;
 };

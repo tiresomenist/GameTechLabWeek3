@@ -15,10 +15,6 @@
 #include "Core/Container/TArray.h"
 #include "Engine/Resource/FTexture.h"
 
-// debug
-#include "Engine/Resource/FFontAtlas.h"
-#include "Engine/Renderer/FTextMesh.h"
-
 //struct FVertexSimple;
 struct FConstants
 {
@@ -73,10 +69,8 @@ public:
 	ID3D11InputLayout* TextInputLayout = nullptr;
 	ID3D11SamplerState* TextSampler = nullptr;
 
-	// 3단계 확인용 텍스트. 4단계에서 UTextComponent로 대체한다
-	FFontAtlas* DebugFont = nullptr;   // GResourceManager 소유, 빌려 쓰기만
-	FTextMesh DebugText;
-	void RenderDebugText(const FMatrix& ViewProj);
+	// 텍스트 패스. 불투명을 다 그린 뒤 반투명으로 그린다 (MVP는 호출하는 쪽이 항목마다 갱신)
+	void RenderText(const FPrimitiveRenderData& Data);
 
 	bool bImGuiContextCreated = false;
 	bool bImGuiWin32Initialized = false;
@@ -106,8 +100,8 @@ public:
 	void CreateDepthStencilStates();
 	void ReleaseDepthStencilStates();
 
-	void CreateDebugTextResources();
-	void ReleaseDebugTextResources();
+	void CreateTextResources();
+	void ReleaseTextResources();
 
 	void BeginFrame();
 	void EndFrame();

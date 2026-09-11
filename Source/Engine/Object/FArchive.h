@@ -23,6 +23,9 @@ public:
 
 	nlohmann::json GetJSON() const { return Object; }
 
+	// Get 함수들은 키가 없으면 예외를 던지므로, 선택적인 필드는 먼저 확인한다
+	bool Contains(const FString& Key) const { return Object.contains(Key); }
+
     std::array<float, 3> GetVector3OrDefault(const FString& Key, float Default) const
     {
         std::array<float, 3> Result{Default, Default, Default};

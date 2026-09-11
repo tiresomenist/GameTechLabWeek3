@@ -5,6 +5,8 @@
 #include "ImGui/imgui.h"
 #include "Editor/FEditor.h"
 #include "Core/Math/FQuaternion.h"
+#include "ImGui/imgui_stdlib.h"
+#include "Engine/Component/Primitive/UTextComponent.h"
 
 void UPropertyWindow::GetSelectedValue()
 {
@@ -187,6 +189,12 @@ void UPropertyWindow::Render(float DeltaTime)
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
 			ImGui::Checkbox("Scale Lock", &bScaleLock);
+
+			// 텍스트 컴포넌트 전용 속성
+			if (SelectedComponent->IsA(UTextComponent::GetClass()))
+			{
+				DrawTextProperties(static_cast<UTextComponent*>(SelectedComponent));
+			}
 			if (ImGui::Button("Delete"))
 			{
 				DeleteSelected();
@@ -196,4 +204,40 @@ void UPropertyWindow::Render(float DeltaTime)
 	}
 	bEditingRotation = bRotationActive;
 	SetSelectedValue(bRotationChanged || bRotationFinished);
+}
+
+void UPropertyWindow::DrawTextProperties(UTextComponent* TextComponent)
+{
+	ImGui::SeparatorText("Text");
+
+	// ImGui가 값을 직접 고치므로 복사본으로 받고, 바뀌었을 때만 Setter로 넣는다.
+	// Setter는 같은 값이면 dirty를 켜지 않으므로 매 프레임 불려도 메시를 다시 만들지 않는다.
+
+	// 문구: 여러 줄 입력. imgui_stdlib 덕분에 std::string을 바로 받는다 (UTF-8)
+	FString Text = TextComponent->GetText();
+	if (ImGui::InputTextMultiline("##Text", &Text, ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 4.0f)))
+	{
+		TextComponent->SetText(Text);
+	}
+
+	float Size = TextComponent->GetSize();
+	if (ImGui::DragFloat("Size", &Size, 0.01f, 0.01f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+	{
+		TextComponent->SetSize(Size);
+	}
+
+	const FVector4& Color = TextComponent->GetColor();
+	float ColorValues[4] = { Color.X, Color.Y, Color.Z, Color.W };
+	if (ImGui::ColorEdit4("Color", ColorValues))
+	{
+		TextComponent->SetColor(FVector4(ColorValues[0], ColorValues[1], ColorValues[2], ColorValues[3]));
+	}
+
+	// ETextAlign 순서(Left, Center, Right)와 같아야 한다
+	const char* AlignNames[] = { "Left", "Center", "Right" };
+	int Align = static_cast<int>(TextComponent->GetAlign());
+	if (ImGui::Combo("Align", &Align, AlignNames, IM_ARRAYSIZE(AlignNames)))
+	{
+		TextComponent->SetAlign(static_cast<ETextAlign>(Align));
+	}
 }

@@ -73,7 +73,7 @@ bool FObjectPicker::RayTriangleIntersect(const FRay& Ray,FVector A, FVector B, F
 	return OutDistance > 1.0e-6f;
 }
 
-bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,const FVector& BoundsMax,float MaxDistance)
+bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,const FVector& BoundsMax,float MaxDistance, float* OutEnter)
 {
 	float Enter = 0.0f;
 	float Exit = MaxDistance;
@@ -106,6 +106,7 @@ bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,co
 	if (!TestAxis(Ray.Origin.Z, Ray.Direction.Z, BoundsMin.Z, BoundsMax.Z))
 		return false;
 
+	if (OutEnter) *OutEnter = Enter;
 	return true;
 }
 
@@ -124,10 +125,6 @@ UPrimitiveComponent* FObjectPicker::Pick()
 			
 			FMeshResource* Mesh = Primitive->GetMeshResource();
 			
-			if (Mesh == nullptr) {
-				UE_LOG("클래스를 참조하지 못했습니다.");
-				return;
-			}
 
 			FMatrix InverseWorld;
 			if (!Primitive->GetWorldMatrix().TryInverse(InverseWorld)) {
@@ -137,6 +134,22 @@ UPrimitiveComponent* FObjectPicker::Pick()
 			FRay LocalRay;
 			LocalRay.Origin = FVector(FVector4(Ray.Origin, 1.0f) * InverseWorld);
 			LocalRay.Direction = FVector(FVector4(Ray.Direction, 0.0f) * InverseWorld);
+
+			// 공유 메시가 없는 컴포넌트(텍스트 등)는 자기 로컬 Bounds로만 검사한다.
+			// 텍스트는 로컬에서 평평한 사각형이라 로컬 AABB가 곧 텍스트 영역이다 (회전은 로컬 광선이 이미 처리).
+			if (Mesh == nullptr)
+			{
+				FVector BoundsMin, BoundsMax;
+				if (!Primitive->GetLocalBounds(BoundsMin, BoundsMax)) return;
+
+				float T = 0.0f;
+				if (RayAABBIntersect(LocalRay, BoundsMin, BoundsMax, ClosestDistance, &T) && T < ClosestDistance)
+				{
+					ClosestDistance = T;
+					SelectedObject = Primitive;
+				}
+				return;
+			}
 
 			if (Mesh->HasBounds() && !RayAABBIntersect(LocalRay,Mesh->GetBoundsMin(),Mesh->GetBoundsMax(),ClosestDistance)){
 				return;

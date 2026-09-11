@@ -51,6 +51,7 @@ void FTextMesh::Build(const FFontAtlas& Font, const FString& Text, const FTextSt
 {
 	Vertices.Empty();
 	Indices.Empty();
+	bHasBounds = false;   // 빈 문자열이면 이전 문구의 Bounds가 남지 않게
 	if (Text.empty()) return;
 
 	const TArray<uint32> Codepoints = Utf8::Decode(Text);
@@ -167,6 +168,23 @@ void FTextMesh::Build(const FFontAtlas& Font, const FString& Text, const FTextSt
 		Vertices.Add(p1);
 		Vertices.Add(p2);
 		Vertices.Add(p3);
+
+		// 로컬 Bounds 갱신 (피킹용). 쿼드는 YZ 평면의 사각형이라 p0(좌상단)과 p3(우하단)이면 충분하다
+		const FVector QuadMin(0.0f, p0.y, p3.z);
+		const FVector QuadMax(0.0f, p3.y, p0.z);
+		if (!bHasBounds)
+		{
+			BoundsMin = QuadMin;
+			BoundsMax = QuadMax;
+			bHasBounds = true;
+		}
+		else
+		{
+			BoundsMin.Y = (std::min)(BoundsMin.Y, QuadMin.Y);
+			BoundsMin.Z = (std::min)(BoundsMin.Z, QuadMin.Z);
+			BoundsMax.Y = (std::max)(BoundsMax.Y, QuadMax.Y);
+			BoundsMax.Z = (std::max)(BoundsMax.Z, QuadMax.Z);
+		}
 
 		Indices.Add(n + 0);
 		Indices.Add(n + 1);

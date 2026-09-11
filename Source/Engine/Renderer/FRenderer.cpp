@@ -36,24 +36,23 @@ namespace
 }
 
 
-void FRenderer::RenderDebugText(const FMatrix& ViewProj)
+void FRenderer::RenderText(const FPrimitiveRenderData& Data)
 {
-	if (!DebugFont || DebugText.GetIndexCount() == 0) return;
+	// MVP는 호출하는 쪽이 항목마다 갱신한다 (RenderPrimitive와 같은 규칙)
 
-	UpdateTransformConstantBuffer(ViewProj);           // 월드 행렬 = 단위 행렬 → MVP = ViewProj
-
-	ID3D11Buffer* VB = DebugText.GetVertexBuffer();
-	UINT Stride = sizeof(FVertexText);
+	// IASetVertexBuffers는 ID3D11Buffer* const*를 받으므로 지역 변수에 담아 넘긴다
+	ID3D11Buffer* VB = Data.VertexBuffer;
+	UINT Stride = Data.Stride;   // sizeof(FVertexText)
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(TextInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &VB, &Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(DebugText.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(Data.Topology);
 
 	DeviceContext->VSSetShader(TextVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	ID3D11ShaderResourceView* SRV = DebugFont->GetTexture().GetSRV();
+	ID3D11ShaderResourceView* SRV = Data.Material;   // 이 텍스트가 쓰는 폰트의 아틀라스
 	DeviceContext->PSSetShader(TextPixelShader, nullptr, 0);
 	DeviceContext->PSSetShaderResources(0, 1, &SRV);   // t0
 	DeviceContext->PSSetSamplers(0, 1, &TextSampler); // s0
@@ -68,7 +67,7 @@ void FRenderer::RenderDebugText(const FMatrix& ViewProj)
 	DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, 0xffffffff);
 	DeviceContext->OMSetDepthStencilState(HighlightDepthStencilState, 0);
 
-	DeviceContext->DrawIndexed(DebugText.GetIndexCount(), 0, 0);   // 쿼드 N개를 한 번에
+	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);   // 쿼드 N개를 한 번에
 
 	// 다음 드로우를 위해 되돌리기
 	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
@@ -90,7 +89,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
 
-	CreateDebugTextResources();
+	CreateTextResources();
 
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
@@ -115,7 +114,7 @@ void FRenderer::Shutdown()
 	ReleaseRasterizerState();
 	ReleaseAlphaBlendState();
 	ReleaseDepthStencilStates();
-	ReleaseDebugTextResources();
+	ReleaseTextResources();
 
 	if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
 	if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
@@ -418,35 +417,22 @@ void FRenderer::ReleaseDepthStencilStates()
 	}
 }
 
-void FRenderer::CreateDebugTextResources()
+void FRenderer::CreateTextResources()
 {
+	// 텍스트 메시와 폰트는 UTextComponent와 GResourceManager가 가진다. 렌더러는 샘플러만 가진다.
 	D3D11_SAMPLER_DESC SamplerDesc = {};
-	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;   // 가장 가까운 텍셀 하나만 → 칸 경계가 칼같이
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;   // 주변 텍셀을 보간 → 아틀라스의 안티앨리어싱 가장자리를 부드럽게
 	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;      // UV가 0~1 밖이면 가장자리 색 유지
 	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	CheckHR(D3DDevice->CreateSamplerState(&SamplerDesc, &TextSampler));
-
-	DebugFont = GResourceManager::GetInstance()->GetFont("Pretendard");
-	if (!DebugFont) throw std::runtime_error("Debug font load failed");
-
-	// 문자열 → 쿼드 N개(CPU) → 동적 버퍼(GPU)
-	FTextStyle Style;
-	Style.Align = ETextAlign::Center;
-	DebugText.Build(*DebugFont, "가나다라\n마바사", Style);
-	if (!DebugText.Upload(D3DDevice, DeviceContext))
-		throw std::runtime_error("Debug text upload failed");
-
-	UE_LOG("[Text] verts={} indices={}", DebugText.GetVertices().Num(), DebugText.GetIndexCount());
 }
 
-void FRenderer::ReleaseDebugTextResources()
+void FRenderer::ReleaseTextResources()
 {
 	if (TextSampler) { TextSampler->Release(); TextSampler = nullptr; }
-	DebugText.Release();
-	DebugFont = nullptr;   // 해제는 소유자인 GResourceManager의 몫
 }
 
 void FRenderer::BeginFrame()
@@ -479,8 +465,18 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
 
+	// 텍스트는 불투명을 다 그린 뒤에 그려야 하므로 따로 모아 둔다
+	TArray<FPrimitiveRenderData> TextList;
+
 	for (auto& Item : RenderList)
 	{
+		// 하이라이트(앞면 컬링 외곽 껍질)는 두께 없는 텍스트 쿼드에 맞지 않으므로 여기서 먼저 빠진다
+		if (Item.Pass == ERenderPass::Text)
+		{
+			TextList.Add(Item);
+			continue;
+		}
+
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
 		if (Item.isSelected)
@@ -490,8 +486,6 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderPrimitive(Item);
 	}
 
-	// 디버그
-	RenderDebugText(ViewProjMatrix);
 
 	// Render Windows
 	for (auto Item : Editor->GetWindows())
@@ -536,6 +530,17 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 		UpdateTransformConstantBuffer(Z_WorldMatrix * ViewProjMatrix);
 		RenderGrid(Item->GetMeshResource());
+	}
+
+	// 텍스트 패스: 불투명과 그리드를 모두 그린 뒤.
+	// 텍스트는 깊이를 기록하지 않으므로, 텍스트보다 늦게 그려지는 것은 텍스트 뒤에 있어도 글자를 덮는다.
+	// 그리드는 선이 없는 곳을 discard해서 선 위에만 깊이를 남기므로, 그리드 다음에 그리면
+	// 텍스트 앞의 선은 글자를 가리고, 텍스트 뒤의 선은 글자 아래에 깔린다.
+	for (const auto& Item : TextList)
+	{
+		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
+		UpdateTransformConstantBuffer(MVP);
+		RenderText(Item);
 	}
 
 	// Render Gizmo

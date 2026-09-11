@@ -5,6 +5,7 @@
 #include "Core/Container/FString.h"
 
 class USceneComponent;
+class UTextComponent;
 
 class UPropertyWindow : public UEditorWindow
 {
@@ -31,6 +32,9 @@ public:
 	void DeleteSelected();
 
 	bool DrawRotationField(const char* ID, float& Degree, bool& bRotationActive);
+
+	// 선택한 컴포넌트가 UTextComponent일 때만 그리는 전용 속성 (문구, 크기, 색, 정렬)
+	void DrawTextProperties(UTextComponent* TextComponent);
 
 	void Render(float DeltaTime) override;
 };

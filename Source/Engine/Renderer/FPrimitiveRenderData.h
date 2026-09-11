@@ -4,6 +4,8 @@
 
 struct FMatrix;
 
+enum class ERenderPass { Opaque, Text };
+
 struct FPrimitiveRenderData
 {
 	ID3D11Buffer*				VertexBuffer = nullptr;
@@ -16,4 +18,5 @@ struct FPrimitiveRenderData
 	const FMatrix*				WorldMatrix = nullptr;		// 컴포넌트가 소유한 월드행렬 가리키기
 
 	bool						isSelected = false;
+	ERenderPass Pass = ERenderPass::Opaque;
 };

@@ -24,7 +24,13 @@ TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* 
 		[&RenderList, Editor](UPrimitiveComponent* Primitive)
 		{
 			const bool bSelected = IsComponentSelected(Editor, Primitive);
-			RenderList.Add(Primitive->CreateRenderData(bSelected));
+			FPrimitiveRenderData Data = Primitive->CreateRenderData(bSelected);
+
+			// 그릴 메시가 없는 컴포넌트(메시를 못 찾음, 빈 텍스트 등)는 목록에서 뺀다.
+			// 렌더러는 WorldMatrix를 바로 역참조하므로 비어 있는 데이터가 들어가면 크래시가 난다.
+			if (!Data.VertexBuffer || !Data.IndexBuffer || Data.IndexCount == 0 || !Data.WorldMatrix) return;
+
+			RenderList.Add(Data);
 		}
 	);
 
