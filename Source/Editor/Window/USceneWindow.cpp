@@ -15,6 +15,7 @@
 #include "Engine/Component/Primitive/UPlaneComponent.h"
 #include "Engine/Component/Primitive/UPepeComponent.h"
 #include "Engine/Component/Primitive/UOctopusComponent.h"
+#include "Engine/Component/Primitive/UTextRenderComponent.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
@@ -53,6 +54,7 @@ void USceneWindow::Initialize(FEditor* Editor)
 	Spawnables.Add(UTriangleComponent::GetClass());
 	Spawnables.Add(UPepeComponent::GetClass());
 	Spawnables.Add(UOctopusComponent::GetClass());
+	Spawnables.Add(UTextRenderComponent::GetClass());
 
 	SelectedClass = *Spawnables.begin();
 

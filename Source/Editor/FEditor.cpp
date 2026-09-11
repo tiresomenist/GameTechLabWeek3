@@ -29,6 +29,7 @@
 
 #include "ImGui/imgui.h"
 
+#include "Engine/Component/Primitive/UTextRenderComponent.h"
 
 void FEditor::Initialize()
 {

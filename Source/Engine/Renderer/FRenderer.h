@@ -13,8 +13,7 @@
 //#include "../FVertexSimple.h"
 #include "Engine/Resource/FMeshResource.h"
 #include "Core/Container/TArray.h"
-
-
+#include "Engine/Font/FFontAtlas.h"
 //struct FVertexSimple;
 struct FConstants
 {
@@ -46,11 +45,17 @@ public:
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;
 	ID3D11DepthStencilState* HighlightDepthStencilState = nullptr;
+	ID3D11DepthStencilState* TranslucentDepthStencilState;
 
 	ID3D11BlendState* AlphaBlendState = nullptr;
 
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
 	ID3D11Buffer* GridConstantBuffer = nullptr;
+
+	ID3D11SamplerState* FontSamplerState = nullptr;
+	ID3D11VertexShader* FontVertexShader = nullptr;
+	ID3D11PixelShader* FontPixelShader = nullptr;
+	ID3D11InputLayout* FontInputLayout = nullptr;
 
 
 	FLOAT                   ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
@@ -100,4 +105,5 @@ public:
 	void RenderHighlight(const FPrimitiveRenderData& Data);
 	void RenderGrid(FMeshResource* Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
+	void RenderText(const FPrimitiveRenderData& Data);
 };

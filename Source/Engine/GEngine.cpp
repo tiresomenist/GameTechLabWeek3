@@ -62,6 +62,8 @@ void GEngine::Initialize(HWND InHwnd)
         GResourceManager& ResourceManager = *GResourceManager::GetInstance();
         ResourceManager.Initialize(&Device);
 
+        FFontAtlas::GetInstance().Initialize(Device.GetDevice(), L"Assets/Fonts/FontAtlas.dds");
+
         // 렌더러 초기화
         Renderer.Create(InHwnd, &Device);
 
@@ -122,6 +124,8 @@ void GEngine::Destroy()
 
 	//렌더러 해제
 	Renderer.Shutdown();
+
+    FFontAtlas::GetInstance().Release();
 
 	// 리소스 매니저 정리
 	GResourceManager::GetInstance()->Shutdown();

@@ -2,6 +2,12 @@
 
 #include <d3d11.h>
 
+enum class ERenderPass : UINT8
+{
+	Opaque,		// 불투명
+	Translucent,// 텍스트, 반투명 메시
+};
+
 struct FMatrix;
 
 struct FPrimitiveRenderData
@@ -16,4 +22,6 @@ struct FPrimitiveRenderData
 	const FMatrix*				WorldMatrix = nullptr;		// 컴포넌트가 소유한 월드행렬 가리키기
 
 	bool						isSelected = false;
+
+	ERenderPass RenderPass =	ERenderPass::Opaque;
 };

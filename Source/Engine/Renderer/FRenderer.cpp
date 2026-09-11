@@ -71,6 +71,7 @@ void FRenderer::Shutdown()
     ReleaseRasterizerState();
     ReleaseAlphaBlendState();
     ReleaseDepthStencilStates();
+
     if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
     if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
     if (bImGuiContextCreated) ImGui::DestroyContext();
@@ -116,6 +117,16 @@ bool FRenderer::CreateShaders()
 
 	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "PS_Grid", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridPixelShader));
+	shaderBlob.Reset();
+
+	if (!CompileShader(L"Assets/Shaders/FontShader.hlsl", "FontVS", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &FontVertexShader));
+
+	CheckHR(D3DDevice->CreateInputLayout(FFontVertex::Layout, FFontVertex::LayoutCount, shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &FontInputLayout));
+	shaderBlob.Reset();
+
+	if (!CompileShader(L"Assets/Shaders/FontShader.hlsl", "FontPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &FontPixelShader));
 	shaderBlob.Reset();
 
 	return true;
@@ -169,6 +180,9 @@ void FRenderer::ReleaseShaders()
 		GridPixelShader->Release();
 		GridPixelShader = nullptr;
 	}
+	if (FontInputLayout) { FontInputLayout->Release();  FontInputLayout = nullptr; }
+	if (FontVertexShader) { FontVertexShader->Release(); FontVertexShader = nullptr; }
+	if (FontPixelShader) { FontPixelShader->Release();  FontPixelShader = nullptr; }
 }
 
 void FRenderer::PrepareRTVDSV()
@@ -329,8 +343,13 @@ void FRenderer::CreateDepthStencilStates()
 	HighlightDesc.DepthEnable = TRUE;  // 깊이 검사는 유지
 	HighlightDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 기록 안 함
 	HighlightDesc.DepthFunc = D3D11_COMPARISON_LESS;
-
 	CheckHR(D3DDevice->CreateDepthStencilState(&HighlightDesc, &HighlightDepthStencilState));
+
+	D3D11_DEPTH_STENCIL_DESC TranslucentDesc = {};
+	TranslucentDesc.DepthEnable = TRUE;
+	TranslucentDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	TranslucentDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	CheckHR(D3DDevice->CreateDepthStencilState(&TranslucentDesc, &TranslucentDepthStencilState));
 }
 
 void FRenderer::ReleaseDepthStencilStates()
@@ -384,13 +403,16 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 	for (auto& Item : RenderList)
 	{
-		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
-		UpdateTransformConstantBuffer(MVP);
-		if (Item.isSelected)
+		if (Item.RenderPass == ERenderPass::Opaque)
 		{
-			RenderHighlight(Item);
+			FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
+			UpdateTransformConstantBuffer(MVP);
+			if (Item.isSelected)
+			{
+				RenderHighlight(Item);
+			}
+			RenderPrimitive(Item);
 		}
-		RenderPrimitive(Item);
 	}
 
 	// Render Windows
@@ -436,6 +458,22 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 		UpdateTransformConstantBuffer(Z_WorldMatrix * ViewProjMatrix);
 		RenderGrid(Item->GetMeshResource());
+	}
+
+	for (auto& Item : RenderList)
+	{
+		if (Item.RenderPass == ERenderPass::Translucent)
+		{
+			if (!Item.WorldMatrix || !Item.VertexBuffer || Item.IndexCount == 0) continue;
+
+			FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
+			UpdateTransformConstantBuffer(MVP);
+			/*if (Item.isSelected)
+			{
+				RenderHighlight(Item);
+			}*/
+			RenderText(Item);
+		}
 	}
 
 	// Render Gizmo
@@ -591,6 +629,35 @@ void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)
 
 	DeviceContext->OMSetDepthStencilState(GizmoDepthStencilState, 0);
 	// BindMaterial(Data.Material); 
+
+	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+}
+
+void FRenderer::RenderText(const FPrimitiveRenderData& Data)
+{
+	if (!Data.VertexBuffer || !Data.IndexBuffer || Data.IndexCount == 0 || !Data.WorldMatrix)
+		return;
+
+	ID3D11ShaderResourceView* SRV = FFontAtlas::GetInstance().GetSRV();
+	if (!SRV) return;
+
+	UINT Offset = 0;
+	DeviceContext->IASetInputLayout(FontInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(Data.Topology);
+
+	DeviceContext->VSSetShader(FontVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+	DeviceContext->RSSetState(CullNoneRasterizerState);
+
+	DeviceContext->PSSetShader(FontPixelShader, nullptr, 0);
+	DeviceContext->PSSetShaderResources(0, 1, &SRV);
+	DeviceContext->PSSetSamplers(0, 1, &FontSamplerState);
+
+	float BlendFactor[4] = { 0, 0, 0, 0  };
+	DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(TranslucentDepthStencilState, 0);
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
 }
