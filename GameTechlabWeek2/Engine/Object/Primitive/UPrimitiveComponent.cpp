@@ -15,10 +15,10 @@ FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 	FPrimitiveRenderData OutData{};
 	if (MeshResource == nullptr) { return OutData; }
 
-	OutData.VertexBuffer = MeshResource->VertexBuffer;
-	OutData.IndexBuffer = MeshResource->IndexBuffer;
-	OutData.IndexCount = MeshResource->IndexCount;
-	OutData.Stride = MeshResource->Stride;
+	OutData.VertexBuffer = MeshResource->GetVertexBuffer();
+	OutData.IndexBuffer = MeshResource->GetIndexBuffer();
+	OutData.IndexCount = MeshResource->GetIndexCount();
+	OutData.Stride = MeshResource->GetStride();
 	OutData.WorldMatrix = &GetWorldMatrix();
 	OutData.isSelected = bSelected;
 	// RenderData.Material			= &GetMaterial();

@@ -28,8 +28,8 @@ private:
 	float StartTime = 0;
 
 	FRenderer Renderer;
-	FConsole* Console;
-	FEditor* Editor;
+	FConsole* Console = nullptr;
+	FEditor* Editor = nullptr;
 
 	// 싱글톤
 	GEngine() = default;

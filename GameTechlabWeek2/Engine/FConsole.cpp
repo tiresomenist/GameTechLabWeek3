@@ -30,7 +30,7 @@ void FConsole::SetMaxMessages(int32 Num)
 {
 	MaxMessages = (Num < 0) ? 0 : Num;
 
-	while (MessageList.Num() + 1 > static_cast<size_t>(Num))
+	while (MessageList.Num() > static_cast<size_t>(MaxMessages))
 	{
 		MessageList.PopFirst();
 	}

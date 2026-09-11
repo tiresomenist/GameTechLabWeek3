@@ -35,9 +35,9 @@ struct FPrimitiveRenderData;
 class FRenderer
 {
 public:
-	GDevice* Device;
-	ID3D11DeviceContext* DeviceContext;
-	ID3D11Device* D3DDevice;
+	GDevice* Device = nullptr;
+	ID3D11DeviceContext* DeviceContext = nullptr;
+	ID3D11Device* D3DDevice = nullptr;
 
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
@@ -64,6 +64,9 @@ public:
 	ID3D11VertexShader* GridVertexShader = nullptr;
 	ID3D11PixelShader* GridPixelShader = nullptr;
 
+	bool bImGuiContextCreated = false;
+	bool bImGuiWin32Initialized = false;
+	bool bImGuiDX11Initialized = false;
 	void Create(HWND HWnd, GDevice* InDevice);
 	void Shutdown();
 

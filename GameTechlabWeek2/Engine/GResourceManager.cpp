@@ -24,6 +24,10 @@
 #include "Models/RotateBlue.h"
 #include "Models/Grid.h"
 #include "FVector.h"
+#include <memory>
+#include <limits>
+#include <stdexcept>
+#include <cmath>
 
 
 GResourceManager* GResourceManager::GetInstance()
@@ -35,25 +39,25 @@ GResourceManager* GResourceManager::GetInstance()
 void GResourceManager::Initialize(GDevice* InDevice)
 {
     Device = InDevice;
-    CreateMesh("Sphere", sphere_vertices, sphere_indices);
-    CreateMesh("Cube", cube_vertices, cube_indices);
-    CreateMesh("Triangle", triangle_vertices, triangle_indices);
-    CreateMesh("Plane", plane_vertices, plane_indices);
-    CreateMesh("Pepe", pepe_vertices, pepe_indices);
-    CreateMesh("Octopus", octopus_vertices, octopus_indices);
-    CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices);
-    CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices);
-    CreateMesh("ArrowBlue", arrow_blue_vertices, arrow_blue_indices);
-    CreateMesh("MoveRed", move_red_vertices, move_red_indices);
-    CreateMesh("MoveGreen", move_green_vertices, move_green_indices);
-    CreateMesh("MoveBlue", move_blue_vertices, move_blue_indices);
-    CreateMesh("ScaleRed", scale_red_vertices, scale_red_indices);
-    CreateMesh("ScaleGreen", scale_green_vertices, scale_green_indices);
-    CreateMesh("ScaleBlue", scale_blue_vertices, scale_blue_indices);
-    CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices);
-    CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices);
-    CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices);
-    CreateMesh("Grid", grid_vertices, grid_indices);
+    if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ArrowBlue", arrow_blue_vertices, arrow_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("MoveRed", move_red_vertices, move_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("MoveGreen", move_green_vertices, move_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("MoveBlue", move_blue_vertices, move_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ScaleRed", scale_red_vertices, scale_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ScaleGreen", scale_green_vertices, scale_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ScaleBlue", scale_blue_vertices, scale_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
@@ -62,17 +66,25 @@ FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
     auto Existing = PrimitiveCache.find(MeshName);
     if (Existing != PrimitiveCache.end()) return Existing->second;
     if (Vertices.empty() || Indices.empty()) return nullptr;
+    const size_t MaxBytes = (std::numeric_limits<UINT>::max)();
+    if (Vertices.size() > MaxBytes / sizeof(FVertexSimple) || Indices.size() > MaxBytes / sizeof(uint32))
+        return nullptr;
+    for (const auto& V : Vertices)
+        if (!std::isfinite(V.x) || !std::isfinite(V.y) || !std::isfinite(V.z)) return nullptr;
+    if (!Device || !Device->GetDevice()) return nullptr;
     for (uint32 Index : Indices)
         if (Index >= Vertices.size()) return nullptr;
 
-    FMeshResource* Mesh = new FMeshResource;
+    auto Mesh = std::make_unique<FMeshResource>();
     Mesh->vertexs.GetVector().assign(Vertices.begin(), Vertices.end());
     Mesh->indexes.GetVector().assign(Indices.begin(), Indices.end());
     Mesh->VertexCount = static_cast<UINT>(Vertices.size());
     Mesh->IndexCount = static_cast<UINT>(Indices.size());
     Mesh->Stride = sizeof(FVertexSimple);
     Mesh->VertexBuffer = Device->CreateVertexBuffer(&Mesh->vertexs[0], Mesh->Stride * Mesh->VertexCount);
+    if (!Mesh->VertexBuffer) return nullptr;
     Mesh->IndexBuffer = Device->CreateIndexBuffer(&Mesh->indexes[0], sizeof(uint32) * Mesh->IndexCount);
+    if (!Mesh->IndexBuffer) return nullptr;
     Mesh->bHasBounds = false;
     if (Mesh->vertexs.Num() > 0)
     {
@@ -95,8 +107,9 @@ FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
         Mesh->bHasBounds = true;
     }
 
-    PrimitiveCache[MeshName] = Mesh;
-    return Mesh;
+    const auto [It, Inserted] = PrimitiveCache.emplace(MeshName, Mesh.get());
+    if (Inserted) Mesh.release();
+    return It->second;
     
 }
 
@@ -104,11 +117,10 @@ void GResourceManager::Shutdown()
 {
     for (auto& [type, mesh] : PrimitiveCache)
     {
-        if (mesh->VertexBuffer) mesh->VertexBuffer->Release();
-        if (mesh->IndexBuffer)  mesh->IndexBuffer->Release();
         delete mesh;
     }
     PrimitiveCache.clear();
+    Device = nullptr;
 
     //for (auto& [path, shader] : ShaderCache)
     //{

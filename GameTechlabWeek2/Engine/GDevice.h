@@ -37,6 +37,7 @@ public:
     void ReleaseIndexBuffer(ID3D11Buffer* indexBuffer);
 
     void SwapBuffer();
+    bool IsRenderReady() const { return bRenderReady && !bGraphicsFailed; }
 
     ID3D11Device* GetDevice() const { return Device; };
     ID3D11DeviceContext* GetContext() const { return DeviceContext; };
@@ -45,18 +46,20 @@ public:
     const D3D11_VIEWPORT& GetViewport() const { return ViewportInfo; };
 
 private:
-    ID3D11Device* Device;
-    ID3D11DeviceContext* DeviceContext;
+    ID3D11Device* Device = nullptr;
+    ID3D11DeviceContext* DeviceContext = nullptr;
 
-    IDXGISwapChain* SwapChain;
+    IDXGISwapChain* SwapChain = nullptr;
 
-    ID3D11Texture2D* FrameBuffer;
-    ID3D11RenderTargetView* FrameBufferRTV;
+    ID3D11Texture2D* FrameBuffer = nullptr;
+    ID3D11RenderTargetView* FrameBufferRTV = nullptr;
 
-    ID3D11Texture2D* DepthStencilBuffer;
-    ID3D11DepthStencilView* DepthStencilView;
+    ID3D11Texture2D* DepthStencilBuffer = nullptr;
+    ID3D11DepthStencilView* DepthStencilView = nullptr;
 
-    D3D11_VIEWPORT ViewportInfo;
+    D3D11_VIEWPORT ViewportInfo{};
+    bool bRenderReady = false;
+    bool bGraphicsFailed = false;
 
     GDevice() = default;
     ~GDevice() = default;

@@ -1,3 +1,4 @@
+#include "Engine/Util/ScaleEdit.h"
 #include "UPropertyWindow.h"
 #include "../../../FVector.h"
 #include "ImGui/imgui.h"
@@ -127,42 +128,32 @@ void UPropertyWindow::Render(float DeltaTime)
 			DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
 			ImGui::SameLine();
 			ImGui::Text("Rotation");
-			float PrevScaleX = OScale.X;
-			PrevScaleX = std::clamp(PrevScaleX, 0.0001f, 200.0f);
-			if (ImGui::DragFloat("##scaleX", &OScale.X, 0.001f))
-			{
-				if (bScaleLock)
-				{
-					float ScaleRatio = OScale.X / PrevScaleX;
-					OScale.Y *= ScaleRatio;
-					OScale.Z *= ScaleRatio;
-				}
-			}
-			DrawItemBottomLine(IM_COL32(255, 40, 40, 255), 2.0f);
+			const FVector BeforeX = OScale;
+            float EditedX = OScale.X;
+            if (ImGui::DragFloat("##scaleX", &EditedX, 0.001f))
+            {
+                FVector Result;
+                if (ApplyScaleEdit(BeforeX, 0, EditedX, bScaleLock, Result)) OScale = Result;
+            }
+            DrawItemBottomLine(IM_COL32(255, 40, 40, 255), 2.0f);
 			ImGui::SameLine();
-			float PrevScaleY = OScale.Y;
-			if (ImGui::DragFloat("##scaleY", &OScale.Y, 0.001f))
-			{
-				if (bScaleLock)
-				{
-					float ScaleRatio = OScale.Y / PrevScaleY;
-					OScale.X *= ScaleRatio;
-					OScale.Z *= ScaleRatio;
-				}
-			}
-			DrawItemBottomLine(IM_COL32(40, 255, 40, 255), 2.0f);
+			const FVector BeforeY = OScale;
+            float EditedY = OScale.Y;
+            if (ImGui::DragFloat("##scaleY", &EditedY, 0.001f))
+            {
+                FVector Result;
+                if (ApplyScaleEdit(BeforeY, 1, EditedY, bScaleLock, Result)) OScale = Result;
+            }
+            DrawItemBottomLine(IM_COL32(40, 255, 40, 255), 2.0f);
 			ImGui::SameLine();
-			float PrevScaleZ = OScale.Z;
-			if (ImGui::DragFloat("##scaleZ", &OScale.Z, 0.001f))
-			{
-				if (bScaleLock)
-				{
-					float ScaleRatio = OScale.Z / PrevScaleZ;
-					OScale.X *= ScaleRatio;
-					OScale.Y *= ScaleRatio;
-				}
-			}
-			DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
+			const FVector BeforeZ = OScale;
+            float EditedZ = OScale.Z;
+            if (ImGui::DragFloat("##scaleZ", &EditedZ, 0.001f))
+            {
+                FVector Result;
+                if (ApplyScaleEdit(BeforeZ, 2, EditedZ, bScaleLock, Result)) OScale = Result;
+            }
+            DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
 			ImGui::SameLine();
 			ImGui::Text("Scale");
 			ImGui::PopItemWidth();

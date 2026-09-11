@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "Container/TArray.h"
 #include "Engine/Object/UObject.h"
 #include "Engine/Object/FObjectFactory.h"
@@ -34,10 +35,9 @@ public:
 	template <typename T>
 	T SpawnObject(FClassType* Type)
 	{
-		UObject* Object = FObjectFactory::ConstructSceneObject(Type);
-		Objects.Add(Object);
-
-		return Cast<T>(Object);
+		std::unique_ptr<UObject> Object(FObjectFactory::ConstructSceneObject(Type));
+        Objects.Add(Object.get());
+        return Cast<T>(Object.release());
 	}
 
 	template <typename T>

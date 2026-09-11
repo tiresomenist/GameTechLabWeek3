@@ -91,6 +91,8 @@ protected:
 
 public:
 
+	UObject(const UObject&) = delete;
+	UObject& operator=(const UObject&) = delete;
 	static FClassType* GetClass();
 
 	uint32 GetUUID() { return UUID; }
@@ -129,6 +131,7 @@ public:
 	void* operator new(size_t Size);
 	void* operator new(size_t Size, std::align_val_t Alignment);
 	void operator delete(void* Ptr);
+    void operator delete(void* Ptr, std::align_val_t Alignment);
 
 	virtual ~UObject();
 
