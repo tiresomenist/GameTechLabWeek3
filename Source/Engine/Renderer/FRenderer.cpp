@@ -503,10 +503,9 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		Requests = RenderUtil::GetUUIDTextRequests(Scene, 0.35f, 0.2f);
 	}
 
-	const auto UUIDRenderList = Font.BuildRenderList(Requests, Camera->GetRight(), Camera->GetUp());
+	const FPrimitiveRenderData UUIDData = Font.BuildRenderList(Requests, Camera->GetRight(), Camera->GetUp());
 
-	for (const auto& Data : UUIDRenderList)
-		RenderText(Data, ViewProjMatrix);
+	RenderText(UUIDData, ViewProjMatrix);
 	EndFrame();
 }
 

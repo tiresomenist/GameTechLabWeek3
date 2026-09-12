@@ -48,7 +48,7 @@ public:
     UINT GetWidth() const { return TextureWidth; }
     UINT GetHeight() const { return TextureHeight; }
     void Release();
-    TArray <FPrimitiveRenderData> BuildRenderList(const TArray<FTextDrawRequest>& InRequests,FVector InRight,FVector InUP);
+    FPrimitiveRenderData BuildRenderList(const TArray<FTextDrawRequest>& InRequests,FVector InRight,FVector InUP);
 private:
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> TextureView;
     Microsoft::WRL::ComPtr<ID3D11Buffer> VertexBuffer;

@@ -4,6 +4,7 @@
 #include "Engine/Renderer/FVertexSimple.h"
 #include "Core/Util/File.h"
 #include <cstring>
+#include <DirectXTex.h>
 
 #pragma comment(lib, "windowscodecs.lib")
 #pragma comment(lib, "ole32.lib")
@@ -287,43 +288,25 @@ void FFont::Release()
     TextureWidth = TextureHeight = 0;
 }
 
-TArray <FPrimitiveRenderData> FFont::BuildRenderList(const TArray<FTextDrawRequest>& InRequests, FVector InRight, FVector InUp)
+FPrimitiveRenderData FFont::BuildRenderList(const TArray<FTextDrawRequest>& InRequests, FVector InRight, FVector InUp)
 {
-    TArray <FPrimitiveRenderData> Output;
     FFontMeshData CombinedMesh;
-    Output.Reserve(InRequests.Num());
-
+    
     for (const auto& Request : InRequests) {
         const FFontMeshData Mesh = BuildMesh(Request.Text, Request.WorldPosition, InRight, InUp, Request.CharacterHeight);
         if (Mesh.Indices.IsEmpty())continue;
         
-        FPrimitiveRenderData Data{};
         const uint32 VertexBase = CombinedMesh.Vertices.Num();
 
-        Data.StartIndexLocation = CombinedMesh.Indices.Num();
-        Data.IndexCount = Mesh.Indices.Num();
         for (const auto& Vertex : Mesh.Vertices) {
             CombinedMesh.Vertices.Add(Vertex);
         }
         for (uint32 Index : Mesh.Indices) {
             CombinedMesh.Indices.Add(VertexBase + Index);
         }
-        Output.Add(Data);
-    }
-    UpdateMesh(CombinedMesh);
-
-    const FPrimitiveRenderData SharedData = CreateRenderData();
-
-    for (auto& Data : Output)
-    {
-        const UINT StartIndex = Data.StartIndexLocation;
-        const UINT Count = Data.IndexCount;
-
-        Data = SharedData;
-        Data.StartIndexLocation = StartIndex;
-        Data.IndexCount = Count;
-    }
         
+    }
+    UpdateMesh(CombinedMesh);   
 
-    return Output;
+    return CreateRenderData();
 }
