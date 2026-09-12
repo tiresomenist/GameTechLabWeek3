@@ -6,6 +6,7 @@
 #include "Engine/Renderer/RenderUtil.h"
 #include "Engine/Scene/FSceneType.h"
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
+#include "Engine/Component/UWidgetComponent.h"
 
 struct FPrimitiveRenderData;
 class UCameraComponent;
@@ -68,9 +69,25 @@ public:
 		}
 	}
 
+	template <typename Func>
+	void ForEachWidget(Func&& Function) const
+	{
+		for (UActor* Actor : Actors)
+		{
+			for (UActorComponent* Component : Actor->GetComponents())
+			{
+				if (Component->IsA(UWidgetComponent::GetClass()))
+				{
+					Function(static_cast<UWidgetComponent*>(Component));
+				}
+			}
+		}
+	}
+
 	virtual ~UScene();
 
 protected:
+	void EnsureUUIDWidgets();
 
 	/// <summary>
 	/// Scene에 종속된 모든 Actor를 담는 멤버 변수. Component는 Actor가 소유합니다.

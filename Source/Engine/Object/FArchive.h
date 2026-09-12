@@ -22,6 +22,7 @@ public:
 	explicit FArchive(const nlohmann::json& InObject);
 
 	nlohmann::json GetJSON() const { return Object; }
+	bool Contains(const FString& Key) const { return Object.contains(Key); }
 
     std::array<float, 3> GetVector3OrDefault(const FString& Key, float Default) const
     {

@@ -68,8 +68,6 @@ public:
 	ID3D11PixelShader* GridPixelShader = nullptr;
 
 	// ---- Text Billboard ----
-	FFontAtlas* FontAtlas = nullptr;
-
 	ID3D11VertexShader* TextVertexShader = nullptr;
 	ID3D11PixelShader* TextPixelShader = nullptr;
 	ID3D11InputLayout* TextInputLayout = nullptr;

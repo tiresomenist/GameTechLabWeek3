@@ -13,6 +13,7 @@
 #include "Core/Core.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Resource/FMeshResource.h"
+#include "Engine/Resource/GResourceManager.h"
 #include "Engine/Log.h"
 
 #include "ImGui/imgui.h"
@@ -357,11 +358,6 @@ void FRenderer::ReleaseDepthStencilStates()
 
 void FRenderer::CreateTextResources()
 {
-	// 폰트 아틀라스 굽기
-	FontAtlas = new class FFontAtlas();
-	if (!FontAtlas->Build(D3DDevice, "Assets/Fonts/Pretendard-Regular.ttf", 24.0f))
-		throw std::runtime_error("Font atlas build failed");
-
 	// 텍스트 셰이더
 	Microsoft::WRL::ComPtr<ID3DBlob> ShaderBlob;
 	if (!CompileShader(L"Assets/Shaders/TextShader.hlsl", "mainVS_Text", "vs_5_0", ShaderBlob.ReleaseAndGetAddressOf()))
@@ -437,7 +433,6 @@ void FRenderer::ReleaseTextResources()
 	if (TextInputLayout) { TextInputLayout->Release(); TextInputLayout = nullptr; }
 	if (TextPixelShader) { TextPixelShader->Release(); TextPixelShader = nullptr; }
 	if (TextVertexShader) { TextVertexShader->Release(); TextVertexShader = nullptr; }
-	if (FontAtlas) { FontAtlas->Release(); delete FontAtlas; FontAtlas = nullptr; }
 }
 
 void FRenderer::UpdateTextVertexBuffer(TArray<FVertexText>& Vertices)
@@ -467,6 +462,8 @@ void FRenderer::RenderText(UINT IndexCount)
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
 	DeviceContext->PSSetShader(TextPixelShader, nullptr, 0);
+	FFontAtlas* FontAtlas = GResourceManager::GetInstance()->GetDefaultFont();
+	if (!FontAtlas) return;
 	ID3D11ShaderResourceView* SRV = FontAtlas->GetSRV();
 	DeviceContext->PSSetShaderResources(0, 1, &SRV);
 	DeviceContext->PSSetSamplers(0, 1, &FontSamplerState);
@@ -511,6 +508,10 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 	for (auto& Item : RenderList)
 	{
+		if (!Item.WorldMatrix || !Item.VertexBuffer || !Item.IndexBuffer || Item.IndexCount == 0)
+		{
+			continue;
+		}
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
 		if (Item.isSelected)
@@ -578,18 +579,16 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderGizmo(Item);
 	}
 
-	// Render Text (한글 렌더링 데모는 항상 표시하고, UUID 라벨만 Show Flag로 제어)
-	TArray<FWorldTextItem> TextItems;
-	if (Editor->IsShowingUUIDLabels())
+	FFontAtlas* FontAtlas = GResourceManager::GetInstance()->GetDefaultFont();
+	if (FontAtlas)
 	{
-		TextItems = RenderUtil::GetTextRenderList(Scene);
-	}
-	TextItems.Add(FWorldTextItem{ "한글 문자열 렌더링 테스트", FVector(-4.0f, 4.0f, 2.0f) });
-	TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, Camera->GetRight(), Camera->GetUp(), *FontAtlas);
+		TArray<FWorldTextItem> TextItems = RenderUtil::GetTextRenderList(Scene, Camera, Editor->IsShowingUUIDLabels());
+		TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, *FontAtlas);
 	UpdateTextVertexBuffer(TextVerts);
 	UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
 	const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
 	RenderText(TextVertexCount / 4 * 6);
+	}
 
 	UpdateTransformConstantBuffer(ViewProjMatrix);
 	EndFrame();

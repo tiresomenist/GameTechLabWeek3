@@ -43,9 +43,7 @@ namespace
 void FTextMeshBuilder::AppendString(
 	TArray<FVertexText>& OutVertices,
 	const FString& Text,
-	const FVector& WorldPosition,
-	const FVector& Right,
-	const FVector& Up,
+	const FMatrix& WorldMatrix,
 	const FFontAtlas& Atlas,
 	float WorldUnitsPerPixel)
 {
@@ -74,10 +72,10 @@ void FTextMeshBuilder::AppendString(
 		const float y0 = PenY - Glyph->YOffset;
 		const float y1 = y0 - Glyph->Height;
 
-		// 로컬 2D 좌표를 카메라 Right/Up 축으로 확장 → 월드 좌표. 이게 빌보드의 핵심.
+		// 로컬 +Y(가로), +Z(세로) 좌표를 각 Item의 빌보드 행렬로 월드 공간에 변환한다.
 		auto ToWorld = [&](float lx, float ly)
 		{
-			return WorldPosition + Right * (lx * WorldUnitsPerPixel) + Up * (ly * WorldUnitsPerPixel);
+			return WorldMatrix.TransformPosition(FVector(0.0f, lx * WorldUnitsPerPixel, ly * WorldUnitsPerPixel));
 		};
 
 		const FVector P0 = ToWorld(x0, y0); // 좌상
@@ -105,15 +103,65 @@ void FTextMeshBuilder::AppendString(
 
 TArray<FVertexText> FTextMeshBuilder::Build(
 	const TArray<FWorldTextItem>& Items,
-	const FVector& Right,
-	const FVector& Up,
 	const FFontAtlas& Atlas,
 	float WorldUnitsPerPixel)
 {
 	TArray<FVertexText> Vertices;
 	for (int i = 0; i < Items.Num(); ++i)
 	{
-		AppendString(Vertices, Items[i].Text, Items[i].WorldPosition, Right, Up, Atlas, WorldUnitsPerPixel);
+		AppendString(Vertices, Items[i].Text, Items[i].WorldMatrix, Atlas, WorldUnitsPerPixel);
 	}
 	return Vertices;
+}
+
+bool FTextMeshBuilder::GetLocalBounds(
+	const FString& Text,
+	const FFontAtlas& Atlas,
+	FVector& OutMin,
+	FVector& OutMax,
+	float WorldUnitsPerPixel)
+{
+	const TArray<char32_t> Codepoints = DecodeUTF8(Text);
+	float TotalWidth = 0.0f;
+	for (int i = 0; i < Codepoints.Num(); ++i)
+	{
+		if (const FGlyphInfo* Glyph = Atlas.FindGlyph(Codepoints[i]))
+			TotalWidth += Glyph->XAdvance;
+	}
+
+	float PenX = -TotalWidth * 0.5f;
+	bool bHasGlyphBounds = false;
+	for (int i = 0; i < Codepoints.Num(); ++i)
+	{
+		const FGlyphInfo* Glyph = Atlas.FindGlyph(Codepoints[i]);
+		if (!Glyph)
+			continue;
+
+		const float X0 = PenX + Glyph->XOffset;
+		const float X1 = X0 + Glyph->Width;
+		const float Y0 = -Glyph->YOffset;
+		const float Y1 = Y0 - Glyph->Height;
+		const FVector GlyphMin(0.0f, (std::min)(X0, X1) * WorldUnitsPerPixel, (std::min)(Y0, Y1) * WorldUnitsPerPixel);
+		const FVector GlyphMax(0.0f, (std::max)(X0, X1) * WorldUnitsPerPixel, (std::max)(Y0, Y1) * WorldUnitsPerPixel);
+
+		if (!bHasGlyphBounds)
+		{
+			OutMin = GlyphMin;
+			OutMax = GlyphMax;
+			bHasGlyphBounds = true;
+		}
+		else
+		{
+			OutMin.X = (std::min)(OutMin.X, GlyphMin.X);
+			OutMin.Y = (std::min)(OutMin.Y, GlyphMin.Y);
+			OutMin.Z = (std::min)(OutMin.Z, GlyphMin.Z);
+			OutMax.X = (std::max)(OutMax.X, GlyphMax.X);
+			OutMax.Y = (std::max)(OutMax.Y, GlyphMax.Y);
+			OutMax.Z = (std::max)(OutMax.Z, GlyphMax.Z);
+		}
+
+		PenX += Glyph->XAdvance;
+	}
+
+	return bHasGlyphBounds;
 }
