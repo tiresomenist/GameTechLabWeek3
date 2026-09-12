@@ -28,6 +28,8 @@
 
 namespace
 {
+    constexpr float WorldAxisLength = 500.0f;
+
     void CheckHR(HRESULT Result)
     {
         if (FAILED(Result))
@@ -489,15 +491,49 @@ void FRenderer::RebuildGridCache(const FVector& GridCenter, const FVector& Camer
 	{
 		const float LineX = GridCenter.X + GridIndex * GridSpacing;
 		const float LineY = GridCenter.Y + GridIndex * GridSpacing;
-		AddCachedLine(FVector(LineX, GridCenter.Y - GridExtent, 0.0f), FVector(LineX, GridCenter.Y + GridExtent, 0.0f), GridColor, FadeAlpha(std::fabs(LineX - CameraWorldPos.X)));
-		AddCachedLine(FVector(GridCenter.X - GridExtent, LineY, 0.0f), FVector(GridCenter.X + GridExtent, LineY, 0.0f), GridColor, FadeAlpha(std::fabs(LineY - CameraWorldPos.Y)));
+		const FVector VerticalStart(LineX, GridCenter.Y - GridExtent, 0.0f);
+		const FVector VerticalEnd(LineX, GridCenter.Y + GridExtent, 0.0f);
+		const float VerticalAlpha = FadeAlpha(std::fabs(LineX - CameraWorldPos.X));
+		if (std::fabs(LineX) <= 0.0001f)
+		{
+			if (VerticalStart.Y < 0.0f)
+			{
+				AddCachedLine(VerticalStart, FVector(0.0f, std::min(VerticalEnd.Y, 0.0f), 0.0f), GridColor, VerticalAlpha);
+			}
+			if (VerticalEnd.Y > WorldAxisLength)
+			{
+				AddCachedLine(FVector(0.0f, std::max(VerticalStart.Y, WorldAxisLength), 0.0f), VerticalEnd, GridColor, VerticalAlpha);
+			}
+		}
+		else
+		{
+			AddCachedLine(VerticalStart, VerticalEnd, GridColor, VerticalAlpha);
+		}
+
+		const FVector HorizontalStart(GridCenter.X - GridExtent, LineY, 0.0f);
+		const FVector HorizontalEnd(GridCenter.X + GridExtent, LineY, 0.0f);
+		const float HorizontalAlpha = FadeAlpha(std::fabs(LineY - CameraWorldPos.Y));
+		if (std::fabs(LineY) <= 0.0001f)
+		{
+			if (HorizontalStart.X < 0.0f)
+			{
+				AddCachedLine(HorizontalStart, FVector(std::min(HorizontalEnd.X, 0.0f), 0.0f, 0.0f), GridColor, HorizontalAlpha);
+			}
+			if (HorizontalEnd.X > WorldAxisLength)
+			{
+				AddCachedLine(FVector(std::max(HorizontalStart.X, WorldAxisLength), 0.0f, 0.0f), HorizontalEnd, GridColor, HorizontalAlpha);
+			}
+		}
+		else
+		{
+			AddCachedLine(HorizontalStart, HorizontalEnd, GridColor, HorizontalAlpha);
+		}
 	}
 }
 
 void FRenderer::AddWorldGrid(const FVector& CameraWorldPos)
 {
 	constexpr float GridSpacing = 1.0f;
-	constexpr float AxisLength = 500.0f;
 
 	// 카메라 위치를 그리드 한 칸 단위로 스냅 — 카메라가 같은 칸에 머무는 동안은 캐시를 재사용
 	const float SnapCenterX = std::floor(CameraWorldPos.X / GridSpacing) * GridSpacing;
@@ -528,9 +564,9 @@ void FRenderer::AddWorldGrid(const FVector& CameraWorldPos)
 
 	// 월드 원점 기준 축 표시는 카메라를 따라가지 않고 고정
 	const FVector Origin(0.0f, 0.0f, 0.0f);
-	AddLine(Origin, FVector(AxisLength, 0.0f, 0.0f), FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	AddLine(Origin, FVector(0.0f, AxisLength, 0.0f), FVector4(0.0f, 1.0f, 0.0f, 1.0f));
-	AddLine(Origin, FVector(0.0f, 0.0f, AxisLength), FVector4(0.0f, 0.0f, 1.0f, 1.0f));
+	AddLine(Origin, FVector(WorldAxisLength, 0.0f, 0.0f), FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	AddLine(Origin, FVector(0.0f, WorldAxisLength, 0.0f), FVector4(0.0f, 1.0f, 0.0f, 1.0f));
+	AddLine(Origin, FVector(0.0f, 0.0f, WorldAxisLength), FVector4(0.0f, 0.0f, 1.0f, 1.0f));
 }
 
 void FRenderer::AddBoundingBox(const UPrimitiveComponent* Primitive, const UCameraComponent* Camera)
