@@ -23,7 +23,6 @@
 #include "Engine/Resource/MeshData/RotateRed.h"
 #include "Engine/Resource/MeshData/RotateGreen.h"
 #include "Engine/Resource/MeshData/RotateBlue.h"
-#include "Engine/Resource/MeshData/Grid.h"
 #include "Core/Math/FVector.h"
 #include <memory>
 #include <limits>
@@ -60,7 +59,6 @@ void GResourceManager::Initialize(GDevice* InDevice)
     if (!CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,

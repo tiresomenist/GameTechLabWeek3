@@ -10,7 +10,6 @@
 #include "Engine/Scene/UScene.h"
 #include "Editor/FEditor.h"
 #include "Editor/Gizmo/UGizmo.h"
-#include "Editor/UGrid.h"
 
 #include <string>
 
