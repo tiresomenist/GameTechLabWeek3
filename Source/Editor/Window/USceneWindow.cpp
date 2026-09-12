@@ -185,6 +185,14 @@ void USceneWindow::Render(float DeltaTime)
 		}
 		ImGui::Checkbox("Orthogonal", &bOrthogonal);
 
+		const char* ViewModeItems[] = { "Lit", "Unlit", "Wireframe" };
+		int ItemIndex = static_cast<int>(Editor->CurrentViewMode);
+
+		if (ImGui::Combo("View Mode", &ItemIndex, ViewModeItems, IM_ARRAYSIZE(ViewModeItems)))
+		{
+			Editor->CurrentViewMode = static_cast<EViewModeIndex>(ItemIndex);
+		}
+
 		EditorCamera->SetIsPerspective(!bOrthogonal);
 
 		ImGui::PushItemWidth(WideItemWidth); // Item 너비 설정

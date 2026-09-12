@@ -16,6 +16,7 @@
 #include "Engine/Renderer/Text/FFontAtlas.h"
 #include "Engine/Renderer/Text/FVertexText.h"
 #include "Engine/Renderer/Text/FTextMeshBuilder.h"
+#include "Engine/Renderer/FLineBatcher.h"
 
 
 //struct FVertexSimple;
@@ -27,6 +28,12 @@ struct FGridConstants
 {
 	FVector CameraPos;
 	int GridPlaneType;
+};
+enum class EViewModeIndex : uint32
+{
+	VMI_Lit,
+	VMI_Unlit,
+	VMI_Wireframe,
 };
 class UScene;
 class FEditor;
@@ -45,6 +52,7 @@ public:
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
 	ID3D11RasterizerState* CullNoneRasterizerState = nullptr;
+	ID3D11RasterizerState* WireframeRasterizerState = nullptr;
 
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;
@@ -55,6 +63,7 @@ public:
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
 	ID3D11Buffer* GridConstantBuffer = nullptr;
 
+	FLineBatcher* LineBatcher = nullptr;
 
 	FLOAT                   ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	D3D11_VIEWPORT          ViewportInfo;
@@ -78,6 +87,10 @@ public:
 	ID3D11Buffer* TextVertexBuffer = nullptr;
 	ID3D11Buffer* TextIndexBuffer = nullptr;
 	static const UINT MaxTextVertices = 8192;
+	
+	EViewModeIndex CurrentViewMode = EViewModeIndex::VMI_Lit;
+	void SetViewMode(EViewModeIndex ViewMode) { CurrentViewMode = ViewMode; }
+	EViewModeIndex GetViewMode() { return CurrentViewMode; }
 
 	bool bImGuiContextCreated = false;
 	bool bImGuiWin32Initialized = false;
@@ -115,6 +128,7 @@ public:
 	void RenderHighlight(const FPrimitiveRenderData& Data);
 	void RenderGrid(FMeshResource* Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
+	void RenderLines(FLineBatcher* Batcher);
 
 	void CreateTextResources();
 	void ReleaseTextResources();

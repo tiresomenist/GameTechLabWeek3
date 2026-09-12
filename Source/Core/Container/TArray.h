@@ -97,6 +97,11 @@ public:
 		Array.resize(Index);
 	}
 
+	void reserve(size_t NewCapacity)
+	{
+		Array.reserve(NewCapacity);
+	}
+
 	std::vector<T>& GetVector() { return Array; }
 
 	auto begin() { return Array.begin(); }

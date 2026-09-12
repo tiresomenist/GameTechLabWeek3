@@ -44,6 +44,20 @@ struct FVector
 	FVector(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f) : X(_x), Y(_y), Z(_z) {}
 	explicit  FVector(const FVector4& InVector4);
 
+	float& operator[](int32 Index)
+	{
+		if (Index == 0) return X;
+		if (Index == 1) return Y;
+		if (Index == 2) return Z;
+		return X;
+	}
+	const float& operator[](int32 Index) const
+	{
+		if (Index == 0) return X;
+		if (Index == 1) return Y;
+		if (Index == 2) return Z;
+		return X;
+	}
 };
 
 struct FVector4

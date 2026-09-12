@@ -50,6 +50,8 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
 	CreateTextResources();
+	LineBatcher = new FLineBatcher();
+	LineBatcher->Initialize(D3DDevice);
 
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
@@ -79,6 +81,12 @@ void FRenderer::Shutdown()
     if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
     if (bImGuiContextCreated) ImGui::DestroyContext();
     bImGuiDX11Initialized = bImGuiWin32Initialized = bImGuiContextCreated = false;
+	if (LineBatcher)
+	{
+		LineBatcher->Release();
+		delete LineBatcher;
+		LineBatcher = nullptr;
+	}
     DeviceContext = nullptr;
     D3DDevice = nullptr;
     Device = nullptr;
@@ -264,6 +272,11 @@ void FRenderer::CreateRasterizerState()
 	rasterizerdescGrid.FillMode = D3D11_FILL_SOLID;
 	rasterizerdescGrid.CullMode = D3D11_CULL_NONE;
 	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdescGrid, &CullNoneRasterizerState));
+
+	D3D11_RASTERIZER_DESC rasterizerdescWireframe = {};
+	rasterizerdescWireframe.FillMode = D3D11_FILL_WIREFRAME;
+	rasterizerdescWireframe.CullMode = D3D11_CULL_NONE;
+	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdescWireframe, &WireframeRasterizerState));
 }
 
 void FRenderer::ReleaseRasterizerState()
@@ -282,6 +295,11 @@ void FRenderer::ReleaseRasterizerState()
 	{
 		CullNoneRasterizerState->Release();
 		CullNoneRasterizerState = nullptr;
+	}
+	if (WireframeRasterizerState)
+	{
+		WireframeRasterizerState->Release();
+		WireframeRasterizerState = nullptr;
 	}
 }
 
@@ -505,6 +523,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
+	CurrentViewMode = Editor->CurrentViewMode;
 
 	for (auto& Item : RenderList)
 	{
@@ -514,7 +533,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		}
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
-		if (Item.isSelected)
+		if (Item.isSelected && CurrentViewMode != EViewModeIndex::VMI_Wireframe)
 		{
 			RenderHighlight(Item);
 		}
@@ -529,7 +548,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 	// Render Grid
 	UpdateTransformConstantBuffer(ViewProjMatrix);
-	for (auto Item : Editor->GetGrids())
+/*	for (auto Item : Editor->GetGrids())
 	{
 		// XY 평면용 월드 행렬 세팅 및 렌더링
 		FMatrix XY_WorldMatrix = FMatrix::Identity;
@@ -564,6 +583,42 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 		UpdateTransformConstantBuffer(Z_WorldMatrix * ViewProjMatrix);
 		RenderGrid(Item->GetMeshResource());
+	}*/
+
+	FFontAtlas* FontAtlas = GResourceManager::GetInstance()->GetDefaultFont();
+	if (FontAtlas)
+	{
+		TArray<FWorldTextItem> TextItems = RenderUtil::GetTextRenderList(Scene, Camera, Editor->IsShowingUUIDLabels());
+		TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, *FontAtlas);
+	UpdateTextVertexBuffer(TextVerts);
+	UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
+	const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
+	RenderText(TextVertexCount / 4 * 6);
+	}
+
+	if (Editor && LineBatcher)
+	{
+		LineBatcher->AddGrid(Camera->GetWorldLocation(), 2000.0f, 5.0f);
+		USceneComponent* SelectedComp = Editor->GetSelectedSceneComponent();
+		if (SelectedComp && SelectedComp->IsA(UPrimitiveComponent::GetClass()))
+		{
+			UPrimitiveComponent* PrimComp = static_cast<UPrimitiveComponent*>(SelectedComp);
+			FMeshResource* Mesh = PrimComp->GetMeshResource();
+
+			if (Mesh)
+			{
+				
+				LineBatcher->AddBoundingBox(
+					Mesh->GetBoundsMax(),
+					Mesh->GetBoundsMin(),
+					SelectedComp->GetWorldMatrix(),
+					FVector4(1.0f, 1.0f, 1.0f, 1.0f)
+				);
+			}
+		}
+
+		UpdateTransformConstantBuffer(ViewProjMatrix);
+		RenderLines(LineBatcher);
 	}
 
 	// Render Gizmo
@@ -577,17 +632,6 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 			RenderHighlight(Item);
 		}
 		RenderGizmo(Item);
-	}
-
-	FFontAtlas* FontAtlas = GResourceManager::GetInstance()->GetDefaultFont();
-	if (FontAtlas)
-	{
-		TArray<FWorldTextItem> TextItems = RenderUtil::GetTextRenderList(Scene, Camera, Editor->IsShowingUUIDLabels());
-		TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, *FontAtlas);
-	UpdateTextVertexBuffer(TextVerts);
-	UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
-	const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
-	RenderText(TextVertexCount / 4 * 6);
 	}
 
 	UpdateTransformConstantBuffer(ViewProjMatrix);
@@ -655,7 +699,8 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(DefaultRasterizerState);
+	if (CurrentViewMode == EViewModeIndex::VMI_Wireframe) DeviceContext->RSSetState(WireframeRasterizerState);
+	else DeviceContext->RSSetState(DefaultRasterizerState);
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 
@@ -732,4 +777,30 @@ void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)
 	// BindMaterial(Data.Material); 
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+}
+
+void FRenderer::RenderLines(FLineBatcher* Batcher)
+{
+	if (!Batcher) return;
+
+	UINT IndexCount = Batcher->UpdateBuffers(DeviceContext);
+	if (IndexCount == 0) return;
+
+	UINT Stride = sizeof(FVertexSimple);
+	UINT Offset = 0;
+	ID3D11Buffer* VB = Batcher->GetVertexBuffer();
+
+	DeviceContext->IASetInputLayout(SimpleInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &VB, &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(Batcher->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST); 
+
+	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+
+	DeviceContext->RSSetState(DefaultRasterizerState);
+	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
+	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+
+	DeviceContext->DrawIndexed(IndexCount, 0, 0);
 }
