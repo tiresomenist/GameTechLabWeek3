@@ -176,6 +176,11 @@ void USceneWindow::Render(float DeltaTime)
 			LoadScene();
 		}
 		ImGui::Separator();
+		bool bShowUUIDLabels = Editor->IsShowingUUIDLabels();
+		if (ImGui::Checkbox("Show UUID", &bShowUUIDLabels))
+		{
+			Editor->SetShowUUIDLabels(bShowUUIDLabels);
+		}
 		ImGui::Checkbox("Orthogonal", &bOrthogonal);
 
 		EditorCamera->SetIsPerspective(!bOrthogonal);

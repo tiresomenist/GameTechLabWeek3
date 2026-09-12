@@ -578,8 +578,12 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderGizmo(Item);
 	}
 
-	// Render Text (오브젝트 UUID 빌보드 라벨 + 한글 렌더링 데모)
-	TArray<FWorldTextItem> TextItems = RenderUtil::GetTextRenderList(Scene);
+	// Render Text (한글 렌더링 데모는 항상 표시하고, UUID 라벨만 Show Flag로 제어)
+	TArray<FWorldTextItem> TextItems;
+	if (Editor->IsShowingUUIDLabels())
+	{
+		TextItems = RenderUtil::GetTextRenderList(Scene);
+	}
 	TextItems.Add(FWorldTextItem{ "한글 문자열 렌더링 테스트", FVector(-4.0f, 4.0f, 2.0f) });
 	TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, Camera->GetRight(), Camera->GetUp(), *FontAtlas);
 	UpdateTextVertexBuffer(TextVerts);
