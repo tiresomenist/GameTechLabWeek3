@@ -15,7 +15,6 @@ class USceneComponent;
 class UCameraComponent;
 class UEditorWindow;
 class UGizmo;
-class UGrid;
 class FObjectPicker;
 class FGizmoPicker;
 
@@ -33,16 +32,13 @@ private:
 	bool bShowUUIDLabels = true;
 	TArray<UGizmo*> Gizmos;
 	TArray<UEditorWindow*> Windows;
-	TArray<UGrid*> Grids;
 	UGizmo* ObjectAxisGizmo = nullptr;
 
 	void InitializeGizmos();
 	void InitializeWindows();
-	void InitializeGrids();
 
 	void ReleaseGizmos();
 	void ReleaseWindows();
-	void ReleaseGrids();
 
 public:
 
@@ -71,11 +67,9 @@ public:
 
 	void RegisterGizmo(FClassType* Type);
 	void RegisterWindow(FClassType* Type);
-	void RegisterGrid(FClassType* Type);
 
 	const TArray<UGizmo*>& GetGizmos() const { return Gizmos; }
 	const TArray<UEditorWindow*>& GetWindows() const { return Windows; }
-	const TArray<UGrid*>& GetGrids() const { return Grids; }
 
 	//TEST CODE//
 	FVector GetCameraLocation() { return GetEditorCamera()->GetRelativeLocation(); }
