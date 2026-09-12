@@ -23,6 +23,8 @@ FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 	OutData.WorldMatrix = &GetWorldMatrix();
 	OutData.isSelected = bSelected;
 	// RenderData.Material			= &GetMaterial();
+	OutData.Min = MeshResource->GetBoundsMin();
+	OutData.Max = MeshResource->GetBoundsMax();
 
 	return OutData;
 }

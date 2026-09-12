@@ -60,5 +60,5 @@ struct FVector4
 	FVector4(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f, float _w = 0.0f) : X(_x), Y(_y), Z(_z), W(_w) {}
 	explicit  FVector4(const FVector& InVector, float _w);
 	FVector getXYZ()const;
-
+	
 };

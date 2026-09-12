@@ -2,6 +2,8 @@
 
 #include <d3d11.h>
 
+#include "Core/Math/FVector.h"
+
 struct FMatrix;
 
 struct FPrimitiveRenderData
@@ -16,4 +18,7 @@ struct FPrimitiveRenderData
 	const FMatrix*				WorldMatrix = nullptr;		// 컴포넌트가 소유한 월드행렬 가리키기
 
 	bool						isSelected = false;
+
+	FVector Min;
+	FVector Max;
 };

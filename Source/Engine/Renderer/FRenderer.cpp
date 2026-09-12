@@ -537,6 +537,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		if (Item.isSelected)
 		{
 			RenderHighlight(Item);
+			RenderUtil::PushBoundingBox(LineBatcher, Item.Min, Item.Max, *Item.WorldMatrix);
 		}
 		RenderPrimitive(Item);
 	}
