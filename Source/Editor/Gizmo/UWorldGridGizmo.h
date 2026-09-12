@@ -7,14 +7,18 @@ class UWorldGridGizmo : public UGizmo
 
     UCLASS(UWorldGridGizmo, "WorldGridGizmo", UGizmo)
 
+public:
+    void AppendLineRequests(const FVector& CameraPosition,
+        const FMatrix& ViewProjection, TArray<FLineDrawRequest>& OutRequests) const override;
+
+    void SetGridExtent(float InExtent);
+    void SetGridSpace(float InSpace);
+    float GetGridExtent() const;
+    float GetGridSpace() const;
+
 private:
-    // Grid 중심으로부터 양쪽에 몇 칸까지 만들 것인지
-    int HalfGridCount = 20;
-
-    // Grid 한 칸 간격
-    float GridSpacing = 1.0f;
-
-    // 몇 칸마다 Major Grid를 표시할 것인지
-    int MajorGridInterval = 5;
+    // World-space half-width, independent of the distance between grid lines.
+    float GridExtent = 120.0f;
+    float GridSpace = 1.0f;
 };
 

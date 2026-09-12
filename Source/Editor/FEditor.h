@@ -15,9 +15,12 @@ class USceneComponent;
 class UCameraComponent;
 class UEditorWindow;
 class UGizmo;
-class UGrid;
+class UWorldGridGizmo;
 class FObjectPicker;
 class FGizmoPicker;
+
+
+
 
 class FEditor
 {
@@ -31,18 +34,17 @@ private:
 
 	USceneComponent* SelectedSceneComponent = nullptr;
 	bool bShowUUIDLabels = true;
+	bool bShowBoundingBoxes = true;
+	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
 	TArray<UGizmo*> Gizmos;
 	TArray<UEditorWindow*> Windows;
-	TArray<UGrid*> Grids;
 	UGizmo* ObjectAxisGizmo = nullptr;
 
 	void InitializeGizmos();
 	void InitializeWindows();
-	void InitializeGrids();
 
 	void ReleaseGizmos();
 	void ReleaseWindows();
-	void ReleaseGrids();
 
 public:
 
@@ -64,6 +66,10 @@ public:
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
 	bool IsShowingUUIDLabels() const { return bShowUUIDLabels; }
 	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
+	bool IsShowingBoundingBoxes() const { return bShowBoundingBoxes; }
+	void SetShowBoundingBoxes(bool bShow) { bShowBoundingBoxes = bShow; }
+	EViewModeIndex GetViewMode() const { return ViewMode; }
+	void SetViewMode(EViewModeIndex InViewMode) { ViewMode = InViewMode; }
 	int32 GetActiveGizmoAxis() const { return GizmoController ? GizmoController->GetActiveAxis() : -1; }
 	void SetSelectedSceneComponent(USceneComponent* Component);
 
@@ -71,11 +77,10 @@ public:
 
 	void RegisterGizmo(FClassType* Type);
 	void RegisterWindow(FClassType* Type);
-	void RegisterGrid(FClassType* Type);
 
 	const TArray<UGizmo*>& GetGizmos() const { return Gizmos; }
+	UWorldGridGizmo* GetWorldGridGizmo() const;
 	const TArray<UEditorWindow*>& GetWindows() const { return Windows; }
-	const TArray<UGrid*>& GetGrids() const { return Grids; }
 
 	//TEST CODE//
 	FVector GetCameraLocation() { return GetEditorCamera()->GetRelativeLocation(); }

@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "Editor/FEditor.h"
+#include "Editor/Gizmo/UWorldGridGizmo.h"
 #include "Engine/FConsole.h"
 #include "Engine/GEngine.h"
 #include "Core/Container/TArray.h"
@@ -178,10 +179,58 @@ void USceneWindow::Render(float DeltaTime)
 			LoadScene();
 		}
 		ImGui::Separator();
+		const EViewModeIndex CurrentViewMode = Editor->GetViewMode();
+		const char* ViewModePreview = "Unknown";
+		for (const FViewModeEntry& Entry : ViewModeEntries)
+		{
+			if (Entry.Mode == CurrentViewMode)
+			{
+				ViewModePreview = Entry.Name;
+				break;
+			}
+		}
+		if (ImGui::BeginCombo("View Mode", ViewModePreview))
+		{
+			for (const FViewModeEntry& Entry : ViewModeEntries)
+			{
+				const bool bSelected = Entry.Mode == CurrentViewMode;
+				if (ImGui::Selectable(Entry.Name, bSelected))
+				{
+					Editor->SetViewMode(Entry.Mode);
+				}
+				if (bSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::Separator();
 		bool bShowUUIDLabels = Editor->IsShowingUUIDLabels();
+		if (UWorldGridGizmo* Grid = Editor->GetWorldGridGizmo())
+		{
+			float GridSpacing = Grid->GetGridSpace();
+			constexpr float MinGridSpacing = 0.1f;
+			constexpr float MaxGridSpacing = 60.0f;
+			ImGui::PushItemWidth(WideItemWidth);
+			if (ImGui::DragFloat("Grid Spacing", &GridSpacing, 0.1f,
+				MinGridSpacing, MaxGridSpacing, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+			{
+				if (std::isfinite(GridSpacing))
+				{
+					Grid->SetGridSpace(std::clamp(GridSpacing, MinGridSpacing, MaxGridSpacing));
+				}
+			}
+			ImGui::PopItemWidth();
+		}
 		if (ImGui::Checkbox("Show UUID", &bShowUUIDLabels))
 		{
 			Editor->SetShowUUIDLabels(bShowUUIDLabels);
+		}
+		bool bShowBoundingBoxes = Editor->IsShowingBoundingBoxes();
+		if (ImGui::Checkbox("Show Bounding Boxes", &bShowBoundingBoxes))
+		{
+			Editor->SetShowBoundingBoxes(bShowBoundingBoxes);
 		}
 		ImGui::Checkbox("Orthogonal", &bOrthogonal);
 

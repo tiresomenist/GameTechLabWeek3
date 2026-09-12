@@ -1,5 +1,9 @@
 #pragma once
 #include <vector>
+#define VIEW_MODE_LIST(X) \
+	X(Lit)               \
+	X(Unlit)             \
+	X(Wireframe)		\
 
 // D3D11 headers
 #include <d3d11.h>
@@ -16,24 +20,46 @@
 #include "Engine/Renderer/Text/FFontAtlas.h"
 #include "Engine/Renderer/Text/FVertexText.h"
 #include "Engine/Renderer/Text/FTextMeshBuilder.h"
-
-
+#include "Engine/Renderer/Line/FLineBatch.h"
 //struct FVertexSimple;
 struct FConstants
 {
 	FMatrix MVP;
 };
-struct FGridConstants
-{
-	FVector CameraPos;
-	int GridPlaneType;
-};
 class UScene;
 class FEditor;
 struct FPrimitiveRenderData;
+struct FLineDrawRequest;
 
+enum class EViewModeIndex : uint32
+{
+#define MAKE_VIEW_MODE_ENUM(Name) VMI_##Name,
+	VIEW_MODE_LIST(MAKE_VIEW_MODE_ENUM)
+#undef MAKE_VIEW_MODE_ENUM
+};
+
+struct FViewModeEntry
+{
+	EViewModeIndex Mode;
+	const char* Name;
+};
+
+inline constexpr FViewModeEntry ViewModeEntries[] =
+{
+#define MAKE_VIEW_MODE_ENTRY(Name) { EViewModeIndex::VMI_##Name, #Name },
+	VIEW_MODE_LIST(MAKE_VIEW_MODE_ENTRY)
+#undef MAKE_VIEW_MODE_ENTRY
+};
+
+#undef VIEW_MODE_LIST
 #include <cmath>
 
+//오브젝트 단위로 적용?
+enum class EEngineShowFlags : uint64
+{
+	SF_Primitives,
+	SF_BillboardText,
+};
 
 class FRenderer
 {
@@ -43,6 +69,7 @@ public:
 	ID3D11Device* D3DDevice = nullptr;
 
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
+	ID3D11RasterizerState* WireframeRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
 	ID3D11RasterizerState* CullNoneRasterizerState = nullptr;
 
@@ -53,7 +80,6 @@ public:
 	ID3D11BlendState* AlphaBlendState = nullptr;
 
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
-	ID3D11Buffer* GridConstantBuffer = nullptr;
 
 
 	FLOAT                   ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
@@ -64,8 +90,6 @@ public:
 	ID3D11InputLayout* SimpleInputLayout = nullptr;
 	ID3D11VertexShader* HighlightVertexShader = nullptr;
 	ID3D11PixelShader* HighlightPixelShader = nullptr;
-	ID3D11VertexShader* GridVertexShader = nullptr;
-	ID3D11PixelShader* GridPixelShader = nullptr;
 
 	// ---- Text Billboard ----
 	ID3D11VertexShader* TextVertexShader = nullptr;
@@ -78,6 +102,11 @@ public:
 	ID3D11Buffer* TextVertexBuffer = nullptr;
 	ID3D11Buffer* TextIndexBuffer = nullptr;
 	static const UINT MaxTextVertices = 8192;
+
+	// ---- Line Batch Draw----
+	FLineBatch LineBatch;
+	TArray<FLineDrawRequest> LineRequests;
+
 
 	bool bImGuiContextCreated = false;
 	bool bImGuiWin32Initialized = false;
@@ -95,7 +124,6 @@ public:
 
 	void CreateConstantBuffer();
 	void UpdateTransformConstantBuffer(const FMatrix& WorldMatrix);
-	void UpdateGridConstantBuffer(const FGridConstants& GridConstants);
 	void ReleaseConstantBuffer();
 
 	void CreateRasterizerState();
@@ -111,10 +139,11 @@ public:
 	void EndFrame();
 
 	void Render(float DeltaTime, FEditor* Editor, UScene* Scene);
-	void RenderPrimitive(const FPrimitiveRenderData& Data);
-	void RenderHighlight(const FPrimitiveRenderData& Data);
-	void RenderGrid(FMeshResource* Data);
+	void RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex ViewMode);
+	void RenderHighlight(const FPrimitiveRenderData& Data, EViewModeIndex ViewMode);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
+	void RenderLines(const FPrimitiveRenderData& Data);
+	void RenderDebugLines(FEditor* Editor, UScene* Scene, const FMatrix& ViewProjection);
 
 	void CreateTextResources();
 	void ReleaseTextResources();

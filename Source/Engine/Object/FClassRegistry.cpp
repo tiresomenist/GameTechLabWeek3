@@ -7,7 +7,6 @@
 #include "Editor/Gizmo/UWorldAxisGizmo.h"
 #include "Editor/Gizmo/UWorldGridGizmo.h"
 
-#include "Editor/UGrid.h"
 
 #include "Engine/Object/UObject.h"
 #include "Engine/Actor/UActor.h"

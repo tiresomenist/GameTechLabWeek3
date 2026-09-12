@@ -13,7 +13,6 @@
 #include "Editor/Gizmo/UWorldAxisGizmo.h"
 #include "Editor/Gizmo/UWorldGridGizmo.h"
 
-#include "Editor/UGrid.h"
 
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Log.h"
@@ -45,7 +44,6 @@ void FEditor::Initialize()
 	InitializeGizmos();
 	GizmoController = new FGizmoController(this);
 	InitializeWindows();
-	InitializeGrids();
 }
 
 void FEditor::InitializeGizmos()
@@ -60,11 +58,6 @@ void FEditor::InitializeWindows()
 	RegisterWindow(UConsoleWindow::GetClass());
 	RegisterWindow(UPropertyWindow::GetClass());
 	RegisterWindow(USceneWindow::GetClass());
-}
-
-void FEditor::InitializeGrids()
-{
-	RegisterGrid(UGrid::GetClass());
 }
 
 void FEditor::Tick(float DeltaTime)
@@ -141,7 +134,6 @@ void FEditor::Release()
 
 	ReleaseGizmos();
 	ReleaseWindows();
-	ReleaseGrids();
 }
 
 void FEditor::ReleaseGizmos()
@@ -162,15 +154,6 @@ void FEditor::ReleaseWindows()
 		delete Window;
 	}
 	Windows.Empty();
-}
-
-void FEditor::ReleaseGrids()
-{
-	for (UGrid* Grid : Grids)
-	{
-		delete Grid;
-	}
-	Grids.Empty();
 }
 
 void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
@@ -251,6 +234,18 @@ void FEditor::RegisterWindow(FClassType* Type)
 	Windows.Add(Window);
 }
 
+UWorldGridGizmo* FEditor::GetWorldGridGizmo() const
+{
+	for (UGizmo* Gizmo : Gizmos)
+	{
+		if (Gizmo->IsA(UWorldGridGizmo::GetClass()))
+		{
+			return static_cast<UWorldGridGizmo*>(Gizmo);
+		}
+	}
+	return nullptr;
+}
+
 void FEditor::SetObjectAxisGizmo(UGizmo* InGizmo)
 {
 	ObjectAxisGizmo = InGizmo;
@@ -264,13 +259,4 @@ UGizmo* FEditor::GetObjectAxisGizmo() const
 UObject* FEditor::SpawnObject(FClassType* Type)
 {
 	return FObjectFactory::ConstructEditorObject(Type);
-}
-
-void FEditor::RegisterGrid(FClassType* Type)
-{
-	UObject* Object = FObjectFactory::ConstructEditorObject(Type);
-	UGrid* Grid = static_cast<UGrid*>(Object);
-
-	Grid->Initialize(this);
-	Grids.Add(Grid);
 }

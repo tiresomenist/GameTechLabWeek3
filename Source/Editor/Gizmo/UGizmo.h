@@ -6,6 +6,8 @@
 #include "Engine/Resource/GResourceManager.h"
 #include "Editor/Gizmo/EGizmoMode.h"
 
+struct FLineDrawRequest;
+
 struct FGizmoHandle
 {
 	int32 Axis = -1;       // 어느 축이 선택됐는가?
@@ -31,6 +33,9 @@ public:
 
 	// 렌더러에게 전달할 렌더 정보
 	virtual TArray<FPrimitiveRenderData> GetRenderData();
+    // World-space debug lines join the renderer's common line batch.
+    virtual void AppendLineRequests(const FVector& CameraPosition,
+        const FMatrix& ViewProjection, TArray<FLineDrawRequest>& OutRequests) const {}
 	TArray<FMeshResource*> GetMeshResources() const {
 	TArray< FMeshResource*> GizmoArray;
 	for (auto& handle : GetHandles()) {

@@ -10,7 +10,7 @@
 #include "Engine/Scene/UScene.h"
 #include "Editor/FEditor.h"
 #include "Editor/Gizmo/UGizmo.h"
-#include "Editor/UGrid.h"
+#include "Engine/Renderer/Line/FLineDrawRequest.h"
 
 #include <string>
 
@@ -41,7 +41,7 @@ TArray<FPrimitiveRenderData> RenderUtil::GetGizmoList(FEditor* Editor, UScene* S
 {
 	TArray<FPrimitiveRenderData> RenderList;
 	
-	for (auto Item : Editor->Gizmos)
+	for (UGizmo* Item : Editor->GetGizmos())
 	{
 		TArray<FPrimitiveRenderData> Array = Item->GetRenderData();
 
@@ -87,4 +87,41 @@ TArray<FWorldTextItem> RenderUtil::GetTextRenderList(UScene* Scene, const UCamer
 		}
 	);
 	return TextList;
+}
+
+void RenderUtil::AppendBoundsLineRequests(UScene* Scene, bool bShowAllBounds,
+	const USceneComponent* SelectedComponent, TArray<FLineDrawRequest>& OutRequests)
+{
+	if (!Scene || (!bShowAllBounds && !SelectedComponent)) return;
+	// 박스 하나를 월드 꼭짓점 8개와 모서리 인덱스 24개를 가진 요청으로 만든다.
+	Scene->ForEachPrimitive([&](UPrimitiveComponent* Primitive) {
+		// The selected primitive keeps its bounds even when the global toggle is off.
+		if (!bShowAllBounds && Primitive != SelectedComponent) return;
+		const FMeshResource* Mesh = Primitive->GetMeshResource();
+		if (!Mesh || !Mesh->HasBounds()) return;
+		const FVector Min = Mesh->GetBoundsMin();
+		const FVector Max = Mesh->GetBoundsMax();
+		const FMatrix& World = Primitive->GetWorldMatrix();
+		FLineDrawRequest Request;
+		Request.Points.SetNum(8);
+		Request.B = 0.0f;
+
+		for (uint32 i = 0; i < 8; ++i)
+		{
+			const FVector LocalCorner(
+				(i & 1) ? Max.X : Min.X,
+				(i & 2) ? Max.Y : Min.Y,
+				(i & 4) ? Max.Z : Min.Z
+			);
+
+			Request.Points[i] = World.TransformPosition(LocalCorner);
+		}
+
+		Request.Indices = {
+			0, 1, 0, 2, 1, 3, 2, 3,
+			0, 4, 1, 5, 2, 6, 3, 7,
+			4, 5, 4, 6, 5, 7, 6, 7
+		};
+		OutRequests.Add(Request);
+		});
 }

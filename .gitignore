@@ -421,3 +421,6 @@ imgui.ini
 # Tests and temporary files
 /tests/
 /tmp/
+GameTechLabWeek2.sln
+*.sln
+tmp

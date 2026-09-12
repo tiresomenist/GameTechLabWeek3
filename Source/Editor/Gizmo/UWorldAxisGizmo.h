@@ -12,6 +12,8 @@ class UWorldAxisGizmo : public UGizmo
 public:
 
 	virtual TArray<FPrimitiveRenderData> GetRenderData() override;
+    void AppendLineRequests(const FVector& CameraPosition,
+        const FMatrix& ViewProjection, TArray<FLineDrawRequest>& OutRequests) const override;
 
 };
 

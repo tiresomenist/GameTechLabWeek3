@@ -7,7 +7,6 @@
 #include "Engine/Renderer/GDevice.h"
 #include "Engine/Scene/UScene.h"
 #include "Editor/FEditor.h"
-#include "Editor/UGrid.h"
 #include "Editor/Gizmo/UGizmo.h"
 #include "Engine/Renderer/RenderUtil.h"
 #include "Core/Core.h"
@@ -15,6 +14,7 @@
 #include "Engine/Resource/FMeshResource.h"
 #include "Engine/Resource/GResourceManager.h"
 #include "Engine/Log.h"
+#include "Engine/Renderer/Line/FLineDrawRequest.h"
 
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -44,7 +44,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	DeviceContext = InDevice->GetContext();
 	D3DDevice = InDevice->GetDevice();
 	ViewportInfo = InDevice->GetViewport();
-	CreateRasterizerState(); 
+	CreateRasterizerState();
 	if (!CreateShaders()) throw std::runtime_error("Shader compilation failed");
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
@@ -69,6 +69,8 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 void FRenderer::Shutdown()
 {
     if (DeviceContext) DeviceContext->ClearState();
+    LineBatch.Release();
+    LineRequests.Empty();
     ReleaseConstantBuffer();
     ReleaseShaders();
     ReleaseRasterizerState();
@@ -113,15 +115,6 @@ bool FRenderer::CreateShaders()
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightPixelShader));
 	shaderBlob.Reset();
 
-	// Grid Shader (VS & PS)
-	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "VS_Grid", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridVertexShader));
-	shaderBlob.Reset();
-
-	if (!CompileShader(L"Assets/Shaders/GridShader.hlsl", "PS_Grid", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
-	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridPixelShader));
-	shaderBlob.Reset();
-
 	return true;
 }
 bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob)
@@ -162,16 +155,6 @@ void FRenderer::ReleaseShaders()
 	{
 		HighlightPixelShader->Release();
 		HighlightPixelShader = nullptr;
-	}
-	if (GridVertexShader)
-	{
-		GridVertexShader->Release();
-		GridVertexShader = nullptr;
-	}
-	if (GridPixelShader)
-	{
-		GridPixelShader->Release();
-		GridPixelShader = nullptr;
 	}
 }
 
@@ -225,13 +208,6 @@ void FRenderer::CreateConstantBuffer()
 
 	CheckHR(D3DDevice->CreateBuffer(&constantbufferdesc, nullptr, &TransformConstantBuffer));
 
-	D3D11_BUFFER_DESC gridconstantbufferdesc = {};
-	gridconstantbufferdesc.ByteWidth = (sizeof(FGridConstants) + 0xf) & 0xfffffff0;
-	gridconstantbufferdesc.Usage = D3D11_USAGE_DYNAMIC;
-	gridconstantbufferdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	gridconstantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
-	CheckHR(D3DDevice->CreateBuffer(&gridconstantbufferdesc, nullptr, &GridConstantBuffer));
 }
 
 void FRenderer::ReleaseConstantBuffer()
@@ -241,11 +217,6 @@ void FRenderer::ReleaseConstantBuffer()
 		TransformConstantBuffer->Release();
 		TransformConstantBuffer = nullptr;
 	}
-	if (GridConstantBuffer)
-	{
-		GridConstantBuffer->Release();
-		GridConstantBuffer = nullptr;
-	}
 }
 
 void FRenderer::CreateRasterizerState()
@@ -254,6 +225,11 @@ void FRenderer::CreateRasterizerState()
 	rasterizerdesc.FillMode = D3D11_FILL_SOLID;
 	rasterizerdesc.CullMode = D3D11_CULL_BACK;  // 백 페이스 컬링
 	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdesc, &DefaultRasterizerState));
+
+	D3D11_RASTERIZER_DESC WireframeDesc = rasterizerdesc;
+	WireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
+	WireframeDesc.CullMode = D3D11_CULL_NONE;
+	CheckHR(D3DDevice->CreateRasterizerState(&WireframeDesc, &WireframeRasterizerState));
 
 	D3D11_RASTERIZER_DESC rasterizerdescHighlight = {};
 	rasterizerdescHighlight.FillMode = D3D11_FILL_SOLID;
@@ -268,6 +244,11 @@ void FRenderer::CreateRasterizerState()
 
 void FRenderer::ReleaseRasterizerState()
 {
+	if (WireframeRasterizerState)
+	{
+		WireframeRasterizerState->Release();
+		WireframeRasterizerState = nullptr;
+	}
 	if (DefaultRasterizerState)
 	{
 		DefaultRasterizerState->Release();
@@ -482,6 +463,9 @@ void FRenderer::BeginFrame()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	PrepareRTVDSV();
+
+	LineRequests.Empty();
+	LineBatch.Reset();
 }
 
 void FRenderer::EndFrame()
@@ -505,8 +489,9 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
+	const EViewModeIndex ViewMode = Editor->GetViewMode();
 
-	for (auto& Item : RenderList)
+	for (const auto& Item : RenderList)
 	{
 		if (!Item.WorldMatrix || !Item.VertexBuffer || !Item.IndexBuffer || Item.IndexCount == 0)
 		{
@@ -516,82 +501,65 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		UpdateTransformConstantBuffer(MVP);
 		if (Item.isSelected)
 		{
-			RenderHighlight(Item);
+			RenderHighlight(Item, ViewMode);
 		}
-		RenderPrimitive(Item);
+		RenderPrimitive(Item, ViewMode);
 	}
 
 	// Render Windows
-	for (auto Item : Editor->GetWindows())
+	for (const auto& Item : Editor->GetWindows())
 	{
 		Item->Render(DeltaTime);
 	}
-
-	// Render Grid
-	UpdateTransformConstantBuffer(ViewProjMatrix);
-	for (auto Item : Editor->GetGrids())
-	{
-		// XY 평면용 월드 행렬 세팅 및 렌더링
-		FMatrix XY_WorldMatrix = FMatrix::Identity;
-
-		FVector WorldCameraPos = Camera->GetWorldLocation();
-		FVector LocalCameraPosXY = XY_WorldMatrix.Inverse().TransformPosition(WorldCameraPos);
-
-		FGridConstants ConstantsXY;
-		ConstantsXY.CameraPos = LocalCameraPosXY;
-		ConstantsXY.GridPlaneType = 0;
-		UpdateGridConstantBuffer(ConstantsXY);
-
-		UpdateTransformConstantBuffer(XY_WorldMatrix * ViewProjMatrix);
-		RenderGrid(Item->GetMeshResource());
-
-		// 기존 판을 Y축 기준으로 90도(PI/2) 회전 (YZ 평면)
-		float theta = atan2f(Camera->GetWorldLocation().Y, Camera->GetWorldLocation().X);
-		FMatrix Z_WorldMatrix =
-			FMatrix::MakeScaleMatrix(FVector(5.0f, 1.0f, 1.0f)) *
-			FMatrix::MakeRotationYMatrix(PI / 2.0f) *
-			FMatrix::MakeRotationZMatrix(theta);
-
-		// 카메라의 월드 위치를 Z평면의 로컬 공간(Local Space)으로 변환
-		//FVector WorldCameraPos = Camera->GetWorldLocation();
-		FVector LocalCameraPosZ = Z_WorldMatrix.Inverse().TransformPosition(WorldCameraPos);
-
-		// 셰이더 상수 버퍼에 '로컬 카메라 위치'를 전달
-		FGridConstants ConstantsZ;
-		ConstantsZ.CameraPos = LocalCameraPosZ;
-		ConstantsZ.GridPlaneType = 1;
-		UpdateGridConstantBuffer(ConstantsZ);
-
-		UpdateTransformConstantBuffer(Z_WorldMatrix * ViewProjMatrix);
-		RenderGrid(Item->GetMeshResource());
-	}
-
-	// Render Gizmo
-	TArray<FPrimitiveRenderData> GizmoRenderList = RenderUtil::GetGizmoList(Editor, Scene);
-	for (auto Item : GizmoRenderList)
-	{
-		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
-		UpdateTransformConstantBuffer(MVP);
-		if (Item.isSelected)
-		{
-			RenderHighlight(Item);
-		}
-		RenderGizmo(Item);
-	}
-
+	// Render Font
 	FFontAtlas* FontAtlas = GResourceManager::GetInstance()->GetDefaultFont();
 	if (FontAtlas)
 	{
 		TArray<FWorldTextItem> TextItems = RenderUtil::GetTextRenderList(Scene, Camera, Editor->IsShowingUUIDLabels());
 		TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, *FontAtlas);
-	UpdateTextVertexBuffer(TextVerts);
-	UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
-	const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
-	RenderText(TextVertexCount / 4 * 6);
+		UpdateTextVertexBuffer(TextVerts);
+		UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
+		const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
+		RenderText(TextVertexCount / 4 * 6);
 	}
 
-	UpdateTransformConstantBuffer(ViewProjMatrix);
+	//Lender Line
+	RenderDebugLines(Editor, Scene, ViewProjMatrix);
+
+	// Render Gizmo
+	TArray<FPrimitiveRenderData> GizmoRenderList = RenderUtil::GetGizmoList(Editor, Scene);
+	for (const auto& Item : GizmoRenderList)
+	{
+		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
+		UpdateTransformConstantBuffer(MVP);
+		if (Item.isSelected)
+		{
+			RenderHighlight(Item, EViewModeIndex::VMI_Unlit);
+		}
+		RenderGizmo(Item);
+	}
 	EndFrame();
+}
+
+void FRenderer::RenderDebugLines(FEditor* Editor, UScene* Scene, const FMatrix& ViewProjection)
+{
+	const FVector CameraPosition = Editor->GetEditorCamera()->GetWorldLocation();
+	for (const UGizmo* Gizmo : Editor->GetGizmos())
+	{
+		Gizmo->AppendLineRequests(CameraPosition, ViewProjection, LineRequests);
+	}
+
+	RenderUtil::AppendBoundsLineRequests(Scene, Editor->IsShowingBoundingBoxes(),
+		Editor->GetSelectedSceneComponent(), LineRequests);
+	for (const FLineDrawRequest& Request : LineRequests)
+	{
+		LineBatch.AddLine(Request);
+	}
+
+	const FPrimitiveRenderData Data = LineBatch.BuildRenderData(D3DDevice, DeviceContext);
+
+	UpdateTransformConstantBuffer(ViewProjection);
+	RenderLines(Data);
 }
 
 void FRenderer::UpdateTransformConstantBuffer(const FMatrix& MVP)
@@ -618,33 +586,7 @@ void FRenderer::UpdateTransformConstantBuffer(const FMatrix& MVP)
 	}
 }
 
-void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
-{
-	if (!DeviceContext || !GridConstantBuffer)
-	{
-		return;
-	}
-
-	D3D11_MAPPED_SUBRESOURCE constantbufferMSR{};
-
-	HRESULT hr = DeviceContext->Map(GridConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-	if (SUCCEEDED(hr))
-	{
-		FGridConstants* constants = (FGridConstants*)constantbufferMSR.pData;
-		if (constants)
-		{
-			constants->CameraPos = GridConstants.CameraPos;
-			constants->GridPlaneType = GridConstants.GridPlaneType;
-		}
-		DeviceContext->Unmap(GridConstantBuffer, 0);
-	}
-	else
-	{
-		UE_LOG("[FRenderer] Failed to Map GridConstantBuffer. HRESULT: {}\n", hr);
-	}
-}
-
-void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
+void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex ViewMode)
 {
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(SimpleInputLayout);
@@ -655,17 +597,18 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(DefaultRasterizerState);
+	DeviceContext->RSSetState(ViewMode == EViewModeIndex::VMI_Wireframe
+		? WireframeRasterizerState : DefaultRasterizerState);
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 
 	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
-	// BindMaterial(Data.Material); 
+	// BindMaterial(Data.Material);
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
 }
 
-void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
+void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data, EViewModeIndex ViewMode)
 {
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(SimpleInputLayout);
@@ -676,41 +619,14 @@ void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(HighlightVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(CullFrontRasterizerState);
+	DeviceContext->RSSetState(ViewMode == EViewModeIndex::VMI_Wireframe
+		? WireframeRasterizerState : CullFrontRasterizerState);
 
 	DeviceContext->PSSetShader(HighlightPixelShader, nullptr, 0);
 
 	DeviceContext->OMSetDepthStencilState(HighlightDepthStencilState, 0);
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
-}
-
-void FRenderer::RenderGrid(FMeshResource* Data)
-{
-    if (!Data) return;
-    ID3D11Buffer* VertexBuffer = Data->GetVertexBuffer();
-    const UINT Stride = Data->GetStride();
-	UINT Offset = 0;
-	DeviceContext->IASetInputLayout(SimpleInputLayout);
-	DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
-	DeviceContext->IASetIndexBuffer(Data->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	DeviceContext->VSSetShader(GridVertexShader, nullptr, 0);
-	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
-	DeviceContext->VSSetConstantBuffers(1, 1, &GridConstantBuffer);
-
-	DeviceContext->RSSetState(CullNoneRasterizerState);
-
-	DeviceContext->PSSetShader(GridPixelShader, nullptr, 0);
-	DeviceContext->PSSetConstantBuffers(1, 1, &GridConstantBuffer);
-
-	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	UINT sampleMask = 0xffffffff;
-	DeviceContext->OMSetBlendState(AlphaBlendState, blendFactor, sampleMask);
-	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
-
-	DeviceContext->DrawIndexed(Data->GetIndexCount(), 0, 0);
 }
 
 void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)
@@ -729,7 +645,33 @@ void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 
 	DeviceContext->OMSetDepthStencilState(GizmoDepthStencilState, 0);
-	// BindMaterial(Data.Material); 
+	// BindMaterial(Data.Material);
+
+	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+}
+
+void FRenderer::RenderLines(const FPrimitiveRenderData& Data)
+{
+	if (!Data.VertexBuffer || !Data.IndexBuffer || Data.IndexCount == 0) return;
+
+	const UINT Offset = 0;
+	DeviceContext->IASetInputLayout(SimpleInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1,&Data.VertexBuffer,&Data.Stride,&Offset);
+	DeviceContext->IASetIndexBuffer(Data.IndexBuffer,DXGI_FORMAT_R32_UINT,0);
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+
+	DeviceContext->GSSetShader(nullptr, nullptr, 0);
+
+	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
+
+	DeviceContext->RSSetState(CullNoneRasterizerState);
+
+	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+
+	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
 }
