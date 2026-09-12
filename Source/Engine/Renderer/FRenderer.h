@@ -41,6 +41,7 @@ public:
 
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
 	ID3D11RasterizerState* WireframeRasterizerState = nullptr;
+	ID3D11RasterizerState* WireframeCullNoneRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
 	ID3D11RasterizerState* CullNoneRasterizerState = nullptr;
 

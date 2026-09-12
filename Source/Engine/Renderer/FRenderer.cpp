@@ -231,6 +231,9 @@ void FRenderer::CreateRasterizerState()
 	D3D11_RASTERIZER_DESC wireframeDesc = rasterizerdesc;
 	wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
 	CheckHR(D3DDevice->CreateRasterizerState(&wireframeDesc, &WireframeRasterizerState));
+	D3D11_RASTERIZER_DESC wireframeCullNoneDesc = wireframeDesc;
+	wireframeCullNoneDesc.CullMode = D3D11_CULL_NONE;
+	CheckHR(D3DDevice->CreateRasterizerState(&wireframeCullNoneDesc, &WireframeCullNoneRasterizerState));
 
 	D3D11_RASTERIZER_DESC rasterizerdescHighlight = {};
 	rasterizerdescHighlight.FillMode = D3D11_FILL_SOLID;
@@ -254,6 +257,11 @@ void FRenderer::ReleaseRasterizerState()
 	{
 		WireframeRasterizerState->Release();
 		WireframeRasterizerState = nullptr;
+	}
+	if (WireframeCullNoneRasterizerState)
+	{
+		WireframeCullNoneRasterizerState->Release();
+		WireframeCullNoneRasterizerState = nullptr;
 	}
 	if (CullFrontRasterizerState)
 	{
@@ -878,7 +886,7 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(bWireframeMode ? WireframeRasterizerState : DefaultRasterizerState);
+	DeviceContext->RSSetState(Data.bDoubleSided ? (bWireframeMode ? WireframeCullNoneRasterizerState : CullNoneRasterizerState) : (bWireframeMode ? WireframeRasterizerState : DefaultRasterizerState));
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 
@@ -898,7 +906,7 @@ void FRenderer::RenderSelectionStencil(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
-	DeviceContext->RSSetState(DefaultRasterizerState);
+	DeviceContext->RSSetState(Data.bDoubleSided ? CullNoneRasterizerState : DefaultRasterizerState);
 	DeviceContext->OMSetBlendState(ColorWriteDisabledBlendState, nullptr, 0xffffffff);
 	DeviceContext->OMSetDepthStencilState(SelectionStencilDepthStencilState, 1);
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
@@ -914,7 +922,7 @@ void FRenderer::RenderSelectionOutline(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(HighlightVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 	DeviceContext->PSSetShader(HighlightPixelShader, nullptr, 0);
-	DeviceContext->RSSetState(CullFrontRasterizerState);
+	DeviceContext->RSSetState(Data.bDoubleSided ? CullNoneRasterizerState : CullFrontRasterizerState);
 	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 	DeviceContext->OMSetDepthStencilState(OutlineDepthStencilState, 1);
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);

@@ -16,4 +16,5 @@ struct FPrimitiveRenderData
 	const FMatrix*				WorldMatrix = nullptr;		// 컴포넌트가 소유한 월드행렬 가리키기
 
 	bool						isSelected = false;
+	bool						bDoubleSided = false;
 };
