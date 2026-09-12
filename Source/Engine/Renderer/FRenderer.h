@@ -7,6 +7,7 @@
 
 //#include "UEngine"
 #include "Engine/Renderer/FPrimitiveRenderData.h"
+#include "Engine/Renderer/FVertexSimple.h"
 #include "GDevice.h"
 #include "Core/Math/Matrix.h"
 #include "Core/Math/FQuaternion.h"
@@ -18,18 +19,14 @@
 #include "Engine/Renderer/Text/FTextMeshBuilder.h"
 
 
-//struct FVertexSimple;
 struct FConstants
 {
 	FMatrix MVP;
 };
-struct FGridConstants
-{
-	FVector CameraPos;
-	int GridPlaneType;
-};
 class UScene;
 class FEditor;
+class UCameraComponent;
+class UPrimitiveComponent;
 struct FPrimitiveRenderData;
 
 #include <cmath>
@@ -53,7 +50,6 @@ public:
 	ID3D11BlendState* AlphaBlendState = nullptr;
 
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
-	ID3D11Buffer* GridConstantBuffer = nullptr;
 
 
 	FLOAT                   ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
@@ -64,8 +60,22 @@ public:
 	ID3D11InputLayout* SimpleInputLayout = nullptr;
 	ID3D11VertexShader* HighlightVertexShader = nullptr;
 	ID3D11PixelShader* HighlightPixelShader = nullptr;
-	ID3D11VertexShader* GridVertexShader = nullptr;
-	ID3D11PixelShader* GridPixelShader = nullptr;
+	ID3D11VertexShader* LineVertexShader = nullptr;
+	ID3D11PixelShader* LinePixelShader = nullptr;
+	ID3D11InputLayout* LineInputLayout = nullptr;
+	ID3D11Buffer* LineVertexBuffer = nullptr;
+	ID3D11Buffer* LineIndexBuffer = nullptr;
+	TArray<FVertexSimple> LineVertices;
+	TArray<uint32> LineIndices;
+	static const UINT MaxLineCount = 8192;
+	bool bLineBufferOverflowLogged = false;
+
+	// 카메라를 따라다니는 월드 그리드 캐시 (카메라가 그리드 한 칸을 벗어날 때만 재생성)
+	TArray<FVertexSimple> CachedGridVertices;
+	TArray<uint32> CachedGridIndices;
+	bool bGridCacheValid = false;
+	float CachedGridCenterX = 0.0f;
+	float CachedGridCenterY = 0.0f;
 
 	// ---- Text Billboard ----
 	ID3D11VertexShader* TextVertexShader = nullptr;
@@ -95,7 +105,6 @@ public:
 
 	void CreateConstantBuffer();
 	void UpdateTransformConstantBuffer(const FMatrix& WorldMatrix);
-	void UpdateGridConstantBuffer(const FGridConstants& GridConstants);
 	void ReleaseConstantBuffer();
 
 	void CreateRasterizerState();
@@ -113,8 +122,16 @@ public:
 	void Render(float DeltaTime, FEditor* Editor, UScene* Scene);
 	void RenderPrimitive(const FPrimitiveRenderData& Data);
 	void RenderHighlight(const FPrimitiveRenderData& Data);
-	void RenderGrid(FMeshResource* Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
+
+	void CreateLineResources();
+	void ReleaseLineResources();
+	void BeginLineBatch();
+	void AddLine(const FVector& Start, const FVector& End, const FVector4& Color);
+	void AddWorldGrid(const FVector& CameraWorldPos);
+	void RebuildGridCache(const FVector& GridCenter, const FVector& CameraWorldPos);
+	void AddBoundingBox(const UPrimitiveComponent* Primitive, const UCameraComponent* Camera);
+	void RenderLineBatch(const FMatrix& ViewProj);
 
 	void CreateTextResources();
 	void ReleaseTextResources();
