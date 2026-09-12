@@ -4,12 +4,14 @@
 #include "Core/Math/FVector.h"
 #include "Core/Math/Matrix.h"
 #include "FVertexSimple.h"
+#include "Engine/Renderer/FGrid.h"
 
 class FLineBatcher
 {
 public:
 	void AddLine(const FVertexSimple& A, const FVertexSimple& B);
 	void AddBoundBox(const FVector& Min, const FVector& Max, const FMatrix& World);
+	void AddGrid(FGrid Grid, FVector CameraPos);
 	bool Build();
 	void Clear();
 	void Release();

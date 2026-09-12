@@ -43,6 +43,7 @@ public:
 	ID3D11DeviceContext* DeviceContext = nullptr;
 	ID3D11Device* D3DDevice = nullptr;
 	FLineBatcher LineBatcher;
+	FGrid Grid;
 
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;

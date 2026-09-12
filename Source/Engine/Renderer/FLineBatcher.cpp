@@ -45,6 +45,77 @@ void FLineBatcher::AddBoundBox(const FVector& Min, const FVector& Max, const FMa
 	}
 }
 
+void FLineBatcher::AddGrid(FGrid Grid, FVector CameraPos)
+{
+	if (Grid.LineNum < 2 || Grid.Interval <= 0.0f)
+	{
+		return;
+	}
+
+	const FVector GridColor(1.0f, 1.0f, 1.0f);
+	const float Length = (Grid.LineNum - 1) * Grid.Interval;
+	const float Half = Length * 0.5f;
+	const float HalfSqured = Half * Half;
+	const float ZSquared = CameraPos.Z * CameraPos.Z;
+
+	// 카메라를 Interval 배수로 스냅해야 카메라가 움직여도 격자가 미끄러지지 않고,
+	// 선들이 Interval의 정수배 위치에 놓여서 아래 축 판정이 성립한다.
+	const int32 HalfCount = static_cast<int32>(Grid.LineNum) / 2;
+	const float MinX = floor(CameraPos.X / Grid.Interval) * Grid.Interval - HalfCount * Grid.Interval;
+	const float MinY = floor(CameraPos.Y / Grid.Interval) * Grid.Interval - HalfCount * Grid.Interval;
+
+	// 부동소수 누적 오차를 감안한 허용 오차. 간격의 1%면 인접 선과 헷갈릴 일이 없다.
+	const float AxisTolerance = Grid.Interval * 0.01f;
+
+	for (uint32 i = 0; i < Grid.LineNum; ++i)
+	{
+		const float Offset = i * Grid.Interval;
+		const float X = MinX + Offset;
+		const float Y = MinY + Offset;
+
+		const float Offset2 = Half - Offset;
+		const float Dist = sqrt(Offset2 * Offset2 + Half * Half);
+		const float Alpha = (std::min)(2.0f / Dist, 1.0f);
+		const float Alpha2 = (std::min)(2.0f / fabsf(Offset2), 1.0f);
+
+		// X가 고정이고 Y가 변하는 선 = Y축과 평행. X == 0이면 그게 Y축이므로 건너뛰고,
+		// 아래에서 원점 기준으로 따로 그린다. (Y가 고정인 선은 그 반대)
+		if (fabs(X) > AxisTolerance)
+		{
+			AddLine({ X, MinY,          0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha },
+				{ X, MinY + Half, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 });
+			AddLine({ X, MinY + Half,          0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 },
+				{ X, MinY + Length, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha });
+		}
+
+		if (fabs(Y) > AxisTolerance)
+		{
+			AddLine({ MinX,          Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha },
+				{ MinX + Half, Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 });
+			AddLine({ MinX + Half,          Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 },
+				{ MinX + Length, Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha });
+		}
+	}
+
+	// 축은 그리드와 달리 카메라를 따라가지 않고 항상 원점에 고정한다.
+	// 다만 위 루프에서 건너뛴 선을 대신 메워야 하므로 패치 끝까지 늘리고,
+	// 원점이 패치 밖에 있어도 원점까지는 닿게 한다.
+	// 양 끝 정점의 색이 같아야 보간되지 않고 단색으로 나온다.
+	const float AxisMinX = MinX;
+	const float AxisMaxX = MinX + Length;
+	const float AxisMinY = MinY;
+	const float AxisMaxY = MinY + Length;
+	const float AxisMinZ = CameraPos.Z - Length;
+	const float AxisMaxZ = CameraPos.Z + Length;
+
+	AddLine({ AxisMinX, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
+		{ AxisMaxX, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f });
+	AddLine({ 0.0f, AxisMinY, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
+		{ 0.0f, AxisMaxY, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f });
+	AddLine({ 0.0f, 0.0f, AxisMinZ, 0.0f, 0.0f, 1.0f, 1.0f },
+		{ 0.0f, 0.0f,  AxisMaxZ, 0.0f, 0.0f, 1.0f, 1.0f });
+}
+
 bool FLineBatcher::Build()
 {
 	size_t N = Vertices.Num();

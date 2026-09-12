@@ -562,6 +562,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	}
 
 	// Render Grid
+#if 0
 	UpdateTransformConstantBuffer(ViewProjMatrix);
 	for (auto Item : Editor->GetGrids())
 	{
@@ -599,6 +600,9 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		UpdateTransformConstantBuffer(Z_WorldMatrix * ViewProjMatrix);
 		RenderGrid(Item->GetMeshResource());
 	}
+#else
+	LineBatcher.AddGrid(Grid, Camera->GetWorldLocation());
+#endif
 
 	// BatchLine
 	RenderBatchLine(ViewProjMatrix);
