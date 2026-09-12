@@ -18,7 +18,7 @@ UActorComponent* UActor::CreateComponent(FClassType* Type, uint32 UUID)
     Component->SetOwner(this);
     Components.Add(Component);
 
-    if (RootComponent == nullptr && Component->IsA(USceneComponent::GetClass()))
+    if (RootComponent == nullptr && Component->IsA(USceneComponent::GetClass()) && static_cast<USceneComponent*>(Component)->CanBeRootComponent())
     {
         RootComponent = static_cast<USceneComponent*>(Component);
     }

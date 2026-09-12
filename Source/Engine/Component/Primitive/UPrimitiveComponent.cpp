@@ -26,3 +26,19 @@ FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 
 	return OutData;
 }
+
+bool UPrimitiveComponent::GetLocalBounds(FVector& OutMin, FVector& OutMax) const
+{
+	// 기본: 클래스 이름으로 찾은 공유 메시의 Bounds
+	FMeshResource* MeshResource = GetMeshResource();
+	if (!MeshResource || !MeshResource->HasBounds()) return false;
+
+	OutMin = MeshResource->GetBoundsMin();
+	OutMax = MeshResource->GetBoundsMax();
+	return true;
+}
+
+const FMatrix& UPrimitiveComponent::GetRenderWorldMatrix(const UCameraComponent* Camera) const
+{
+	return GetWorldMatrix();
+}

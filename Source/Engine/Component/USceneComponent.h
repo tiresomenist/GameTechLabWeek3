@@ -13,9 +13,13 @@ class USceneComponent : public UActorComponent
     UCLASS(USceneComponent, "SceneComponent", UActorComponent)
 
 public:
+	virtual bool CanBeRootComponent() const { return true; }
+
     FVector& GetRelativeLocation() { return RelativeLocation; };
+	const FVector& GetRelativeLocation() const { return RelativeLocation; }
     const FQuaternion& GetRelativeRotation() const { return RelativeRotation; }
     FVector& GetRelativeScale3D() { return RelativeScale3D; };
+	const FVector& GetRelativeScale3D() const { return RelativeScale3D; }
 
     void SetRelativeLocation(const FVector& Location);
     void SetRelativeRotation(const FQuaternion& Rotation);
