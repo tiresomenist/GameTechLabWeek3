@@ -13,6 +13,9 @@
 //#include "../FVertexSimple.h"
 #include "Engine/Resource/FMeshResource.h"
 #include "Core/Container/TArray.h"
+#include "Engine/Renderer/Text/FFontAtlas.h"
+#include "Engine/Renderer/Text/FVertexText.h"
+#include "Engine/Renderer/Text/FTextMeshBuilder.h"
 
 
 //struct FVertexSimple;
@@ -64,6 +67,20 @@ public:
 	ID3D11VertexShader* GridVertexShader = nullptr;
 	ID3D11PixelShader* GridPixelShader = nullptr;
 
+	// ---- Text Billboard ----
+	FFontAtlas* FontAtlas = nullptr;
+
+	ID3D11VertexShader* TextVertexShader = nullptr;
+	ID3D11PixelShader* TextPixelShader = nullptr;
+	ID3D11InputLayout* TextInputLayout = nullptr;
+
+	ID3D11SamplerState* FontSamplerState = nullptr;
+	ID3D11DepthStencilState* TextDepthStencilState = nullptr;
+
+	ID3D11Buffer* TextVertexBuffer = nullptr;
+	ID3D11Buffer* TextIndexBuffer = nullptr;
+	static const UINT MaxTextVertices = 8192;
+
 	bool bImGuiContextCreated = false;
 	bool bImGuiWin32Initialized = false;
 	bool bImGuiDX11Initialized = false;
@@ -100,4 +117,9 @@ public:
 	void RenderHighlight(const FPrimitiveRenderData& Data);
 	void RenderGrid(FMeshResource* Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
+
+	void CreateTextResources();
+	void ReleaseTextResources();
+	void UpdateTextVertexBuffer(TArray<FVertexText>& Vertices);
+	void RenderText(UINT IndexCount);
 };

@@ -23,6 +23,7 @@
 #include <filesystem>
 #include <wrl/client.h>
 #include <stdexcept>
+#include <vector>
 
 namespace
 {
@@ -47,6 +48,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
+	CreateTextResources();
 
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
@@ -71,6 +73,7 @@ void FRenderer::Shutdown()
     ReleaseRasterizerState();
     ReleaseAlphaBlendState();
     ReleaseDepthStencilStates();
+    ReleaseTextResources();
     if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
     if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
     if (bImGuiContextCreated) ImGui::DestroyContext();
@@ -352,6 +355,130 @@ void FRenderer::ReleaseDepthStencilStates()
 	}
 }
 
+void FRenderer::CreateTextResources()
+{
+	// 폰트 아틀라스 굽기
+	FontAtlas = new class FFontAtlas();
+	if (!FontAtlas->Build(D3DDevice, "Assets/Fonts/Pretendard-Regular.ttf", 24.0f))
+		throw std::runtime_error("Font atlas build failed");
+
+	// 텍스트 셰이더
+	Microsoft::WRL::ComPtr<ID3DBlob> ShaderBlob;
+	if (!CompileShader(L"Assets/Shaders/TextShader.hlsl", "mainVS_Text", "vs_5_0", ShaderBlob.ReleaseAndGetAddressOf()))
+		throw std::runtime_error("Text VS compile failed");
+	CheckHR(D3DDevice->CreateVertexShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &TextVertexShader));
+
+	D3D11_INPUT_ELEMENT_DESC Layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	CheckHR(D3DDevice->CreateInputLayout(Layout, ARRAYSIZE(Layout), ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), &TextInputLayout));
+	ShaderBlob.Reset();
+
+	if (!CompileShader(L"Assets/Shaders/TextShader.hlsl", "mainPS_Text", "ps_5_0", ShaderBlob.ReleaseAndGetAddressOf()))
+		throw std::runtime_error("Text PS compile failed");
+	CheckHR(D3DDevice->CreatePixelShader(ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), nullptr, &TextPixelShader));
+
+	// 샘플러 (기존 프로젝트에 샘플러가 하나도 없어서 신규 생성)
+	D3D11_SAMPLER_DESC SamplerDesc = {};
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	CheckHR(D3DDevice->CreateSamplerState(&SamplerDesc, &FontSamplerState));
+
+	// 깊이 검사는 하되(오브젝트에 가려지게) 기록은 안 함(라벨끼리 겹칠 때 z-fight 방지)
+	D3D11_DEPTH_STENCIL_DESC DSDesc = {};
+	DSDesc.DepthEnable = TRUE;
+	DSDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	DSDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	CheckHR(D3DDevice->CreateDepthStencilState(&DSDesc, &TextDepthStencilState));
+
+	// Vertex Buffer: 매 프레임 내용이 바뀌므로 DYNAMIC, 고정 용량으로 1회만 생성
+	D3D11_BUFFER_DESC VBDesc = {};
+	VBDesc.ByteWidth = sizeof(FVertexText) * MaxTextVertices;
+	VBDesc.Usage = D3D11_USAGE_DYNAMIC;
+	VBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	CheckHR(D3DDevice->CreateBuffer(&VBDesc, nullptr, &TextVertexBuffer));
+
+	// Index Buffer: quad 패턴(0,1,2,0,2,3)이 항상 동일하므로 1회 IMMUTABLE 생성
+	const UINT MaxQuads = MaxTextVertices / 4;
+	std::vector<uint32> Indices;
+	Indices.reserve(MaxQuads * 6);
+	for (UINT q = 0; q < MaxQuads; ++q)
+	{
+		const uint32 Base = q * 4;
+		Indices.push_back(Base + 0);
+		Indices.push_back(Base + 1);
+		Indices.push_back(Base + 2);
+		Indices.push_back(Base + 0);
+		Indices.push_back(Base + 2);
+		Indices.push_back(Base + 3);
+	}
+
+	D3D11_BUFFER_DESC IBDesc = {};
+	IBDesc.ByteWidth = static_cast<UINT>(sizeof(uint32) * Indices.size());
+	IBDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	IBDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA IBData = { Indices.data() };
+	CheckHR(D3DDevice->CreateBuffer(&IBDesc, &IBData, &TextIndexBuffer));
+}
+
+void FRenderer::ReleaseTextResources()
+{
+	if (TextVertexBuffer) { TextVertexBuffer->Release(); TextVertexBuffer = nullptr; }
+	if (TextIndexBuffer) { TextIndexBuffer->Release(); TextIndexBuffer = nullptr; }
+	if (TextDepthStencilState) { TextDepthStencilState->Release(); TextDepthStencilState = nullptr; }
+	if (FontSamplerState) { FontSamplerState->Release(); FontSamplerState = nullptr; }
+	if (TextInputLayout) { TextInputLayout->Release(); TextInputLayout = nullptr; }
+	if (TextPixelShader) { TextPixelShader->Release(); TextPixelShader = nullptr; }
+	if (TextVertexShader) { TextVertexShader->Release(); TextVertexShader = nullptr; }
+	if (FontAtlas) { FontAtlas->Release(); delete FontAtlas; FontAtlas = nullptr; }
+}
+
+void FRenderer::UpdateTextVertexBuffer(TArray<FVertexText>& Vertices)
+{
+	if (Vertices.Num() == 0) return;
+
+	const UINT CopyCount = (static_cast<UINT>(Vertices.Num()) < MaxTextVertices) ? static_cast<UINT>(Vertices.Num()) : MaxTextVertices;
+
+	D3D11_MAPPED_SUBRESOURCE Mapped;
+	DeviceContext->Map(TextVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+	memcpy(Mapped.pData, Vertices.GetData(), sizeof(FVertexText) * CopyCount);
+	DeviceContext->Unmap(TextVertexBuffer, 0);
+}
+
+void FRenderer::RenderText(UINT IndexCount)
+{
+	if (IndexCount == 0) return;
+
+	UINT Stride = sizeof(FVertexText);
+	UINT Offset = 0;
+	DeviceContext->IASetInputLayout(TextInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &TextVertexBuffer, &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(TextIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	DeviceContext->VSSetShader(TextVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+
+	DeviceContext->PSSetShader(TextPixelShader, nullptr, 0);
+	ID3D11ShaderResourceView* SRV = FontAtlas->GetSRV();
+	DeviceContext->PSSetShaderResources(0, 1, &SRV);
+	DeviceContext->PSSetSamplers(0, 1, &FontSamplerState);
+
+	DeviceContext->RSSetState(CullNoneRasterizerState);
+	float BlendFactor[4] = { 0, 0, 0, 0 };
+	DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(TextDepthStencilState, 0);
+
+	DeviceContext->DrawIndexed(IndexCount, 0, 0);
+}
+
 void FRenderer::BeginFrame()
 {
 	ImGui_ImplDX11_NewFrame();
@@ -450,6 +577,19 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		}
 		RenderGizmo(Item);
 	}
+
+	// Render Text (한글 렌더링 데모는 항상 표시하고, UUID 라벨만 Show Flag로 제어)
+	TArray<FWorldTextItem> TextItems;
+	if (Editor->IsShowingUUIDLabels())
+	{
+		TextItems = RenderUtil::GetTextRenderList(Scene);
+	}
+	TextItems.Add(FWorldTextItem{ "한글 문자열 렌더링 테스트", FVector(-4.0f, 4.0f, 2.0f) });
+	TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, Camera->GetRight(), Camera->GetUp(), *FontAtlas);
+	UpdateTextVertexBuffer(TextVerts);
+	UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
+	const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
+	RenderText(TextVertexCount / 4 * 6);
 
 	UpdateTransformConstantBuffer(ViewProjMatrix);
 	EndFrame();

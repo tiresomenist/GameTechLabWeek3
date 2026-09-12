@@ -30,6 +30,7 @@ private:
 	FGizmoController* GizmoController = nullptr;
 
 	USceneComponent* SelectedSceneComponent = nullptr;
+	bool bShowUUIDLabels = true;
 	TArray<UGizmo*> Gizmos;
 	TArray<UEditorWindow*> Windows;
 	TArray<UGrid*> Grids;
@@ -61,6 +62,8 @@ public:
 	UCameraComponent* GetEditorCamera() { return EditorCamera; }
 
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
+	bool IsShowingUUIDLabels() const { return bShowUUIDLabels; }
+	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
 	int32 GetActiveGizmoAxis() const { return GizmoController ? GizmoController->GetActiveAxis() : -1; }
 	void SetSelectedSceneComponent(USceneComponent* Component);
 
