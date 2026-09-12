@@ -88,35 +88,3 @@ TArray<FWorldTextItem> RenderUtil::GetTextRenderList(UScene* Scene, const UCamer
 	);
 	return TextList;
 }
-
-// 로컬 AABB의 8개 코너를 World로 옮겨서(=OBB) 12개 엣지를 배처에 넣는다.
-void RenderUtil::PushBoundingBox(FLineBatcher& LineBatcher, const FVector& Min, const FVector& Max, const FMatrix& World)
-{
-	const FVector4 BoxColor(1.0f, 1.0f, 0.0f, 1.0f);
-
-	// 인덱스의 비트 0/1/2 = X/Y/Z가 Min인지 Max인지
-	FVertexSimple Corners[8];
-	for (int i = 0; i < 8; ++i)
-	{
-		const FVector4 Local(
-			(i & 1) ? Max.X : Min.X,
-			(i & 2) ? Max.Y : Min.Y,
-			(i & 4) ? Max.Z : Min.Z,
-			1.0f);
-
-		const FVector World3 = (Local * World).getXYZ();
-		Corners[i] = { World3.X, World3.Y, World3.Z, BoxColor.X, BoxColor.Y, BoxColor.Z, BoxColor.W };
-	}
-
-	// 두 코너가 비트 하나만 다르면 그게 엣지 (정확히 12개)
-	for (int i = 0; i < 8; ++i)
-	{
-		for (int Bit = 1; Bit <= 4; Bit <<= 1)
-		{
-			if (!(i & Bit))
-			{
-				LineBatcher.AddLine(Corners[i], Corners[i | Bit]);
-			}
-		}
-	}
-}

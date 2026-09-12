@@ -550,7 +550,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		if (Item.isSelected)
 		{
 			RenderHighlight(Item);
-			RenderUtil::PushBoundingBox(LineBatcher, Item.Min, Item.Max, *Item.WorldMatrix);
+			LineBatcher.AddBoundBox(Item.Min, Item.Max, *Item.WorldMatrix);
 		}
 		RenderPrimitive(Item);
 	}
@@ -774,8 +774,9 @@ void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)
 void FRenderer::RenderBatchLine(const FMatrix& ViewProj)
 {
 	const UINT VertexCount = LineBatcher.GetVertexCount();
+	const UINT IndexCount = LineBatcher.GetIndexCount();
 
-	if (VertexCount == 0)
+	if (VertexCount == 0 || IndexCount == 0)
 	{
 		return;
 	}
@@ -789,11 +790,13 @@ void FRenderer::RenderBatchLine(const FMatrix& ViewProj)
 	UpdateTransformConstantBuffer(ViewProj);
 
 	ID3D11Buffer* VB = LineBatcher.GetVertexBuffer();
+	ID3D11Buffer* IB = LineBatcher.GetIndexBuffer();
 	UINT Stride = sizeof(FVertexSimple);
 	UINT Offset = 0;
 
 	DeviceContext->IASetInputLayout(SimpleInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &VB, &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(IB, DXGI_FORMAT_R32_UINT, 0);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 	DeviceContext->VSSetShader(BatchLineVertexShader, nullptr, 0);
@@ -809,7 +812,7 @@ void FRenderer::RenderBatchLine(const FMatrix& ViewProj)
 
 	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
 
-	DeviceContext->Draw(VertexCount, 0);
+	DeviceContext->DrawIndexed(IndexCount, 0, 0);
 
 	// 나중에 같은 데이터로 여러번 그리려면 Clear() 분리가 필요할 수 있음
 	LineBatcher.Clear();

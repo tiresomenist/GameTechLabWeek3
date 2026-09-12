@@ -14,5 +14,4 @@ namespace RenderUtil
 	TArray<FPrimitiveRenderData> GetRenderList(FEditor* Editor, UScene* Scene);
 	TArray<FPrimitiveRenderData> GetGizmoList(FEditor* Editor, UScene* Scene);
 	TArray<FWorldTextItem> GetTextRenderList(UScene* Scene, const UCameraComponent* Camera, bool bShowUUIDWidgets);
-	void PushBoundingBox(FLineBatcher& LineBatcher, const FVector& Min, const FVector& Max, const FMatrix& World);
 };
