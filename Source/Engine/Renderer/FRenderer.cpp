@@ -582,18 +582,27 @@ void FRenderer::AddBoundingBox(const UPrimitiveComponent* Primitive, const UCame
 	FVector Min;
 	FVector Max;
 	if (!Primitive || !Primitive->GetLocalBounds(Min, Max)) return;
+	if (LineVertices.Num() + 8 > static_cast<int>(MaxLineCount * 2) || LineIndices.Num() + 24 > static_cast<int>(MaxLineCount * 2))
+	{
+		if (!bLineBufferOverflowLogged)
+		{
+			UE_LOG("[FRenderer] Line batch buffer overflow. Dropping bounding box.\n");
+			bLineBufferOverflowLogged = true;
+		}
+		return;
+	}
 
 	const FMatrix& WorldMatrix = Primitive->GetRenderWorldMatrix(Camera);
-	const FVector Corners[8] =
+	const FVector LocalCorners[8] =
 	{
-		WorldMatrix.TransformPosition(FVector(Min.X, Min.Y, Min.Z)),
-		WorldMatrix.TransformPosition(FVector(Max.X, Min.Y, Min.Z)),
-		WorldMatrix.TransformPosition(FVector(Max.X, Max.Y, Min.Z)),
-		WorldMatrix.TransformPosition(FVector(Min.X, Max.Y, Min.Z)),
-		WorldMatrix.TransformPosition(FVector(Min.X, Min.Y, Max.Z)),
-		WorldMatrix.TransformPosition(FVector(Max.X, Min.Y, Max.Z)),
-		WorldMatrix.TransformPosition(FVector(Max.X, Max.Y, Max.Z)),
-		WorldMatrix.TransformPosition(FVector(Min.X, Max.Y, Max.Z)),
+		FVector(Min.X, Min.Y, Min.Z),
+		FVector(Max.X, Min.Y, Min.Z),
+		FVector(Max.X, Max.Y, Min.Z),
+		FVector(Min.X, Max.Y, Min.Z),
+		FVector(Min.X, Min.Y, Max.Z),
+		FVector(Max.X, Min.Y, Max.Z),
+		FVector(Max.X, Max.Y, Max.Z),
+		FVector(Min.X, Max.Y, Max.Z),
 	};
 	static constexpr uint32 Edges[12][2] =
 	{
@@ -602,9 +611,16 @@ void FRenderer::AddBoundingBox(const UPrimitiveComponent* Primitive, const UCame
 		{ 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 },
 	};
 	const FVector4 BoxColor(1.0f, 1.0f, 0.0f, 1.0f);
+	const uint32 StartIndex = static_cast<uint32>(LineVertices.Num());
+	for (const FVector& LocalCorner : LocalCorners)
+	{
+		const FVector WorldCorner = WorldMatrix.TransformPosition(LocalCorner);
+		LineVertices.Add({ WorldCorner.X, WorldCorner.Y, WorldCorner.Z, BoxColor.X, BoxColor.Y, BoxColor.Z, BoxColor.W });
+	}
 	for (const auto& Edge : Edges)
 	{
-		AddLine(Corners[Edge[0]], Corners[Edge[1]], BoxColor);
+		LineIndices.Add(StartIndex + Edge[0]);
+		LineIndices.Add(StartIndex + Edge[1]);
 	}
 }
 
