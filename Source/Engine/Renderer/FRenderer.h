@@ -47,6 +47,9 @@ public:
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
 	ID3D11RasterizerState* CullNoneRasterizerState = nullptr;
+	ID3D11RasterizerState* WireframeRasterizerState = nullptr;
+
+	bool bWireframe = false;   // 에디터 뷰 모드. 프레임 시작마다 FEditor에서 읽는다
 
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;

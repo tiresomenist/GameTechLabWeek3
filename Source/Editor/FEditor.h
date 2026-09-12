@@ -31,6 +31,7 @@ private:
 
 	USceneComponent* SelectedSceneComponent = nullptr;
 	bool bShowUUIDLabels = true;
+	bool bWireframe = false;
 	TArray<UGizmo*> Gizmos;
 	TArray<UEditorWindow*> Windows;
 	TArray<UGrid*> Grids;
@@ -64,6 +65,8 @@ public:
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
 	bool IsShowingUUIDLabels() const { return bShowUUIDLabels; }
 	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
+	bool IsWireframe() const { return bWireframe; }
+	void SetWireframe(bool bShow) { bWireframe = bShow; }
 	int32 GetActiveGizmoAxis() const { return GizmoController ? GizmoController->GetActiveAxis() : -1; }
 	void SetSelectedSceneComponent(USceneComponent* Component);
 

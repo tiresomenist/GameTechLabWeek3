@@ -270,20 +270,26 @@ void FRenderer::ReleaseConstantBuffer()
 
 void FRenderer::CreateRasterizerState()
 {
-	D3D11_RASTERIZER_DESC rasterizerdesc = {};
-	rasterizerdesc.FillMode = D3D11_FILL_SOLID;
-	rasterizerdesc.CullMode = D3D11_CULL_BACK;  // 백 페이스 컬링
-	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdesc, &DefaultRasterizerState));
+	// 일반 메시: 뒷면 컬링
+	D3D11_RASTERIZER_DESC SolidDesc = {};
+	SolidDesc.FillMode = D3D11_FILL_SOLID;
+	SolidDesc.CullMode = D3D11_CULL_BACK;
+	CheckHR(D3DDevice->CreateRasterizerState(&SolidDesc, &DefaultRasterizerState));
 
-	D3D11_RASTERIZER_DESC rasterizerdescHighlight = {};
-	rasterizerdescHighlight.FillMode = D3D11_FILL_SOLID;
-	rasterizerdescHighlight.CullMode = D3D11_CULL_NONE;  // 프론트 페이스 컬링
-	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdescHighlight, &CullFrontRasterizerState));
+	// 그리드: 양면 다 그림
+	D3D11_RASTERIZER_DESC CullNoneDesc = SolidDesc;
+	CullNoneDesc.CullMode = D3D11_CULL_NONE;
+	CheckHR(D3DDevice->CreateRasterizerState(&CullNoneDesc, &CullNoneRasterizerState));
 
-	D3D11_RASTERIZER_DESC rasterizerdescGrid = {};
-	rasterizerdescGrid.FillMode = D3D11_FILL_SOLID;
-	rasterizerdescGrid.CullMode = D3D11_CULL_NONE;
-	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdescGrid, &CullNoneRasterizerState));
+	// 하이라이트 외곽선: 1.05배로 부풀린 껍데기의 뒷면만 그린다 (inverted hull)
+	D3D11_RASTERIZER_DESC CullFrontDesc = SolidDesc;
+	CullFrontDesc.CullMode = D3D11_CULL_FRONT;
+	CheckHR(D3DDevice->CreateRasterizerState(&CullFrontDesc, &CullFrontRasterizerState));
+
+	// 와이어프레임 뷰 모드: 채우기만 끄고 컬링은 일반 메시와 동일
+	D3D11_RASTERIZER_DESC WireDesc = SolidDesc;
+	WireDesc.FillMode = D3D11_FILL_WIREFRAME;
+	CheckHR(D3DDevice->CreateRasterizerState(&WireDesc, &WireframeRasterizerState));
 }
 
 void FRenderer::ReleaseRasterizerState()
@@ -293,15 +299,20 @@ void FRenderer::ReleaseRasterizerState()
 		DefaultRasterizerState->Release();
 		DefaultRasterizerState = nullptr;
 	}
+	if (CullNoneRasterizerState)
+	{
+		CullNoneRasterizerState->Release();
+		CullNoneRasterizerState = nullptr;
+	}
 	if (CullFrontRasterizerState)
 	{
 		CullFrontRasterizerState->Release();
 		CullFrontRasterizerState = nullptr;
 	}
-	if (CullNoneRasterizerState)
+	if (WireframeRasterizerState)
 	{
-		CullNoneRasterizerState->Release();
-		CullNoneRasterizerState = nullptr;
+		WireframeRasterizerState->Release();
+		WireframeRasterizerState = nullptr;
 	}
 }
 
@@ -518,6 +529,8 @@ void FRenderer::EndFrame()
 void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 {
 	if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
+
+	bWireframe = Editor->IsWireframe();
 	BeginFrame();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
@@ -679,7 +692,7 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(DefaultRasterizerState);
+	DeviceContext->RSSetState(bWireframe ? WireframeRasterizerState : DefaultRasterizerState);
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 

@@ -217,7 +217,7 @@ FMatrix UCameraComponent::GetPerspectiveProjectionMatrix() const
 
 void UCameraComponent::MoveCamera(const float& InForward, const float& InRight, const float& InUp, const float& InDeltaTime)
 {
-	FVector InVelocity = GetForward() * InForward + GetRight() * InRight + GetUp()*InUp;
+	FVector InVelocity = GetForward() * InForward + GetRight() * InRight + FVector::Up*InUp;
 	if (InVelocity.Length() < EPSILON) return;
 	InVelocity.Normalize();
 	SetRelativeLocation(RelativeLocation + InVelocity * MoveSpeed * InDeltaTime);

@@ -183,6 +183,11 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			Editor->SetShowUUIDLabels(bShowUUIDLabels);
 		}
+		bool bWireframe = Editor->IsWireframe();
+		if (ImGui::Checkbox("Wireframe", &bWireframe))
+		{
+			Editor->SetWireframe(bWireframe);
+		}
 		ImGui::Checkbox("Orthogonal", &bOrthogonal);
 
 		EditorCamera->SetIsPerspective(!bOrthogonal);
