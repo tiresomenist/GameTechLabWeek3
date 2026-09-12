@@ -18,6 +18,12 @@ class UGizmo;
 class FObjectPicker;
 class FGizmoPicker;
 
+enum class EViewportRenderMode
+{
+	Unlit,
+	Wireframe,
+};
+
 class FEditor
 {
 private:
@@ -30,6 +36,7 @@ private:
 
 	USceneComponent* SelectedSceneComponent = nullptr;
 	bool bShowUUIDLabels = true;
+	EViewportRenderMode ViewportRenderMode = EViewportRenderMode::Unlit;
 	TArray<UGizmo*> Gizmos;
 	TArray<UEditorWindow*> Windows;
 	UGizmo* ObjectAxisGizmo = nullptr;
@@ -60,6 +67,8 @@ public:
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
 	bool IsShowingUUIDLabels() const { return bShowUUIDLabels; }
 	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
+	EViewportRenderMode GetViewportRenderMode() const { return ViewportRenderMode; }
+	void SetViewportRenderMode(EViewportRenderMode InRenderMode) { ViewportRenderMode = InRenderMode; }
 	int32 GetActiveGizmoAxis() const { return GizmoController ? GizmoController->GetActiveAxis() : -1; }
 	void SetSelectedSceneComponent(USceneComponent* Component);
 

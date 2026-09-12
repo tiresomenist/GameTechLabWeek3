@@ -40,6 +40,7 @@ public:
 	ID3D11Device* D3DDevice = nullptr;
 
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
+	ID3D11RasterizerState* WireframeRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
 	ID3D11RasterizerState* CullNoneRasterizerState = nullptr;
 
@@ -69,6 +70,7 @@ public:
 	TArray<uint32> LineIndices;
 	static const UINT MaxLineCount = 8192;
 	bool bLineBufferOverflowLogged = false;
+	bool bWireframeMode = false;
 
 	// 카메라를 따라다니는 월드 그리드 캐시 (카메라가 그리드 한 칸을 벗어날 때만 재생성)
 	TArray<FVertexSimple> CachedGridVertices;

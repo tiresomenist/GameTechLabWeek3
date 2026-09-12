@@ -183,6 +183,12 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			Editor->SetShowUUIDLabels(bShowUUIDLabels);
 		}
+		const char* RenderModeNames[] = { "Unlit", "Wireframe" };
+		int RenderModeIndex = static_cast<int>(Editor->GetViewportRenderMode());
+		if (ImGui::Combo("Render Mode", &RenderModeIndex, RenderModeNames, IM_ARRAYSIZE(RenderModeNames)))
+		{
+			Editor->SetViewportRenderMode(static_cast<EViewportRenderMode>(RenderModeIndex));
+		}
 		ImGui::Checkbox("Orthogonal", &bOrthogonal);
 
 		EditorCamera->SetIsPerspective(!bOrthogonal);

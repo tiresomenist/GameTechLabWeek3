@@ -226,6 +226,10 @@ void FRenderer::CreateRasterizerState()
 	rasterizerdesc.CullMode = D3D11_CULL_BACK;  // 백 페이스 컬링
 	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdesc, &DefaultRasterizerState));
 
+	D3D11_RASTERIZER_DESC wireframeDesc = rasterizerdesc;
+	wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
+	CheckHR(D3DDevice->CreateRasterizerState(&wireframeDesc, &WireframeRasterizerState));
+
 	D3D11_RASTERIZER_DESC rasterizerdescHighlight = {};
 	rasterizerdescHighlight.FillMode = D3D11_FILL_SOLID;
 	rasterizerdescHighlight.CullMode = D3D11_CULL_NONE;  // 프론트 페이스 컬링
@@ -243,6 +247,11 @@ void FRenderer::ReleaseRasterizerState()
 	{
 		DefaultRasterizerState->Release();
 		DefaultRasterizerState = nullptr;
+	}
+	if (WireframeRasterizerState)
+	{
+		WireframeRasterizerState->Release();
+		WireframeRasterizerState = nullptr;
 	}
 	if (CullFrontRasterizerState)
 	{
@@ -689,6 +698,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	BeginFrame();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
+	bWireframeMode = Editor->GetViewportRenderMode() == EViewportRenderMode::Wireframe;
 
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
@@ -787,7 +797,7 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(DefaultRasterizerState);
+	DeviceContext->RSSetState(bWireframeMode ? WireframeRasterizerState : DefaultRasterizerState);
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 
@@ -808,7 +818,7 @@ void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(HighlightVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(CullFrontRasterizerState);
+	DeviceContext->RSSetState(bWireframeMode ? WireframeRasterizerState : CullFrontRasterizerState);
 
 	DeviceContext->PSSetShader(HighlightPixelShader, nullptr, 0);
 
