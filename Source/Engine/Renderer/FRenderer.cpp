@@ -28,23 +28,23 @@
 
 namespace
 {
-    void CheckHR(HRESULT Result)
-    {
-        if (FAILED(Result))
-            throw std::runtime_error(std::format("D3D resource creation failed: {}", Result));
-    }
+	void CheckHR(HRESULT Result)
+	{
+		if (FAILED(Result))
+			throw std::runtime_error(std::format("D3D resource creation failed: {}", Result));
+	}
 }
 
 
 void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 {
-    if (!InDevice || !InDevice->GetDevice() || !InDevice->GetContext())
-        throw std::runtime_error("Renderer requires an initialized device");
+	if (!InDevice || !InDevice->GetDevice() || !InDevice->GetContext())
+		throw std::runtime_error("Renderer requires an initialized device");
 	Device = InDevice;
 	DeviceContext = InDevice->GetContext();
 	D3DDevice = InDevice->GetDevice();
 	ViewportInfo = InDevice->GetViewport();
-	CreateRasterizerState(); 
+	CreateRasterizerState();
 	if (!CreateShaders()) throw std::runtime_error("Shader compilation failed");
 	CreateConstantBuffer();
 	CreateAlphaBlendState();
@@ -62,26 +62,28 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	if (!bImGuiWin32Initialized) throw std::runtime_error("ImGui Win32 initialization failed");
 	bImGuiDX11Initialized = ImGui_ImplDX11_Init(D3DDevice, DeviceContext);
 	if (!bImGuiDX11Initialized) throw std::runtime_error("ImGui DX11 initialization failed");
-    if (!ImGui_ImplDX11_CreateDeviceObjects())
-        throw std::runtime_error("ImGui GPU resource creation failed");
+	if (!ImGui_ImplDX11_CreateDeviceObjects())
+		throw std::runtime_error("ImGui GPU resource creation failed");
 }
 
 void FRenderer::Shutdown()
 {
-    if (DeviceContext) DeviceContext->ClearState();
-    ReleaseConstantBuffer();
-    ReleaseShaders();
-    ReleaseRasterizerState();
-    ReleaseAlphaBlendState();
-    ReleaseDepthStencilStates();
-    ReleaseTextResources();
-    if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
-    if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
-    if (bImGuiContextCreated) ImGui::DestroyContext();
-    bImGuiDX11Initialized = bImGuiWin32Initialized = bImGuiContextCreated = false;
-    DeviceContext = nullptr;
-    D3DDevice = nullptr;
-    Device = nullptr;
+	LineBatcher.Release();
+
+	if (DeviceContext) DeviceContext->ClearState();
+	ReleaseConstantBuffer();
+	ReleaseShaders();
+	ReleaseRasterizerState();
+	ReleaseAlphaBlendState();
+	ReleaseDepthStencilStates();
+	ReleaseTextResources();
+	if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
+	if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
+	if (bImGuiContextCreated) ImGui::DestroyContext();
+	bImGuiDX11Initialized = bImGuiWin32Initialized = bImGuiContextCreated = false;
+	DeviceContext = nullptr;
+	D3DDevice = nullptr;
+	Device = nullptr;
 }
 
 bool FRenderer::CreateShaders()
@@ -122,18 +124,26 @@ bool FRenderer::CreateShaders()
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &GridPixelShader));
 	shaderBlob.Reset();
 
+	if (!CompileShader(L"Assets/Shaders/BatchLineShader.hlsl", "mainVS", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &BatchLineVertexShader));
+	shaderBlob.Reset();
+
+	if (!CompileShader(L"Assets/Shaders/BatchLineShader.hlsl", "mainPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &BatchLinePixelShader));
+	shaderBlob.Reset();
+
 	return true;
 }
 bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob)
 {
-    if (!OutBlob) return false;
-    *OutBlob = nullptr;
-    Microsoft::WRL::ComPtr<ID3DBlob> ErrorBlob;
-    const HRESULT Hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel,
-        0, 0, OutBlob, ErrorBlob.GetAddressOf());
-    if (ErrorBlob)
-        UE_LOG("Shader diagnostic: {}", static_cast<const char*>(ErrorBlob->GetBufferPointer()));
-    return SUCCEEDED(Hr);
+	if (!OutBlob) return false;
+	*OutBlob = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> ErrorBlob;
+	const HRESULT Hr = D3DCompileFromFile(FilePath, nullptr, nullptr, EntryPoint, ShaderModel,
+		0, 0, OutBlob, ErrorBlob.GetAddressOf());
+	if (ErrorBlob)
+		UE_LOG("Shader diagnostic: {}", static_cast<const char*>(ErrorBlob->GetBufferPointer()));
+	return SUCCEEDED(Hr);
 }
 
 void FRenderer::ReleaseShaders()
@@ -172,6 +182,16 @@ void FRenderer::ReleaseShaders()
 	{
 		GridPixelShader->Release();
 		GridPixelShader = nullptr;
+	}
+	if (BatchLineVertexShader)
+	{
+		BatchLineVertexShader->Release();
+		BatchLineVertexShader = nullptr;
+	}
+	if (BatchLinePixelShader)
+	{
+		BatchLinePixelShader->Release();
+		BatchLinePixelShader = nullptr;
 	}
 }
 
@@ -497,7 +517,7 @@ void FRenderer::EndFrame()
 
 void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 {
-    if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
+	if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
 	BeginFrame();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
@@ -566,6 +586,9 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderGrid(Item->GetMeshResource());
 	}
 
+	// BatchLine
+	RenderBatchLine(ViewProjMatrix);
+
 	// Render Gizmo
 	TArray<FPrimitiveRenderData> GizmoRenderList = RenderUtil::GetGizmoList(Editor, Scene);
 	for (auto Item : GizmoRenderList)
@@ -584,10 +607,10 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	{
 		TArray<FWorldTextItem> TextItems = RenderUtil::GetTextRenderList(Scene, Camera, Editor->IsShowingUUIDLabels());
 		TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, *FontAtlas);
-	UpdateTextVertexBuffer(TextVerts);
-	UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
-	const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
-	RenderText(TextVertexCount / 4 * 6);
+		UpdateTextVertexBuffer(TextVerts);
+		UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
+		const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;
+		RenderText(TextVertexCount / 4 * 6);
 	}
 
 	UpdateTransformConstantBuffer(ViewProjMatrix);
@@ -687,9 +710,9 @@ void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 
 void FRenderer::RenderGrid(FMeshResource* Data)
 {
-    if (!Data) return;
-    ID3D11Buffer* VertexBuffer = Data->GetVertexBuffer();
-    const UINT Stride = Data->GetStride();
+	if (!Data) return;
+	ID3D11Buffer* VertexBuffer = Data->GetVertexBuffer();
+	const UINT Stride = Data->GetStride();
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(SimpleInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
@@ -732,4 +755,48 @@ void FRenderer::RenderGizmo(const FPrimitiveRenderData& Data)
 	// BindMaterial(Data.Material); 
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+}
+
+void FRenderer::RenderBatchLine(const FMatrix& ViewProj)
+{
+	const UINT VertexCount = LineBatcher.GetVertexCount();
+
+	if (VertexCount == 0)
+	{
+		return;
+	}
+
+	if (!LineBatcher.Build())
+	{
+		LineBatcher.Clear();
+		return;
+	}
+
+	UpdateTransformConstantBuffer(ViewProj);
+
+	ID3D11Buffer* VB = LineBatcher.GetVertexBuffer();
+	UINT Stride = sizeof(FVertexSimple);
+	UINT Offset = 0;
+
+	DeviceContext->IASetInputLayout(SimpleInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &VB, &Stride, &Offset);
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+	DeviceContext->VSSetShader(BatchLineVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+
+	DeviceContext->RSSetState(DefaultRasterizerState);
+
+	DeviceContext->PSSetShader(BatchLinePixelShader, nullptr, 0);
+
+	float BlendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	UINT SampleMask = 0xffffffff;
+	DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, SampleMask);
+
+	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+
+	DeviceContext->Draw(VertexCount, 0);
+
+	// 나중에 같은 데이터로 여러번 그리려면 Clear() 분리가 필요할 수 있음
+	LineBatcher.Clear();
 }

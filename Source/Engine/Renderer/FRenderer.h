@@ -17,6 +17,7 @@
 #include "Engine/Renderer/Text/FVertexText.h"
 #include "Engine/Renderer/Text/FTextMeshBuilder.h"
 
+#include "FLineBatcher.h"
 
 //struct FVertexSimple;
 struct FConstants
@@ -41,6 +42,7 @@ public:
 	GDevice* Device = nullptr;
 	ID3D11DeviceContext* DeviceContext = nullptr;
 	ID3D11Device* D3DDevice = nullptr;
+	FLineBatcher LineBatcher;
 
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
@@ -55,7 +57,6 @@ public:
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
 	ID3D11Buffer* GridConstantBuffer = nullptr;
 
-
 	FLOAT                   ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	D3D11_VIEWPORT          ViewportInfo;
 
@@ -66,6 +67,8 @@ public:
 	ID3D11PixelShader* HighlightPixelShader = nullptr;
 	ID3D11VertexShader* GridVertexShader = nullptr;
 	ID3D11PixelShader* GridPixelShader = nullptr;
+	ID3D11VertexShader* BatchLineVertexShader = nullptr;
+	ID3D11PixelShader* BatchLinePixelShader = nullptr;
 
 	// ---- Text Billboard ----
 	ID3D11VertexShader* TextVertexShader = nullptr;
@@ -115,6 +118,7 @@ public:
 	void RenderHighlight(const FPrimitiveRenderData& Data);
 	void RenderGrid(FMeshResource* Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
+	void RenderBatchLine(const FMatrix& ViewProj);
 
 	void CreateTextResources();
 	void ReleaseTextResources();
