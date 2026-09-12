@@ -40,6 +40,8 @@ GResourceManager* GResourceManager::GetInstance()
 void GResourceManager::Initialize(GDevice* InDevice)
 {
     Device = InDevice;
+	if (!Device || !Device->GetDevice() || !DefaultFont.Build(Device->GetDevice(), "Assets/Fonts/Pretendard-Regular.ttf", 24.0f))
+		throw std::runtime_error("Default font atlas build failed");
     if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
@@ -121,6 +123,7 @@ void GResourceManager::Shutdown()
         delete mesh;
     }
     PrimitiveCache.clear();
+	DefaultFont.Release();
     Device = nullptr;
 
     //for (auto& [path, shader] : ShaderCache)

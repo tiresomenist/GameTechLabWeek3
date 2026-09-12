@@ -21,7 +21,8 @@
 #include "Engine/Input/GInputManager.h"
 
 #include "Editor/Picker/FObjectPicker.h"
-#include "Editor/Picker/FGizmoPicker.h"	
+#include "Editor/Picker/FGizmoPicker.h"
+#include "Engine/Component/UWidgetComponent.h"
 
 #include "Engine/Scene/GSceneManager.h"
 
@@ -179,7 +180,10 @@ void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
 	for (int i = 0; i < Count; ++i)
 	{
 		UActor* Actor = CurrentScene->SpawnActor<UActor*>(UActor::GetClass());
-		Actor->CreateComponent(PrimitiveType);
+		if (Actor->CreateComponent(PrimitiveType))
+		{
+			Actor->CreateComponent(UWidgetComponent::GetClass());
+		}
 	}
 }
 

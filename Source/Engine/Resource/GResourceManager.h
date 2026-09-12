@@ -13,6 +13,7 @@
 #include "Core/Container/TArray.h"
 #include "Engine/Renderer/FVertexSimple.h"
 #include "Engine/Resource/FMeshResource.h"
+#include "Engine/Renderer/Text/FFontAtlas.h"
 
 //struct FMeshResource
 //{
@@ -48,6 +49,7 @@ public:
 	FMeshResource* CreateMesh(const FString& MeshName, std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices);
 
 	FMeshResource* GetPrimitive(const FString& Type);
+	FFontAtlas* GetDefaultFont() { return DefaultFont.GetSRV() ? &DefaultFont : nullptr; }
 
 	FShaderResource* GetShader(
 		const std::wstring& FilePath,
@@ -66,6 +68,7 @@ private:
 	GDevice* Device = nullptr;
 
 	std::unordered_map<std::string, FMeshResource*> PrimitiveCache;
+	FFontAtlas DefaultFont;
 	//std::unordered_map<std::string, FShaderResource*> ShaderCache;	// 일단 Renderer에서 - 셰이더 무조건 하나만 쓰니까..
 	//std::map<std::pair<D3D11_FILL_MODE, D3D11_CULL_MODE>, ID3D11RasterizerState*> RasterizerStateCache;
 };

@@ -7,25 +7,28 @@
 #include "Engine/Renderer/Text/FFontAtlas.h"
 #include "Engine/Renderer/Text/FWorldTextItem.h"
 
-// 문자열+월드위치 목록과 빌보드 축(Right/Up)을 받아
-// 아틀라스에서 각 글자의 SubUV를 찾아 빌보드 quad 정점 목록을 만든다.
+// 문자열과 각각의 월드 행렬을 받아 아틀라스 글리프 quad 정점 목록을 만든다.
 class FTextMeshBuilder
 {
 public:
 	static TArray<FVertexText> Build(
 		const TArray<FWorldTextItem>& Items,
-		const FVector& Right,
-		const FVector& Up,
 		const FFontAtlas& Atlas,
+		float WorldUnitsPerPixel = 0.02f);
+
+	// Build와 같은 글리프 레이아웃으로 로컬 공간 Bounds를 계산한다.
+	static bool GetLocalBounds(
+		const FString& Text,
+		const FFontAtlas& Atlas,
+		FVector& OutMin,
+		FVector& OutMax,
 		float WorldUnitsPerPixel = 0.02f);
 
 private:
 	static void AppendString(
 		TArray<FVertexText>& OutVertices,
 		const FString& Text,
-		const FVector& WorldPosition,
-		const FVector& Right,
-		const FVector& Up,
+		const FMatrix& WorldMatrix,
 		const FFontAtlas& Atlas,
 		float WorldUnitsPerPixel);
 };

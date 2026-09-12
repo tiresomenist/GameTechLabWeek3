@@ -10,6 +10,7 @@
 #include "Engine/Actor/UActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
+#include "Engine/Component/UWidgetComponent.h"
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
 #include "Engine/Component/Primitive/USphereComponent.h"
 
@@ -118,10 +119,36 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
 
         Component->Deserialize(Item);
         if (MainCamera == nullptr && Component->IsA(UCameraComponent::GetClass()))
-        {
-            MainCamera = static_cast<UCameraComponent*>(Component);
-        }
-    }
+		{
+			MainCamera = static_cast<UCameraComponent*>(Component);
+		}
+	}
+
+	EnsureUUIDWidgets();
+}
+
+void UScene::EnsureUUIDWidgets()
+{
+	for (UActor* Actor : Actors)
+	{
+		USceneComponent* Root = Actor->GetRootComponent();
+		if (!Root || !Root->IsA(UPrimitiveComponent::GetClass())) continue;
+
+		bool bHasWidget = false;
+		for (UActorComponent* Component : Actor->GetComponents())
+		{
+			if (Component->IsA(UWidgetComponent::GetClass()))
+			{
+				bHasWidget = true;
+				break;
+			}
+		}
+
+		if (!bHasWidget)
+		{
+			Actor->CreateComponent(UWidgetComponent::GetClass());
+		}
+	}
 }
 
 void UScene::Destroy(UObject* Object)

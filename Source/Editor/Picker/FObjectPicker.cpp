@@ -73,7 +73,7 @@ bool FObjectPicker::RayTriangleIntersect(const FRay& Ray,FVector A, FVector B, F
 	return OutDistance > 1.0e-6f;
 }
 
-bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,const FVector& BoundsMax,float MaxDistance)
+bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,const FVector& BoundsMax,float MaxDistance,float& OutDistance)
 {
 	float Enter = 0.0f;
 	float Exit = MaxDistance;
@@ -106,6 +106,7 @@ bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,co
 	if (!TestAxis(Ray.Origin.Z, Ray.Direction.Z, BoundsMin.Z, BoundsMax.Z))
 		return false;
 
+	OutDistance = Enter;
 	return true;
 }
 
@@ -121,16 +122,13 @@ UPrimitiveComponent* FObjectPicker::Pick()
 	Scene->ForEachPrimitive(
 		[&](UPrimitiveComponent* Primitive)
 		{
-			
-			FMeshResource* Mesh = Primitive->GetMeshResource();
-			
-			if (Mesh == nullptr) {
-				UE_LOG("클래스를 참조하지 못했습니다.");
-				return;
-			}
+			FVector BoundsMin;
+			FVector BoundsMax;
+			if (!Primitive->GetLocalBounds(BoundsMin, BoundsMax)) return;
 
 			FMatrix InverseWorld;
-			if (!Primitive->GetWorldMatrix().TryInverse(InverseWorld)) {
+			const FMatrix& RenderWorldMatrix = Primitive->GetRenderWorldMatrix(Editor->GetEditorCamera());
+			if (!RenderWorldMatrix.TryInverse(InverseWorld)) {
 				return;
 			}
 
@@ -138,9 +136,19 @@ UPrimitiveComponent* FObjectPicker::Pick()
 			LocalRay.Origin = FVector(FVector4(Ray.Origin, 1.0f) * InverseWorld);
 			LocalRay.Direction = FVector(FVector4(Ray.Direction, 0.0f) * InverseWorld);
 
-			if (Mesh->HasBounds() && !RayAABBIntersect(LocalRay,Mesh->GetBoundsMin(),Mesh->GetBoundsMax(),ClosestDistance)){
+			float AABBDistance = 0.0f;
+			if (!RayAABBIntersect(LocalRay, BoundsMin, BoundsMax, ClosestDistance, AABBDistance)) return;
+
+			if (Primitive->IsAABBOnlyPickable())
+			{
+				ClosestDistance = AABBDistance;
+				SelectedObject = Primitive;
 				return;
 			}
+
+			FMeshResource* Mesh = Primitive->GetMeshResource();
+			if (!Mesh) return;
+
 			const size_t Count = Mesh->GetIndices().Num();
             const size_t VertexCount = Mesh->GetVertices().Num();
             if (Count != Mesh->GetIndexCount() || Count % 3 != 0) return;
