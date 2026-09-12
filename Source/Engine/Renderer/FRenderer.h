@@ -47,8 +47,11 @@ public:
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;
 	ID3D11DepthStencilState* HighlightDepthStencilState = nullptr;
+	ID3D11DepthStencilState* SelectionStencilDepthStencilState = nullptr;
+	ID3D11DepthStencilState* OutlineDepthStencilState = nullptr;
 
 	ID3D11BlendState* AlphaBlendState = nullptr;
+	ID3D11BlendState* ColorWriteDisabledBlendState = nullptr;
 
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
 
@@ -123,6 +126,8 @@ public:
 
 	void Render(float DeltaTime, FEditor* Editor, UScene* Scene);
 	void RenderPrimitive(const FPrimitiveRenderData& Data);
+	void RenderSelectionStencil(const FPrimitiveRenderData& Data);
+	void RenderSelectionOutline(const FPrimitiveRenderData& Data);
 	void RenderHighlight(const FPrimitiveRenderData& Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
 

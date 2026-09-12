@@ -232,7 +232,7 @@ void FRenderer::CreateRasterizerState()
 
 	D3D11_RASTERIZER_DESC rasterizerdescHighlight = {};
 	rasterizerdescHighlight.FillMode = D3D11_FILL_SOLID;
-	rasterizerdescHighlight.CullMode = D3D11_CULL_NONE;  // 프론트 페이스 컬링
+	rasterizerdescHighlight.CullMode = D3D11_CULL_FRONT;
 	CheckHR(D3DDevice->CreateRasterizerState(&rasterizerdescHighlight, &CullFrontRasterizerState));
 
 	D3D11_RASTERIZER_DESC rasterizerdescGrid = {};
@@ -285,6 +285,10 @@ void FRenderer::CreateAlphaBlendState()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 	CheckHR(D3DDevice->CreateBlendState(&blendDesc, &AlphaBlendState));
+
+	D3D11_BLEND_DESC colorWriteDisabledDesc = {};
+	colorWriteDisabledDesc.RenderTarget[0].RenderTargetWriteMask = 0;
+	CheckHR(D3DDevice->CreateBlendState(&colorWriteDisabledDesc, &ColorWriteDisabledBlendState));
 }
 
 void FRenderer::ReleaseAlphaBlendState()
@@ -293,6 +297,11 @@ void FRenderer::ReleaseAlphaBlendState()
 	{
 		AlphaBlendState->Release();
 		AlphaBlendState = nullptr;
+	}
+	if (ColorWriteDisabledBlendState)
+	{
+		ColorWriteDisabledBlendState->Release();
+		ColorWriteDisabledBlendState = nullptr;
 	}
 }
 
@@ -315,6 +324,27 @@ void FRenderer::CreateDepthStencilStates()
 	HighlightDesc.DepthFunc = D3D11_COMPARISON_LESS;
 
 	CheckHR(D3DDevice->CreateDepthStencilState(&HighlightDesc, &HighlightDepthStencilState));
+
+	D3D11_DEPTH_STENCIL_DESC SelectionStencilDesc = {};
+	SelectionStencilDesc.DepthEnable = TRUE;
+	SelectionStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	SelectionStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	SelectionStencilDesc.StencilEnable = TRUE;
+	SelectionStencilDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+	SelectionStencilDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+	SelectionStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	SelectionStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	SelectionStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	SelectionStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	SelectionStencilDesc.BackFace = SelectionStencilDesc.FrontFace;
+	CheckHR(D3DDevice->CreateDepthStencilState(&SelectionStencilDesc, &SelectionStencilDepthStencilState));
+
+	D3D11_DEPTH_STENCIL_DESC OutlineDesc = SelectionStencilDesc;
+	OutlineDesc.StencilWriteMask = 0;
+	OutlineDesc.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
+	OutlineDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	OutlineDesc.BackFace = OutlineDesc.FrontFace;
+	CheckHR(D3DDevice->CreateDepthStencilState(&OutlineDesc, &OutlineDepthStencilState));
 }
 
 void FRenderer::ReleaseDepthStencilStates()
@@ -333,6 +363,16 @@ void FRenderer::ReleaseDepthStencilStates()
 	{
 		HighlightDepthStencilState->Release();
 		HighlightDepthStencilState = nullptr;
+	}
+	if (SelectionStencilDepthStencilState)
+	{
+		SelectionStencilDepthStencilState->Release();
+		SelectionStencilDepthStencilState = nullptr;
+	}
+	if (OutlineDepthStencilState)
+	{
+		OutlineDepthStencilState->Release();
+		OutlineDepthStencilState = nullptr;
 	}
 }
 
@@ -703,6 +743,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
+	const FPrimitiveRenderData* SelectedPrimitive = nullptr;
 
 	for (auto& Item : RenderList)
 	{
@@ -712,11 +753,15 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		}
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
-		if (Item.isSelected)
-		{
-			RenderHighlight(Item);
-		}
 		RenderPrimitive(Item);
+		if (Item.isSelected) SelectedPrimitive = &Item;
+	}
+
+	if (SelectedPrimitive)
+	{
+		UpdateTransformConstantBuffer((*SelectedPrimitive->WorldMatrix) * ViewProjMatrix);
+		RenderSelectionStencil(*SelectedPrimitive);
+		RenderSelectionOutline(*SelectedPrimitive);
 	}
 
 	// Render Windows
@@ -807,6 +852,38 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
 }
 
+void FRenderer::RenderSelectionStencil(const FPrimitiveRenderData& Data)
+{
+	UINT Offset = 0;
+	DeviceContext->IASetInputLayout(SimpleInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(Data.Topology);
+	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
+	DeviceContext->RSSetState(DefaultRasterizerState);
+	DeviceContext->OMSetBlendState(ColorWriteDisabledBlendState, nullptr, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(SelectionStencilDepthStencilState, 1);
+	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+}
+
+void FRenderer::RenderSelectionOutline(const FPrimitiveRenderData& Data)
+{
+	UINT Offset = 0;
+	DeviceContext->IASetInputLayout(SimpleInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(Data.Topology);
+	DeviceContext->VSSetShader(HighlightVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+	DeviceContext->PSSetShader(HighlightPixelShader, nullptr, 0);
+	DeviceContext->RSSetState(CullFrontRasterizerState);
+	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(OutlineDepthStencilState, 1);
+	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+}
+
 void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 {
 	UINT Offset = 0;
@@ -822,6 +899,7 @@ void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 
 	DeviceContext->PSSetShader(HighlightPixelShader, nullptr, 0);
 
+	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 	DeviceContext->OMSetDepthStencilState(HighlightDepthStencilState, 0);
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
