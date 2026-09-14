@@ -18,6 +18,7 @@ public:
 		EI_LMOUSE,
 		EI_RMOUSE,
 		EI_SPACE,
+		EI_SHIFT,
 		KEY_COUNT
 	};
 

@@ -37,7 +37,7 @@ void FEditor::Initialize()
 	EditorCamera->SetRelativeLocation(FVector(-15.0f, -15.0f, 10.0f));
 	EditorCamera->LookAt(FVector(0.0f, 0.0f, 0.0f));
 
-	CameraController.SetCamera(EditorCamera);
+	LoadConfig();
 
 	ObjectPicker = new FObjectPicker(this);
 	GizmoPicker = new FGizmoPicker(this);
@@ -65,6 +65,30 @@ void FEditor::InitializeWindows()
 void FEditor::InitializeGrids()
 {
 	RegisterGrid(UGrid::GetClass());
+}
+
+void FEditor::LoadConfig()
+{
+	CameraController.SetCamera(EditorCamera);
+	EditorConfig = FEditorConfig::Load("editor.ini");
+	CameraController.SetMoveSpeed(EditorConfig.CameraMoveSpeed);
+	SetGridInterval(EditorConfig.GridInterval);
+	SetShowPrimitives(EditorConfig.bShowPrimitives);
+	SetShowUUIDLabels(EditorConfig.bShowUUIDLabels);
+	SetShowBoundingBoxes(EditorConfig.bShowBoundingBoxes);
+	SetViewMode(EditorConfig.ViewMode);
+}
+
+void FEditor::SaveConfig()
+{
+	EditorConfig.CameraMoveSpeed = CameraController.GetMoveSpeed();
+	FGrid Grid = GetGrid();
+	EditorConfig.GridInterval = Grid.Interval;
+	EditorConfig.bShowPrimitives = IsShowingPrimitives();
+	EditorConfig.bShowUUIDLabels = IsShowingUUIDLabels();
+	EditorConfig.bShowBoundingBoxes = IsShowingBoundingBoxes();
+	EditorConfig.ViewMode = GetViewMode();
+	EditorConfig.Save();
 }
 
 void FEditor::Tick(float DeltaTime)
@@ -131,6 +155,8 @@ void FEditor::Tick(float DeltaTime)
 
 void FEditor::Release()
 {
+	SaveConfig();
+
 	delete GizmoController;
 	GizmoController = nullptr;
 

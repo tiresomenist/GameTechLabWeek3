@@ -80,6 +80,7 @@ void USceneWindow::Render(float DeltaTime)
 		CameraRotationDegree.Z = std::atan2(Forward.Y, Forward.X) * (180.0f / PI);
 	}
 	FOV = Editor->GetCameraFOV();
+	MoveSpeed = Editor->GetCameraMoveSpeed();
 
 	const ImGuiViewport* Viewport = ImGui::GetMainViewport();
 	const ImVec2 WorkPosition = Viewport->WorkPos; // 메뉴창을 제외한 제일 왼쪽 위 위치
@@ -234,6 +235,12 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			FOV = std::clamp(FOV, MinFOV, MaxFOV);
 			Editor->SetCameraFOV(FOV); // 무조건 업데이트 시키면 라디안 값 FOV가 0에 가까워지므로 조건부로
+		}
+		ImGui::PushItemWidth(WideItemWidth); // Item 너비 설정
+		if (ImGui::DragFloat("MoveSpeed", &MoveSpeed, 0.1f, MinMoveSpeed, MaxMoveSpeed))
+		{
+			MoveSpeed = std::clamp(MoveSpeed, MinMoveSpeed, MaxMoveSpeed);
+			Editor->SetCameraMoveSpeed(MoveSpeed);
 		}
 		ImGui::PopItemWidth();
 		ImGui::PushItemWidth(ButtonWidth); // Item 너비 설정

@@ -8,6 +8,7 @@
 #include "Engine/Renderer/RenderUtil.h"
 #include "Editor/Controller/FCameraController.h"
 #include "Editor/Controller/FGizmoController.h"
+#include "Editor/Config/FEditorConfig.h"
 
 //TESTCODE//
 #include "Engine/Component/UCameraComponent.h"
@@ -43,9 +44,14 @@ private:
 	TArray<UGrid*> Grids;
 	UGizmo* ObjectAxisGizmo = nullptr;
 
+	FEditorConfig EditorConfig;
+
 	void InitializeGizmos();
 	void InitializeWindows();
 	void InitializeGrids();
+
+	void LoadConfig();
+	void SaveConfig();
 
 	void ReleaseGizmos();
 	void ReleaseWindows();
@@ -116,7 +122,10 @@ public:
 	}
 	float GetCameraFOV() { return GetEditorCamera()->GetFOV() * 180.0f / PI; }
 	void SetCameraFOV(float NewFOV) { EditorCamera->SetFOVByDegree(NewFOV); }
-	
+
+	float GetCameraMoveSpeed() { return CameraController.GetMoveSpeed(); }
+	void SetCameraMoveSpeed(float InMoveSpeed) { CameraController.SetMoveSpeed(InMoveSpeed); }
+
 	void SpawnPrimitives(FClassType* ClassType, uint32 num) { GEngine::GetInstance()->GetConsole()->Append(std::format("Make {}, {} times",ClassType->Name,num)); }
 	
 	void SetObjectAxisGizmo(UGizmo* InGizmo);

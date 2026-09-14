@@ -42,6 +42,7 @@ LRESULT HandleInput(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case 'Q': { Key = GInputManager::EI_Q; break; }
 		case 'E': { Key = GInputManager::EI_E; break; }
 		case VK_SPACE: { Key = GInputManager::EI_SPACE; break; }
+		case VK_SHIFT: { Key = GInputManager::EI_SHIFT; break; }
 		}
 
 		if (Key == GInputManager::KEY_COUNT)

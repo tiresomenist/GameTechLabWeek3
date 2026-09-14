@@ -51,5 +51,8 @@ void FCameraController::Tick(float DeltaTime)
     const float Forward = float(Input.GetKey(GInputManager::EI_W)) - float(Input.GetKey(GInputManager::EI_S));
     const float Right = float(Input.GetKey(GInputManager::EI_D)) - float(Input.GetKey(GInputManager::EI_A));
     const float Up = float(Input.GetKey(GInputManager::EI_E)) - float(Input.GetKey(GInputManager::EI_Q));
-    Camera->MoveCamera(Forward, Right, Up, DeltaTime);
+    if(Input.GetKey(GInputManager::EI_SHIFT))
+        Camera->MoveCamera(Forward, Right, Up, MoveSpeed * 2.0f, DeltaTime);
+    else
+        Camera->MoveCamera(Forward, Right, Up, MoveSpeed, DeltaTime);
 }

@@ -26,6 +26,9 @@ private:
 	FVector CameraLocation = { 0.0f, 0.0f, 0.0f };
 	FVector CameraRotationDegree;
 	bool bEditingCameraRotation = false;
+	float MoveSpeed = 5.0f;
+	float MaxMoveSpeed = 100.0f;
+	float MinMoveSpeed = 0.1f;
 	/*             */
 public:
 	void SpawnPrimitive();

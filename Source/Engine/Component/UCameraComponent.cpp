@@ -5,13 +5,13 @@
 
 namespace
 {
-    bool ValidCamera(float FOV, float Aspect, float Near, float Far, float Speed, float Height)
+    bool ValidCamera(float FOV, float Aspect, float Near, float Far, /*float Speed,*/ float Height)
     {
         if (!std::isfinite(FOV) || FOV <= 0 || FOV >= PI ||
             !std::isfinite(Aspect) || Aspect <= 0 ||
             !std::isfinite(Near) || Near <= 0 ||
             !std::isfinite(Far) || Far <= Near ||
-            !std::isfinite(Speed) || Speed < 0 ||
+            //!std::isfinite(Speed) || Speed < 0 ||
             !std::isfinite(Height) || Height <= 0) return false;
         const float P = 1.0f / std::tan(FOV * 0.5f);
         const float O = 2.0f / Height;
@@ -108,7 +108,7 @@ void UCameraComponent::SetIsPerspective(bool Value)
 
 void UCameraComponent::SetFOVByRadian(const float& InRadian)
 {
-	if (ValidCamera(InRadian, AspectRatio, NearZ, FarZ, MoveSpeed, OrthoHeight)) FOV = InRadian;
+	if (ValidCamera(InRadian, AspectRatio, NearZ, FarZ, OrthoHeight)) FOV = InRadian;
 }
 
 void UCameraComponent::SetFOVByDegree(const float& InDegree)
@@ -119,7 +119,7 @@ void UCameraComponent::SetFOVByDegree(const float& InDegree)
 
 void UCameraComponent::SetAspectRatio(const float& InRatio)
 {
-	if (ValidCamera(FOV, InRatio, NearZ, FarZ, MoveSpeed, OrthoHeight)) AspectRatio = InRatio;
+	if (ValidCamera(FOV, InRatio, NearZ, FarZ, OrthoHeight)) AspectRatio = InRatio;
 }
 
 void UCameraComponent::LookAt(const FVector& InTargetPosition)
@@ -144,7 +144,7 @@ void UCameraComponent::Serialize(FArchive& Archive)
 	Archive.SetFloat("AspectRatio", AspectRatio);
 	Archive.SetFloat("Near", NearZ);
 	Archive.SetFloat("Far", FarZ);
-	Archive.SetFloat("MoveSpeed", MoveSpeed);
+	//Archive.SetFloat("MoveSpeed", MoveSpeed);
 	Archive.SetFloat("OrthogonalHeight", OrthoHeight);
 	Archive.SetBool("Perspective", bIsPerspective);
 }
@@ -155,13 +155,13 @@ void UCameraComponent::Deserialize(FArchive& Archive)
     const float A = Archive.GetFloat("AspectRatio");
     const float N = Archive.GetFloat("Near");
     const float Z = Archive.GetFloat("Far");
-    const float S = Archive.GetFloat("MoveSpeed");
+    //const float S = Archive.GetFloat("MoveSpeed");
     const float H = Archive.GetFloat("OrthogonalHeight");
     const bool P = Archive.GetBool("Perspective");
-    if (!ValidCamera(F, A, N, Z, S, H)) throw std::runtime_error("Invalid camera parameters");
+    if (!ValidCamera(F, A, N, Z, H)) throw std::runtime_error("Invalid camera parameters");
     Super::Deserialize(Archive);
     FOV = F; AspectRatio = A; NearZ = N; FarZ = Z;
-    MoveSpeed = S; OrthoHeight = H; bIsPerspective = P;
+    OrthoHeight = H; bIsPerspective = P;
 }
 
 float UCameraComponent::GetOrthoHeight() const
@@ -171,7 +171,7 @@ float UCameraComponent::GetOrthoHeight() const
 
 void UCameraComponent::SetOrthoHeight(float InHeight)
 {
-	if (!ValidCamera(FOV, AspectRatio, NearZ, FarZ, MoveSpeed, InHeight))
+	if (!ValidCamera(FOV, AspectRatio, NearZ, FarZ, InHeight))
 	{
 		return;
 	}
@@ -215,7 +215,7 @@ FMatrix UCameraComponent::GetPerspectiveProjectionMatrix() const
 		0.0f, 0.0f, -NearZ * DepthScale, 0.0f);
 }
 
-void UCameraComponent::MoveCamera(const float& InForward, const float& InRight, const float& InUp, const float& InDeltaTime)
+void UCameraComponent::MoveCamera(const float& InForward, const float& InRight, const float& InUp, const float MoveSpeed, const float& InDeltaTime)
 {
 	FVector InVelocity = GetForward() * InForward + GetRight() * InRight + FVector::Up*InUp;
 	if (InVelocity.Length() < EPSILON) return;

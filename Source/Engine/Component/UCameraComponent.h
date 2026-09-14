@@ -21,7 +21,7 @@ public:
     FMatrix GetProjectionMatrix() const;
     FMatrix GetOrthographicProjectionMatrix() const;
     FMatrix GetPerspectiveProjectionMatrix() const;
-    void MoveCamera(const float& InForward, const float& InRight, const float& InUp, const float& InDeltaTime);
+    void MoveCamera(const float& InForward, const float& InRight, const float& InUp, const float MoveSpeed, const float& InDeltaTime);
     float GetOrthoHeight() const;
     void SetOrthoHeight(float InHeight);
 
@@ -52,6 +52,6 @@ private:
     float NearZ = 0.1f;
     float OrthoHeight = 10.0f;         //직교 투영의 전체 세로 범위 (월드 단위)
     float FarZ = 1000.0f;
-    float MoveSpeed = 5.0f;
+    //float MoveSpeed = 5.0f;
 
 };
