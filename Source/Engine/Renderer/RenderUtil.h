@@ -11,7 +11,7 @@ struct FPrimitiveRenderData;
 
 namespace RenderUtil
 {
-	TArray<FPrimitiveRenderData> GetRenderList(FEditor* Editor, UScene* Scene);
+	TArray<FPrimitiveRenderData> GetRenderList(FEditor* Editor, UScene* Scene, const UCameraComponent* Camera);
 	TArray<FPrimitiveRenderData> GetGizmoList(FEditor* Editor, UScene* Scene);
 	TArray<FWorldTextItem> GetTextRenderList(UScene* Scene, const UCameraComponent* Camera, bool bShowUUIDWidgets);
 };

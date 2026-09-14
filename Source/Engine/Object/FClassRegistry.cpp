@@ -18,6 +18,7 @@
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
 #include "Engine/Component/Primitive/UCubeComponent.h"
 #include "Engine/Component/Primitive/UPlaneComponent.h"
+#include "Engine/Component/Primitive/USubUVComponent.h"
 #include "Engine/Component/Primitive/USphereComponent.h"
 #include "Engine/Component/Primitive/UPepeComponent.h"
 #include "Engine/Component/Primitive/UArrowBlueComponent.h"

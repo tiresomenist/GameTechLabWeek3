@@ -3,6 +3,11 @@ cbuffer constants : register(b0)
     row_major float4x4 MVP;
 }
 
+cbuffer SubUVConstants : register(b1)
+{
+    float4 UVOffsetScale;
+}
+
 Texture2D MaterialTexture : register(t0);
 SamplerState MaterialSampler : register(s0);
 
@@ -22,7 +27,7 @@ PS_INPUT mainVS_Texture(VS_INPUT input)
 {
     PS_INPUT output;
     output.position = mul(float4(input.position, 1.0f), MVP);
-    output.uv = input.uv;
+    output.uv = input.uv * UVOffsetScale.zw + UVOffsetScale.xy;
     return output;
 }
 

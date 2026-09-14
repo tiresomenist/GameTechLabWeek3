@@ -305,6 +305,14 @@ void FRenderer::CreateConstantBuffer()
 	gridconstantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	CheckHR(D3DDevice->CreateBuffer(&gridconstantbufferdesc, nullptr, &GridConstantBuffer));
+
+	D3D11_BUFFER_DESC subUVConstantBufferDesc = {};
+	subUVConstantBufferDesc.ByteWidth = (sizeof(FSubUVConstants) + 0xf) & 0xfffffff0;
+	subUVConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	subUVConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	subUVConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+	CheckHR(D3DDevice->CreateBuffer(&subUVConstantBufferDesc, nullptr, &SubUVConstantBuffer));
 }
 
 void FRenderer::ReleaseConstantBuffer()
@@ -318,6 +326,11 @@ void FRenderer::ReleaseConstantBuffer()
 	{
 		GridConstantBuffer->Release();
 		GridConstantBuffer = nullptr;
+	}
+	if (SubUVConstantBuffer)
+	{
+		SubUVConstantBuffer->Release();
+		SubUVConstantBuffer = nullptr;
 	}
 }
 
@@ -389,6 +402,13 @@ void FRenderer::CreateAlphaBlendState()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 	CheckHR(D3DDevice->CreateBlendState(&blendDesc, &AlphaBlendState));
+
+	D3D11_BLEND_DESC additiveBlendDesc = blendDesc;
+	additiveBlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	additiveBlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	additiveBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	additiveBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	CheckHR(D3DDevice->CreateBlendState(&additiveBlendDesc, &AdditiveBlendState));
 }
 
 void FRenderer::ReleaseAlphaBlendState()
@@ -397,6 +417,11 @@ void FRenderer::ReleaseAlphaBlendState()
 	{
 		AlphaBlendState->Release();
 		AlphaBlendState = nullptr;
+	}
+	if (AdditiveBlendState)
+	{
+		AdditiveBlendState->Release();
+		AdditiveBlendState = nullptr;
 	}
 }
 
@@ -413,6 +438,10 @@ void FRenderer::CreateDepthStencilStates()
 	GizmoDSDesc.DepthEnable = FALSE;
 	CheckHR(D3DDevice->CreateDepthStencilState(&GizmoDSDesc, &GizmoDepthStencilState));
 
+	D3D11_DEPTH_STENCIL_DESC TransparentDSDesc = DSDesc;
+	TransparentDSDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	CheckHR(D3DDevice->CreateDepthStencilState(&TransparentDSDesc, &TransparentDepthStencilState));
+
 	D3D11_DEPTH_STENCIL_DESC HighlightDesc = {};
 	HighlightDesc.DepthEnable = TRUE;  // 깊이 검사는 유지
 	HighlightDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 기록 안 함
@@ -427,6 +456,11 @@ void FRenderer::ReleaseDepthStencilStates()
 	{
 		DefaultDepthStencilState->Release();
 		DefaultDepthStencilState = nullptr;
+	}
+	if (TransparentDepthStencilState)
+	{
+		TransparentDepthStencilState->Release();
+		TransparentDepthStencilState = nullptr;
 	}
 	if (GizmoDepthStencilState)
 	{
@@ -590,7 +624,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
-	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
+	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene, Camera);
 
 	for (auto& Item : RenderList)
 	{
@@ -718,6 +752,22 @@ void FRenderer::UpdateTransformConstantBuffer(const FMatrix& MVP)
 	}
 }
 
+void FRenderer::UpdateSubUVConstantBuffer(const FVector4& OffsetScale)
+{
+	if (!DeviceContext || !SubUVConstantBuffer)
+	{
+		return;
+	}
+
+	D3D11_MAPPED_SUBRESOURCE mappedResource{};
+	if (SUCCEEDED(DeviceContext->Map(SubUVConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
+	{
+		FSubUVConstants* Constants = static_cast<FSubUVConstants*>(mappedResource.pData);
+		Constants->OffsetScale = OffsetScale;
+		DeviceContext->Unmap(SubUVConstantBuffer, 0);
+	}
+}
+
 void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
 {
 	if (!DeviceContext || !GridConstantBuffer)
@@ -757,13 +807,16 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 
 	if (Data.Material)
 	{
+		UpdateSubUVConstantBuffer(Data.SubUV);
 		DeviceContext->IASetInputLayout(TexturedInputLayout);
 		DeviceContext->VSSetShader(TexturedVertexShader, nullptr, 0);
 		DeviceContext->PSSetShader(TexturedPixelShader, nullptr, 0);
+		DeviceContext->VSSetConstantBuffers(1, 1, &SubUVConstantBuffer);
 		DeviceContext->PSSetShaderResources(0, 1, &Data.Material);
 		DeviceContext->PSSetSamplers(0, 1, &MaterialSamplerState);
 		float BlendFactor[4] = { 0, 0, 0, 0 };
-		DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, 0xffffffff);
+		ID3D11BlendState* BlendState = Data.BlendMode == EPrimitiveBlendMode::Additive ? AdditiveBlendState : AlphaBlendState;
+		DeviceContext->OMSetBlendState(BlendState, BlendFactor, 0xffffffff);
 	}
 	else
 	{
@@ -773,7 +826,8 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 		DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 	}
 
-	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+	ID3D11DepthStencilState* DepthStencilState = Data.BlendMode == EPrimitiveBlendMode::Additive ? TransparentDepthStencilState : DefaultDepthStencilState;
+	DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
 }

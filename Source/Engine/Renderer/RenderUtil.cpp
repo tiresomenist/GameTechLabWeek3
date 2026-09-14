@@ -23,14 +23,16 @@ namespace
 	}
 }
 
-TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
+TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene, const UCameraComponent* Camera)
 {
 	TArray<FPrimitiveRenderData> RenderList;
 	Scene->ForEachPrimitive(
-		[&RenderList, Editor](UPrimitiveComponent* Primitive)
+		[&RenderList, Editor, Camera](UPrimitiveComponent* Primitive)
 		{
 			const bool bSelected = IsComponentSelected(Editor, Primitive);
-			RenderList.Add(Primitive->CreateRenderData(bSelected));
+			FPrimitiveRenderData Data = Primitive->CreateRenderData(bSelected);
+			Data.WorldMatrix = &Primitive->GetRenderWorldMatrix(Camera);
+			RenderList.Add(Data);
 		}
 	);
 

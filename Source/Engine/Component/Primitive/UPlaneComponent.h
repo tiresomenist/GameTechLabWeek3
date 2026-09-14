@@ -9,5 +9,4 @@ class UPlaneComponent : public UPrimitiveComponent
 
 public:
 	virtual void Initialize() override;
-
 };

@@ -56,6 +56,10 @@ struct FGridConstants
 	FVector CameraPos;
 	int GridPlaneType;
 };
+struct FSubUVConstants
+{
+	FVector4 OffsetScale;
+};
 class UScene;
 class FEditor;
 struct FPrimitiveRenderData;
@@ -79,13 +83,16 @@ public:
 	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
 
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
+	ID3D11DepthStencilState* TransparentDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;
 	ID3D11DepthStencilState* HighlightDepthStencilState = nullptr;
 
 	ID3D11BlendState* AlphaBlendState = nullptr;
+	ID3D11BlendState* AdditiveBlendState = nullptr;
 
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
 	ID3D11Buffer* GridConstantBuffer = nullptr;
+	ID3D11Buffer* SubUVConstantBuffer = nullptr;
 
 	FLOAT                   ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	D3D11_VIEWPORT          ViewportInfo;
@@ -134,6 +141,7 @@ public:
 	void CreateConstantBuffer();
 	void UpdateTransformConstantBuffer(const FMatrix& WorldMatrix);
 	void UpdateGridConstantBuffer(const FGridConstants& GridConstants);
+	void UpdateSubUVConstantBuffer(const FVector4& OffsetScale);
 	void ReleaseConstantBuffer();
 
 	void CreateRasterizerState();

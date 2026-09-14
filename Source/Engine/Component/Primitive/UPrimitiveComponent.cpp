@@ -11,8 +11,7 @@ void UPrimitiveComponent::Initialize()
 
 FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 {
-	FClassType* ClassType = GetInstanceClass();
-	FMeshResource* MeshResource = GResourceManager::GetInstance()->GetPrimitive(ClassType->Name.ToString());
+	FMeshResource* MeshResource = GetMeshResource();
 
 	FPrimitiveRenderData OutData{};
 	if (MeshResource == nullptr) { return OutData; }
@@ -22,6 +21,7 @@ FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 	OutData.IndexCount = MeshResource->GetIndexCount();
 	OutData.Stride = MeshResource->GetStride();
 	OutData.Material = Material ? Material->GetShaderResourceView() : nullptr;
+	OutData.BlendMode = BlendMode;
 	OutData.WorldMatrix = &GetWorldMatrix();
 	OutData.isSelected = bSelected;
 	// RenderData.Material			= &GetMaterial();
