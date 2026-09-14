@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
+
 #include "Core/Container/TArray.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Renderer/RenderUtil.h"
@@ -31,7 +34,9 @@ private:
 
 	USceneComponent* SelectedSceneComponent = nullptr;
 	bool bShowUUIDLabels = true;
-	bool bWireframe = false;
+	bool bShowBoundingBoxes = true;
+	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
+	FGrid Grid;
 	TArray<UGizmo*> Gizmos;
 	TArray<UEditorWindow*> Windows;
 	TArray<UGrid*> Grids;
@@ -65,8 +70,18 @@ public:
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
 	bool IsShowingUUIDLabels() const { return bShowUUIDLabels; }
 	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
-	bool IsWireframe() const { return bWireframe; }
-	void SetWireframe(bool bShow) { bWireframe = bShow; }
+	bool IsShowingBoundingBoxes() const { return bShowBoundingBoxes; }
+	void SetShowBoundingBoxes(bool bShow) { bShowBoundingBoxes = bShow; }
+	EViewModeIndex GetViewMode() const { return ViewMode; }
+	void SetViewMode(EViewModeIndex InMode) { ViewMode = InMode; }
+	const FGrid& GetGrid() const { return Grid; }
+	void SetGridInterval(float InInterval)
+	{
+		if (std::isfinite(InInterval))
+		{
+			Grid.Interval = std::clamp(InInterval, FGrid::MinInterval, FGrid::MaxInterval);
+		}
+	}
 	int32 GetActiveGizmoAxis() const { return GizmoController ? GizmoController->GetActiveAxis() : -1; }
 	void SetSelectedSceneComponent(USceneComponent* Component);
 

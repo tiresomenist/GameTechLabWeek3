@@ -125,7 +125,7 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Separator();
 
 		ImGui::PushItemWidth(WideItemWidth);
-		if (ImGui::BeginCombo("Primitive", SelectedClass->Name.c_str()))
+		if (ImGui::BeginCombo("Primitive", SelectedClass->Name.c_str(), ImGuiComboFlags_HeightSmall))
 		{
 			for (FClassType* ClassType : Spawnables)
 			{
@@ -183,11 +183,43 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			Editor->SetShowUUIDLabels(bShowUUIDLabels);
 		}
-		bool bWireframe = Editor->IsWireframe();
-		if (ImGui::Checkbox("Wireframe", &bWireframe))
+		bool bShowBoundingBoxes = Editor->IsShowingBoundingBoxes();
+		if (ImGui::Checkbox("Show Bounding Boxes", &bShowBoundingBoxes))
 		{
-			Editor->SetWireframe(bWireframe);
+			Editor->SetShowBoundingBoxes(bShowBoundingBoxes);
 		}
+		ImGui::PushItemWidth(WideItemWidth);
+		float GridInterval = Editor->GetGrid().Interval;
+		if (ImGui::DragFloat("Grid Spacing", &GridInterval, 0.1f,
+			FGrid::MinInterval, FGrid::MaxInterval, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+		{
+			Editor->SetGridInterval(GridInterval);
+		}
+
+		const EViewModeIndex CurrentViewMode = Editor->GetViewMode();
+		const char* Preview = "Unknown";
+		for (const FViewModeEntry& Entry : ViewModeEntries)
+		{
+			if (Entry.Mode == CurrentViewMode)
+			{
+				Preview = Entry.Name;
+				break;
+			}
+		}
+		if (ImGui::BeginCombo("View Mode", Preview))
+		{
+			for (const FViewModeEntry& Entry : ViewModeEntries)
+			{
+				const bool bSelected = Entry.Mode == CurrentViewMode;
+				if (ImGui::Selectable(Entry.Name, bSelected))
+				{
+					Editor->SetViewMode(Entry.Mode);
+				}
+				if (bSelected) ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
 		ImGui::Checkbox("Orthogonal", &bOrthogonal);
 
 		EditorCamera->SetIsPerspective(!bOrthogonal);

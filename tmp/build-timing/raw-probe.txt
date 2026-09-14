@@ -1,2 +1,0 @@
-#include "octopus-raw.h"
-const void* Probe() { return octopus_vertices; }

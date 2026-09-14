@@ -2,6 +2,8 @@
 #include "Engine/Renderer/GDevice.h"
 #include "FLineBatcher.h"
 #include "Engine/Log.h"
+#include <cmath>
+#include <limits>
 
 void FLineBatcher::AddLine(const FVertexSimple& A, const FVertexSimple& B)
 {
@@ -47,64 +49,83 @@ void FLineBatcher::AddBoundBox(const FVector& Min, const FVector& Max, const FMa
 
 void FLineBatcher::AddGrid(FGrid Grid, FVector CameraPos)
 {
-	if (Grid.LineNum < 2 || Grid.Interval <= 0.0f)
+	if (!std::isfinite(Grid.Interval) || Grid.Interval < FGrid::MinInterval ||
+		!std::isfinite(Grid.Extent) || Grid.Extent <= 0.0f ||
+		!std::isfinite(CameraPos.X) || !std::isfinite(CameraPos.Y) || !std::isfinite(CameraPos.Z))
 	{
 		return;
 	}
 
 	const FVector GridColor(1.0f, 1.0f, 1.0f);
-	const float Length = (Grid.LineNum - 1) * Grid.Interval;
-	const float Half = Length * 0.5f;
-	const float HalfSqured = Half * Half;
-	const float ZSquared = CameraPos.Z * CameraPos.Z;
+	const float Half = Grid.Extent;
+	const float Length = Half * 2.0f;
+	const double Interval = Grid.Interval;
+	const double CenterX = std::floor(static_cast<double>(CameraPos.X) / Interval) * Interval;
+	const double CenterY = std::floor(static_cast<double>(CameraPos.Y) / Interval) * Interval;
+	const float MinX = static_cast<float>(CenterX - Half);
+	const float MinY = static_cast<float>(CenterY - Half);
+	const float MaxX = static_cast<float>(CenterX + Half);
+	const float MaxY = static_cast<float>(CenterY + Half);
 
-	// 카메라를 Interval 배수로 스냅해야 카메라가 움직여도 격자가 미끄러지지 않고,
-	// 선들이 Interval의 정수배 위치에 놓여서 아래 축 판정이 성립한다.
-	const int32 HalfCount = static_cast<int32>(Grid.LineNum) / 2;
-	const float MinX = floor(CameraPos.X / Grid.Interval) * Grid.Interval - HalfCount * Grid.Interval;
-	const float MinY = floor(CameraPos.Y / Grid.Interval) * Grid.Interval - HalfCount * Grid.Interval;
+	// Fixed world bounds, with only the number of grid lines changing with spacing.
+	const double FirstX = std::ceil((CenterX - Half) / Interval);
+	const double FirstY = std::ceil((CenterY - Half) / Interval);
+	const double CountX = std::floor((CenterX + Half) / Interval) - FirstX + 1.0;
+	const double CountY = std::floor((CenterY + Half) / Interval) - FirstY + 1.0;
+	// Each coordinate produces at most two segments (four vertices and indices).
+	const double MaxVertices = (std::numeric_limits<UINT>::max)() / sizeof(FVertexSimple);
+	if (!std::isfinite(Length) || CountX < 0 || CountY < 0 ||
+		4.0 * (CountX + CountY) + 6.0 + Vertices.Num() > MaxVertices)
+	{
+		return;
+	}
 
 	// 부동소수 누적 오차를 감안한 허용 오차. 간격의 1%면 인접 선과 헷갈릴 일이 없다.
 	const float AxisTolerance = Grid.Interval * 0.01f;
 
-	for (uint32 i = 0; i < Grid.LineNum; ++i)
+	const auto GetAlpha = [](double Distance)
 	{
-		const float Offset = i * Grid.Interval;
-		const float X = MinX + Offset;
-		const float Y = MinY + Offset;
+		return static_cast<float>(2.0 / (std::max)(Distance, 2.0));
+	};
 
-		const float Offset2 = Half - Offset;
-		const float Dist = sqrt(Offset2 * Offset2 + Half * Half);
-		const float Alpha = (std::min)(2.0f / Dist, 1.0f);
-		const float Alpha2 = (std::min)(2.0f / fabsf(Offset2), 1.0f);
-
-		// X가 고정이고 Y가 변하는 선 = Y축과 평행. X == 0이면 그게 Y축이므로 건너뛰고,
-		// 아래에서 원점 기준으로 따로 그린다. (Y가 고정인 선은 그 반대)
-		if (fabs(X) > AxisTolerance)
+	for (uint32 i = 0; i < static_cast<uint32>(CountX); ++i)
+	{
+		const float X = static_cast<float>((FirstX + i) * Interval);
+		const double Offset = X - CenterX;
+		const float Alpha = GetAlpha(std::hypot(Offset, Half));
+		const float Alpha2 = GetAlpha(std::abs(Offset));
+		// The colored world axes replace the grid lines at X == 0 / Y == 0.
+		if (std::abs(X) > AxisTolerance)
 		{
 			AddLine({ X, MinY,          0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha },
-				{ X, MinY + Half, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 });
-			AddLine({ X, MinY + Half,          0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 },
-				{ X, MinY + Length, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha });
+				{ X, static_cast<float>(CenterY), 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 });
+			AddLine({ X, static_cast<float>(CenterY), 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 },
+				{ X, MaxY, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha });
 		}
+	}
 
-		if (fabs(Y) > AxisTolerance)
+	for (uint32 i = 0; i < static_cast<uint32>(CountY); ++i)
+	{
+		const float Y = static_cast<float>((FirstY + i) * Interval);
+		const double Offset = Y - CenterY;
+		const float Alpha = GetAlpha(std::hypot(Offset, Half));
+		const float Alpha2 = GetAlpha(std::abs(Offset));
+		if (std::abs(Y) > AxisTolerance)
 		{
 			AddLine({ MinX,          Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha },
-				{ MinX + Half, Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 });
-			AddLine({ MinX + Half,          Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 },
-				{ MinX + Length, Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha });
+				{ static_cast<float>(CenterX), Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 });
+			AddLine({ static_cast<float>(CenterX), Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha2 },
+				{ MaxX, Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha });
 		}
 	}
 
 	// 축은 그리드와 달리 카메라를 따라가지 않고 항상 원점에 고정한다.
-	// 다만 위 루프에서 건너뛴 선을 대신 메워야 하므로 패치 끝까지 늘리고,
-	// 원점이 패치 밖에 있어도 원점까지는 닿게 한다.
+	// 위 루프에서 건너뛴 선을 대신 메우도록 패치 끝까지 그린다.
 	// 양 끝 정점의 색이 같아야 보간되지 않고 단색으로 나온다.
 	const float AxisMinX = MinX;
-	const float AxisMaxX = MinX + Length;
+	const float AxisMaxX = MaxX;
 	const float AxisMinY = MinY;
-	const float AxisMaxY = MinY + Length;
+	const float AxisMaxY = MaxY;
 	const float AxisMinZ = CameraPos.Z - Length;
 	const float AxisMaxZ = CameraPos.Z + Length;
 

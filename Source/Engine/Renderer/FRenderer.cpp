@@ -530,7 +530,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 {
 	if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
 
-	bWireframe = Editor->IsWireframe();
+	ViewMode = Editor->GetViewMode();
 	BeginFrame();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
@@ -550,6 +550,9 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		if (Item.isSelected)
 		{
 			RenderHighlight(Item);
+		}
+		if (Editor->IsShowingBoundingBoxes() || Item.isSelected)
+		{
 			LineBatcher.AddBoundBox(Item.Min, Item.Max, *Item.WorldMatrix);
 		}
 		RenderPrimitive(Item);
@@ -601,7 +604,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderGrid(Item->GetMeshResource());
 	}
 #else
-	LineBatcher.AddGrid(Grid, Camera->GetWorldLocation());
+	LineBatcher.AddGrid(Editor->GetGrid(), Camera->GetWorldLocation());
 #endif
 
 	// BatchLine
@@ -696,7 +699,8 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
-	DeviceContext->RSSetState(bWireframe ? WireframeRasterizerState : DefaultRasterizerState);
+	// Lit currently uses the unlit pipeline until lighting is implemented.
+	DeviceContext->RSSetState(ViewMode == EViewModeIndex::VMI_Wireframe ? WireframeRasterizerState : DefaultRasterizerState);
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 

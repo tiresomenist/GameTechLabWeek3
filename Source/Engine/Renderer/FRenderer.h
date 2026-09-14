@@ -19,6 +19,33 @@
 
 #include "FLineBatcher.h"
 
+// Add a mode here to generate both its enum value and its UI entry.
+#define VIEW_MODE_LIST(X) \
+	X(Lit) \
+	X(Unlit) \
+	X(Wireframe)
+
+enum class EViewModeIndex : uint32
+{
+#define MAKE_VIEW_MODE_ENUM(Name) VMI_##Name,
+	VIEW_MODE_LIST(MAKE_VIEW_MODE_ENUM)
+#undef MAKE_VIEW_MODE_ENUM
+};
+
+struct FViewModeEntry
+{
+	EViewModeIndex Mode;
+	const char* Name;
+};
+
+inline constexpr FViewModeEntry ViewModeEntries[] =
+{
+#define MAKE_VIEW_MODE_ENTRY(Name) { EViewModeIndex::VMI_##Name, #Name },
+	VIEW_MODE_LIST(MAKE_VIEW_MODE_ENTRY)
+#undef MAKE_VIEW_MODE_ENTRY
+};
+#undef VIEW_MODE_LIST
+
 //struct FVertexSimple;
 struct FConstants
 {
@@ -43,14 +70,13 @@ public:
 	ID3D11DeviceContext* DeviceContext = nullptr;
 	ID3D11Device* D3DDevice = nullptr;
 	FLineBatcher LineBatcher;
-	FGrid Grid;
 
 	ID3D11RasterizerState* DefaultRasterizerState = nullptr;
 	ID3D11RasterizerState* CullFrontRasterizerState = nullptr;
 	ID3D11RasterizerState* CullNoneRasterizerState = nullptr;
 	ID3D11RasterizerState* WireframeRasterizerState = nullptr;
 
-	bool bWireframe = false;   // 에디터 뷰 모드. 프레임 시작마다 FEditor에서 읽는다
+	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
 
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;
