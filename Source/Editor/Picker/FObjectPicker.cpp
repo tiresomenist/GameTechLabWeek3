@@ -112,6 +112,8 @@ bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,co
 
 UPrimitiveComponent* FObjectPicker::Pick()
 {
+	if (Editor == nullptr || !Editor->IsShowingPrimitives()) return nullptr;
+
 	UScene* Scene = Editor->GetCurrentScene();
 	FRay Ray;
 	if (!MakeWorldRay(Ray)) return nullptr;	//Ray 계산 실패

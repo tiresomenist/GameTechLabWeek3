@@ -185,6 +185,11 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			Editor->SetShowUUIDLabels(bShowUUIDLabels);
 		}
+		bool bShowPrimitives = Editor->IsShowingPrimitives();
+		if (ImGui::Checkbox("Show Primitives", &bShowPrimitives))
+		{
+			Editor->SetShowPrimitives(bShowPrimitives);
+		}
 		bool bShowBoundingBoxes = Editor->IsShowingBoundingBoxes();
 		if (ImGui::Checkbox("Show Bounding Boxes", &bShowBoundingBoxes))
 		{

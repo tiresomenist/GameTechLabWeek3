@@ -547,7 +547,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		}
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
-		if (Item.isSelected)
+		if (Editor->IsShowingPrimitives() && Item.isSelected)
 		{
 			RenderHighlight(Item);
 		}
@@ -555,7 +555,10 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		{
 			LineBatcher.AddBoundBox(Item.Min, Item.Max, *Item.WorldMatrix);
 		}
-		RenderPrimitive(Item);
+		if (Editor->IsShowingPrimitives())
+		{
+			RenderPrimitive(Item);
+		}
 	}
 
 	// Render Windows

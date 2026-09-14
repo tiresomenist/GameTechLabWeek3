@@ -34,6 +34,7 @@ private:
 
 	USceneComponent* SelectedSceneComponent = nullptr;
 	bool bShowUUIDLabels = true;
+	bool bShowPrimitives = true;
 	bool bShowBoundingBoxes = true;
 	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
 	FGrid Grid;
@@ -70,6 +71,8 @@ public:
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
 	bool IsShowingUUIDLabels() const { return bShowUUIDLabels; }
 	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
+	bool IsShowingPrimitives() const { return bShowPrimitives; }
+	void SetShowPrimitives(bool bShow) { bShowPrimitives = bShow; }
 	bool IsShowingBoundingBoxes() const { return bShowBoundingBoxes; }
 	void SetShowBoundingBoxes(bool bShow) { bShowBoundingBoxes = bShow; }
 	EViewModeIndex GetViewMode() const { return ViewMode; }
