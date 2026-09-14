@@ -196,11 +196,27 @@ void USceneWindow::Render(float DeltaTime)
 			Editor->SetShowBoundingBoxes(bShowBoundingBoxes);
 		}
 		ImGui::PushItemWidth(WideItemWidth);
+		float CameraMoveSpeed = Editor->GetCameraMoveSpeed();
+		const bool bCameraMoveSpeedChanged = ImGui::DragFloat("Camera Move Speed", &CameraMoveSpeed, 0.1f,
+			0.1f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+		if (bCameraMoveSpeedChanged)
+		{
+			Editor->SetCameraMoveSpeed(CameraMoveSpeed);
+		}
+		if (ImGui::IsItemDeactivatedAfterEdit())
+		{
+			Editor->SaveEditorSettings();
+		}
 		float GridInterval = Editor->GetGrid().Interval;
-		if (ImGui::DragFloat("Grid Spacing", &GridInterval, 0.1f,
-			FGrid::MinInterval, FGrid::MaxInterval, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+		const bool bGridIntervalChanged = ImGui::DragFloat("Grid Spacing", &GridInterval, 0.1f,
+			FGrid::MinInterval, FGrid::MaxInterval, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+		if (bGridIntervalChanged)
 		{
 			Editor->SetGridInterval(GridInterval);
+		}
+		if (ImGui::IsItemDeactivatedAfterEdit())
+		{
+			Editor->SaveEditorSettings();
 		}
 
 		const EViewModeIndex CurrentViewMode = Editor->GetViewMode();

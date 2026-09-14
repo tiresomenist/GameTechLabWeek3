@@ -30,6 +30,45 @@
 
 #include "ImGui/imgui.h"
 
+namespace
+{
+constexpr char EditorIniPath[] = "editor.ini";
+constexpr float MinCameraMoveSpeed = 0.1f;
+constexpr float MaxCameraMoveSpeed = 100.0f;
+
+FString GetEditorIniPath()
+{
+	return std::filesystem::absolute(EditorIniPath).string();
+}
+
+float ReadEditorFloat(const char* Key, float DefaultValue, float MinValue, float MaxValue)
+{
+	char Buffer[64]{};
+	const FString IniPath = GetEditorIniPath();
+	GetPrivateProfileStringA("Editor", Key, "", Buffer, static_cast<DWORD>(std::size(Buffer)), IniPath.c_str());
+	if (Buffer[0] == '\0') return DefaultValue;
+
+	try
+	{
+		const FString Text = Buffer;
+		size_t ParsedLength = 0;
+		const float Value = std::stof(Text, &ParsedLength);
+		if (ParsedLength != Text.size() || !std::isfinite(Value)) return DefaultValue;
+		return std::clamp(Value, MinValue, MaxValue);
+	}
+	catch (const std::exception&)
+	{
+		return DefaultValue;
+	}
+}
+
+bool WriteEditorFloat(const char* Key, float Value)
+{
+	const FString IniPath = GetEditorIniPath();
+	const FString Text = std::format("{}", Value);
+	return WritePrivateProfileStringA("Editor", Key, Text.c_str(), IniPath.c_str()) != FALSE;
+}
+}
 
 void FEditor::Initialize()
 {
@@ -38,6 +77,7 @@ void FEditor::Initialize()
 	EditorCamera->LookAt(FVector(0.0f, 0.0f, 0.0f));
 
 	CameraController.SetCamera(EditorCamera);
+	LoadEditorSettings();
 
 	ObjectPicker = new FObjectPicker(this);
 	GizmoPicker = new FGizmoPicker(this);
@@ -46,6 +86,34 @@ void FEditor::Initialize()
 	GizmoController = new FGizmoController(this);
 	InitializeWindows();
 	InitializeGrids();
+}
+
+void FEditor::LoadEditorSettings()
+{
+	SetCameraMoveSpeed(ReadEditorFloat("CameraMoveSpeed", GetCameraMoveSpeed(), MinCameraMoveSpeed, MaxCameraMoveSpeed));
+	SetGridInterval(ReadEditorFloat("GridInterval", Grid.Interval, FGrid::MinInterval, FGrid::MaxInterval));
+}
+
+float FEditor::GetCameraMoveSpeed() const
+{
+	return EditorCamera ? EditorCamera->GetMoveSpeed() : 0.0f;
+}
+
+void FEditor::SetCameraMoveSpeed(float InSpeed)
+{
+	if (EditorCamera)
+	{
+		EditorCamera->SetMoveSpeed(std::clamp(InSpeed, MinCameraMoveSpeed, MaxCameraMoveSpeed));
+	}
+}
+
+void FEditor::SaveEditorSettings() const
+{
+	if (!WriteEditorFloat("CameraMoveSpeed", GetCameraMoveSpeed()) ||
+		!WriteEditorFloat("GridInterval", Grid.Interval))
+	{
+		UE_LOG("[Editor] editor.ini 저장에 실패했습니다.");
+	}
 }
 
 void FEditor::InitializeGizmos()

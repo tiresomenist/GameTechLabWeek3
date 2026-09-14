@@ -43,6 +43,7 @@ private:
 	TArray<UGrid*> Grids;
 	UGizmo* ObjectAxisGizmo = nullptr;
 
+	void LoadEditorSettings();
 	void InitializeGizmos();
 	void InitializeWindows();
 	void InitializeGrids();
@@ -78,6 +79,9 @@ public:
 	EViewModeIndex GetViewMode() const { return ViewMode; }
 	void SetViewMode(EViewModeIndex InMode) { ViewMode = InMode; }
 	const FGrid& GetGrid() const { return Grid; }
+	float GetCameraMoveSpeed() const;
+	void SetCameraMoveSpeed(float InSpeed);
+	void SaveEditorSettings() const;
 	void SetGridInterval(float InInterval)
 	{
 		if (std::isfinite(InInterval))

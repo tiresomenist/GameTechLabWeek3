@@ -27,15 +27,17 @@ public:
 
     float GetFOV()const;
     float GetAspectRatio()const;
-    float GetNearZ()const;
-    float GetFarZ()const;
-    bool GetIsPerspective() const;
+	float GetNearZ()const;
+	float GetFarZ()const;
+	float GetMoveSpeed() const;
+	bool GetIsPerspective() const;
     void SetIsPerspective(bool Value);
 
     void SetFOVByRadian(const float& InRadian);
     void SetFOVByDegree(const float& InDegree);
 
-    void SetAspectRatio(const float& InRatio);
+	void SetAspectRatio(const float& InRatio);
+	void SetMoveSpeed(float InSpeed);
 
     //카메라가 원하는 지점을 바라보도록 하는 함수
     void LookAt(const FVector& InTargetPosition);

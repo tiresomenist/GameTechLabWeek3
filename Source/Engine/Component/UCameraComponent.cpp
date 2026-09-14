@@ -122,6 +122,19 @@ void UCameraComponent::SetAspectRatio(const float& InRatio)
 	if (ValidCamera(FOV, InRatio, NearZ, FarZ, MoveSpeed, OrthoHeight)) AspectRatio = InRatio;
 }
 
+float UCameraComponent::GetMoveSpeed() const
+{
+	return MoveSpeed;
+}
+
+void UCameraComponent::SetMoveSpeed(float InSpeed)
+{
+	if (std::isfinite(InSpeed) && InSpeed >= 0.0f)
+	{
+		MoveSpeed = InSpeed;
+	}
+}
+
 void UCameraComponent::LookAt(const FVector& InTargetPosition)
 {
 	FVector Forward = (InTargetPosition - RelativeLocation);
