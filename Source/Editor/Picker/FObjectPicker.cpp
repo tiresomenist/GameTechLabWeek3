@@ -152,7 +152,7 @@ UPrimitiveComponent* FObjectPicker::Pick()
 			if (!Mesh) return;
 
 			const size_t Count = Mesh->GetIndices().Num();
-            const size_t VertexCount = Mesh->GetVertices().Num();
+			const size_t VertexCount = Mesh->GetPositions().Num();
             if (Count != Mesh->GetIndexCount() || Count % 3 != 0) return;
             for (size_t Index = 0; Index < Count; Index += 3)
 			{
@@ -161,13 +161,9 @@ UPrimitiveComponent* FObjectPicker::Pick()
 				const uint32 I2 = Mesh->GetIndices()[Index + 2];
                 if (I0 >= VertexCount || I1 >= VertexCount || I2 >= VertexCount) continue;
 
-				const FVertexSimple& V0 = Mesh->GetVertices()[I0];
-				const FVertexSimple& V1 = Mesh->GetVertices()[I1];
-				const FVertexSimple& V2 = Mesh->GetVertices()[I2];
-
-				FVector A(V0.x, V0.y, V0.z);
-				FVector B(V1.x, V1.y, V1.z);
-				FVector C(V2.x, V2.y, V2.z);
+				const FVector& A = Mesh->GetPositions()[I0];
+				const FVector& B = Mesh->GetPositions()[I1];
+				const FVector& C = Mesh->GetPositions()[I2];
 
 				float T;
 				

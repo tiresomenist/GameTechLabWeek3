@@ -12,7 +12,9 @@
 #include "Core/Container/FString.h"
 #include "Core/Container/TArray.h"
 #include "Engine/Renderer/FVertexSimple.h"
+#include "Engine/Renderer/FVertexTexture.h"
 #include "Engine/Resource/FMeshResource.h"
+#include "Engine/Resource/FTextureResource.h"
 #include "Engine/Renderer/Text/FFontAtlas.h"
 
 //struct FMeshResource
@@ -47,6 +49,8 @@ public:
 	void Initialize(GDevice* InDevice);
 	void Shutdown();
 	FMeshResource* CreateMesh(const FString& MeshName, std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices);
+	FMeshResource* CreateMesh(const FString& MeshName, std::span<const FVertexTexture> Vertices, std::span<const uint32> Indices);
+	FTextureResource* LoadTexture(FStringView FilePath);
 
 	FMeshResource* GetPrimitive(const FString& Type);
 	FFontAtlas* GetDefaultFont() { return DefaultFont.GetSRV() ? &DefaultFont : nullptr; }
@@ -60,6 +64,9 @@ public:
 	);
 
 private:
+	FMeshResource* CreateMeshInternal(const FString& MeshName, const void* VertexData, size_t VertexCount,
+		UINT VertexStride, std::span<const FVector> Positions, std::span<const uint32> Indices);
+
 	GResourceManager() = default;
 	~GResourceManager() = default;
 	GResourceManager(const GResourceManager&) = delete;
@@ -68,6 +75,7 @@ private:
 	GDevice* Device = nullptr;
 
 	std::unordered_map<std::string, FMeshResource*> PrimitiveCache;
+	std::unordered_map<std::string, FTextureResource*> TextureCache;
 	FFontAtlas DefaultFont;
 	//std::unordered_map<std::string, FShaderResource*> ShaderCache;	// 일단 Renderer에서 - 셰이더 무조건 하나만 쓰니까..
 	//std::map<std::pair<D3D11_FILL_MODE, D3D11_CULL_MODE>, ID3D11RasterizerState*> RasterizerStateCache;

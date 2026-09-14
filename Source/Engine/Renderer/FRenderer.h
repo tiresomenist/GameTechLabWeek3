@@ -93,8 +93,13 @@ public:
 	ID3D11VertexShader* SimpleVertexShader = nullptr;
 	ID3D11PixelShader* SimplePixelShader = nullptr;
 	ID3D11InputLayout* SimpleInputLayout = nullptr;
+	ID3D11VertexShader* TexturedVertexShader = nullptr;
+	ID3D11PixelShader* TexturedPixelShader = nullptr;
+	ID3D11InputLayout* TexturedInputLayout = nullptr;
+	ID3D11SamplerState* MaterialSamplerState = nullptr;
 	ID3D11VertexShader* HighlightVertexShader = nullptr;
 	ID3D11PixelShader* HighlightPixelShader = nullptr;
+	ID3D11InputLayout* HighlightInputLayout = nullptr;
 	ID3D11VertexShader* GridVertexShader = nullptr;
 	ID3D11PixelShader* GridPixelShader = nullptr;
 	ID3D11VertexShader* BatchLineVertexShader = nullptr;

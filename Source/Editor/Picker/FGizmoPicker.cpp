@@ -138,13 +138,13 @@ int FGizmoPicker::Pick(UGizmo* InGizmos)
             for (uint32 Index = 0; Index + 1 < Count; Index += 2)
             {
                 const uint32 I0 = Mesh->GetIndices()[Index], I1 = Mesh->GetIndices()[Index + 1];
-                if (I0 >= uint32(Mesh->GetVertices().Num()) || I1 >= uint32(Mesh->GetVertices().Num())) continue;
-                const auto& V0 = Mesh->GetVertices()[I0];
-                const auto& V1 = Mesh->GetVertices()[I1];
+				if (I0 >= uint32(Mesh->GetPositions().Num()) || I1 >= uint32(Mesh->GetPositions().Num())) continue;
+				const FVector& V0 = Mesh->GetPositions()[I0];
+				const FVector& V1 = Mesh->GetPositions()[I1];
 
-                //월드 좌표계에서 선분 정점 위치 계산
-                FVector A(FVector4(V0.x, V0.y, V0.z, 1) * Handle.WorldMatrix);
-                FVector B(FVector4(V1.x, V1.y, V1.z, 1) * Handle.WorldMatrix);
+				//월드 좌표계에서 선분 정점 위치 계산
+				FVector A(FVector4(V0, 1) * Handle.WorldMatrix);
+				FVector B(FVector4(V1, 1) * Handle.WorldMatrix);
 
                 // 클립좌표계로 변환
                 const FVector4 CA = FVector4(A, 1) * VP;
@@ -181,15 +181,11 @@ int FGizmoPicker::Pick(UGizmo* InGizmos)
                 const uint32 I1 = Mesh->GetIndices()[Index + 1];
                 const uint32 I2 = Mesh->GetIndices()[Index + 2];
 
-                if (I0 >= uint32(Mesh->GetVertices().Num()) || I1 >= uint32(Mesh->GetVertices().Num())|| I2 >= uint32(Mesh->GetVertices().Num())) continue;
+				if (I0 >= uint32(Mesh->GetPositions().Num()) || I1 >= uint32(Mesh->GetPositions().Num())|| I2 >= uint32(Mesh->GetPositions().Num())) continue;
 
-                const FVertexSimple& V0 = Mesh->GetVertices()[I0];
-                const FVertexSimple& V1 = Mesh->GetVertices()[I1];
-                const FVertexSimple& V2 = Mesh->GetVertices()[I2];
-
-                FVector A(V0.x, V0.y, V0.z);
-                FVector B(V1.x, V1.y, V1.z);
-                FVector C(V2.x, V2.y, V2.z);
+				FVector A = Mesh->GetPositions()[I0];
+				FVector B = Mesh->GetPositions()[I1];
+				FVector C = Mesh->GetPositions()[I2];
 
 
                 // 현재 오브젝트의 WorldMatrix를 반영

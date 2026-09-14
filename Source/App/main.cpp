@@ -60,6 +60,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+	const HRESULT CoInitializeResult = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+	if (FAILED(CoInitializeResult)) return EXIT_FAILURE;
+
 #if defined(_DEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
@@ -76,7 +79,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // 윈도우 클래스 등록
     wndclass.hInstance = hInstance;
-    if (!RegisterClassW(&wndclass)) return EXIT_FAILURE;
+    if (!RegisterClassW(&wndclass))
+    {
+        CoUninitialize();
+        return EXIT_FAILURE;
+    }
 
     // 1024 x 1024 크기에 윈도우 생성
     HWND hWnd = CreateWindowExW(0, WindowClass, Title, WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
@@ -86,7 +93,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 엔진을 초기화합니다.
     GEngine* Engine = GEngine::GetInstance();
     int ExitCode = EXIT_SUCCESS;
-    if (!hWnd) return EXIT_FAILURE;
+    if (!hWnd)
+    {
+        UnregisterClassW(WindowClass, hInstance);
+        CoUninitialize();
+        return EXIT_FAILURE;
+    }
     try
     {
         Engine->Initialize(hWnd);
@@ -130,6 +142,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Engine = nullptr;
     if (IsWindow(hWnd)) DestroyWindow(hWnd);
     UnregisterClassW(WindowClass, hInstance);
+    CoUninitialize();
 
     return ExitCode;
 }

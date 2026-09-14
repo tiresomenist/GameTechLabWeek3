@@ -2,6 +2,7 @@
 #include "UPrimitiveComponent.h"
 #include "Engine/Resource/GResourceManager.h"
 #include "Engine/Resource/FMeshResource.h"
+#include "Engine/Resource/FTextureResource.h"
 
 void UPrimitiveComponent::Initialize()
 {
@@ -20,6 +21,7 @@ FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 	OutData.IndexBuffer = MeshResource->GetIndexBuffer();
 	OutData.IndexCount = MeshResource->GetIndexCount();
 	OutData.Stride = MeshResource->GetStride();
+	OutData.Material = Material ? Material->GetShaderResourceView() : nullptr;
 	OutData.WorldMatrix = &GetWorldMatrix();
 	OutData.isSelected = bSelected;
 	// RenderData.Material			= &GetMaterial();

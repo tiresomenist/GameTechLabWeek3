@@ -226,14 +226,14 @@ void GDevice::ReleaseDepthStencilBuffer()
     }
 }
 
-ID3D11Buffer* GDevice::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth)
+ID3D11Buffer* GDevice::CreateVertexBuffer(const void* Vertices, UINT ByteWidth)
 {
     D3D11_BUFFER_DESC vertexbufferdesc = {};
-    vertexbufferdesc.ByteWidth = byteWidth;
+    vertexbufferdesc.ByteWidth = ByteWidth;
     vertexbufferdesc.Usage = D3D11_USAGE_IMMUTABLE;
     vertexbufferdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    D3D11_SUBRESOURCE_DATA vertexbufferSRD = { vertices };
+    D3D11_SUBRESOURCE_DATA vertexbufferSRD = { Vertices };
 
     ID3D11Buffer* vertexBuffer = nullptr;
 

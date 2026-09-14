@@ -106,9 +106,37 @@ bool FRenderer::CreateShaders()
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimplePixelShader));
 	shaderBlob.Reset();
 
+	if (!CompileShader(L"Assets/Shaders/TextureShader.hlsl", "mainVS_Texture", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &TexturedVertexShader));
+	D3D11_INPUT_ELEMENT_DESC TexturedLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	CheckHR(D3DDevice->CreateInputLayout(TexturedLayout, ARRAYSIZE(TexturedLayout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &TexturedInputLayout));
+	shaderBlob.Reset();
+
+	if (!CompileShader(L"Assets/Shaders/TextureShader.hlsl", "mainPS_Texture", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &TexturedPixelShader));
+	shaderBlob.Reset();
+
+	D3D11_SAMPLER_DESC MaterialSamplerDesc = {};
+	MaterialSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	MaterialSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	MaterialSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	MaterialSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	MaterialSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	MaterialSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	CheckHR(D3DDevice->CreateSamplerState(&MaterialSamplerDesc, &MaterialSamplerState));
+
 	// Highlight Shader (VS & PS)
 	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "VS_Highlight", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
 	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &HighlightVertexShader));
+	D3D11_INPUT_ELEMENT_DESC HighlightLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	CheckHR(D3DDevice->CreateInputLayout(HighlightLayout, ARRAYSIZE(HighlightLayout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &HighlightInputLayout));
 	shaderBlob.Reset();
 
 	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "PS_Highlight", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
@@ -148,6 +176,31 @@ bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, co
 
 void FRenderer::ReleaseShaders()
 {
+	if (HighlightInputLayout)
+	{
+		HighlightInputLayout->Release();
+		HighlightInputLayout = nullptr;
+	}
+	if (MaterialSamplerState)
+	{
+		MaterialSamplerState->Release();
+		MaterialSamplerState = nullptr;
+	}
+	if (TexturedInputLayout)
+	{
+		TexturedInputLayout->Release();
+		TexturedInputLayout = nullptr;
+	}
+	if (TexturedPixelShader)
+	{
+		TexturedPixelShader->Release();
+		TexturedPixelShader = nullptr;
+	}
+	if (TexturedVertexShader)
+	{
+		TexturedVertexShader->Release();
+		TexturedVertexShader = nullptr;
+	}
 	if (SimpleInputLayout)
 	{
 		SimpleInputLayout->Release();
@@ -694,21 +747,33 @@ void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
 void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 {
 	UINT Offset = 0;
-	DeviceContext->IASetInputLayout(SimpleInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
 	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	DeviceContext->IASetPrimitiveTopology(Data.Topology);
-
-	DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
 	// Lit currently uses the unlit pipeline until lighting is implemented.
 	DeviceContext->RSSetState(ViewMode == EViewModeIndex::VMI_Wireframe ? WireframeRasterizerState : DefaultRasterizerState);
 
-	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
+	if (Data.Material)
+	{
+		DeviceContext->IASetInputLayout(TexturedInputLayout);
+		DeviceContext->VSSetShader(TexturedVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(TexturedPixelShader, nullptr, 0);
+		DeviceContext->PSSetShaderResources(0, 1, &Data.Material);
+		DeviceContext->PSSetSamplers(0, 1, &MaterialSamplerState);
+		float BlendFactor[4] = { 0, 0, 0, 0 };
+		DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, 0xffffffff);
+	}
+	else
+	{
+		DeviceContext->IASetInputLayout(SimpleInputLayout);
+		DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
+		DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
+		DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+	}
 
 	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
-	// BindMaterial(Data.Material); 
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
 }
@@ -716,7 +781,7 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
 {
 	UINT Offset = 0;
-	DeviceContext->IASetInputLayout(SimpleInputLayout);
+	DeviceContext->IASetInputLayout(HighlightInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
 	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	DeviceContext->IASetPrimitiveTopology(Data.Topology);

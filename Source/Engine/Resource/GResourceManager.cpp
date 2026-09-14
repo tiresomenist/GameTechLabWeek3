@@ -5,6 +5,7 @@
 
 #include "GResourceManager.h"
 #include "Engine/Renderer/FVertexSimple.h"
+#include "WICTextureLoader/WICTextureLoader11.h"
 #include "Engine/Resource/MeshData/Sphere.h"
 #include "Engine/Resource/MeshData/Cube.h"
 #include "Engine/Resource/MeshData/Plane.h"
@@ -25,6 +26,7 @@
 #include "Engine/Resource/MeshData/RotateBlue.h"
 #include "Engine/Resource/MeshData/Grid.h"
 #include "Core/Math/FVector.h"
+#include "Engine/Log.h"
 #include <memory>
 #include <limits>
 #include <stdexcept>
@@ -66,45 +68,69 @@ void GResourceManager::Initialize(GDevice* InDevice)
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
     std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices)
 {
+    std::vector<FVector> Positions;
+    Positions.reserve(Vertices.size());
+    for (const FVertexSimple& Vertex : Vertices)
+    {
+        Positions.emplace_back(Vertex.x, Vertex.y, Vertex.z);
+    }
+    return CreateMeshInternal(MeshName, Vertices.data(), Vertices.size(), sizeof(FVertexSimple), Positions, Indices);
+}
+
+FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
+    std::span<const FVertexTexture> Vertices, std::span<const uint32> Indices)
+{
+    std::vector<FVector> Positions;
+    Positions.reserve(Vertices.size());
+    for (const FVertexTexture& Vertex : Vertices)
+    {
+        Positions.emplace_back(Vertex.x, Vertex.y, Vertex.z);
+    }
+    return CreateMeshInternal(MeshName, Vertices.data(), Vertices.size(), sizeof(FVertexTexture), Positions, Indices);
+}
+
+FMeshResource* GResourceManager::CreateMeshInternal(const FString& MeshName, const void* VertexData, size_t VertexCount,
+    UINT VertexStride, std::span<const FVector> Positions, std::span<const uint32> Indices)
+{
     auto Existing = PrimitiveCache.find(MeshName);
     if (Existing != PrimitiveCache.end()) return Existing->second;
-    if (Vertices.empty() || Indices.empty()) return nullptr;
+    if (VertexData == nullptr || VertexCount == 0 || Positions.size() != VertexCount || Indices.empty()) return nullptr;
     const size_t MaxBytes = (std::numeric_limits<UINT>::max)();
-    if (Vertices.size() > MaxBytes / sizeof(FVertexSimple) || Indices.size() > MaxBytes / sizeof(uint32))
+    if (VertexCount > MaxBytes / VertexStride || Indices.size() > MaxBytes / sizeof(uint32))
         return nullptr;
-    for (const auto& V : Vertices)
-        if (!std::isfinite(V.x) || !std::isfinite(V.y) || !std::isfinite(V.z)) return nullptr;
+    for (const FVector& Position : Positions)
+		if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return nullptr;
     if (!Device || !Device->GetDevice()) return nullptr;
     for (uint32 Index : Indices)
-        if (Index >= Vertices.size()) return nullptr;
+        if (Index >= VertexCount) return nullptr;
 
     auto Mesh = std::make_unique<FMeshResource>();
-    Mesh->vertexs.GetVector().assign(Vertices.begin(), Vertices.end());
+	Mesh->Positions.GetVector().assign(Positions.begin(), Positions.end());
     Mesh->indexes.GetVector().assign(Indices.begin(), Indices.end());
-    Mesh->VertexCount = static_cast<UINT>(Vertices.size());
+    Mesh->VertexCount = static_cast<UINT>(VertexCount);
     Mesh->IndexCount = static_cast<UINT>(Indices.size());
-    Mesh->Stride = sizeof(FVertexSimple);
-    Mesh->VertexBuffer = Device->CreateVertexBuffer(&Mesh->vertexs[0], Mesh->Stride * Mesh->VertexCount);
+    Mesh->Stride = VertexStride;
+    Mesh->VertexBuffer = Device->CreateVertexBuffer(VertexData, Mesh->Stride * Mesh->VertexCount);
     if (!Mesh->VertexBuffer) return nullptr;
     Mesh->IndexBuffer = Device->CreateIndexBuffer(&Mesh->indexes[0], sizeof(uint32) * Mesh->IndexCount);
     if (!Mesh->IndexBuffer) return nullptr;
     Mesh->bHasBounds = false;
-    if (Mesh->vertexs.Num() > 0)
+    if (Mesh->Positions.Num() > 0)
     {
-        const auto& First = Mesh->vertexs[0];
+        const FVector& First = Mesh->Positions[0];
 
-        Mesh->BoundsMin = FVector(First.x, First.y, First.z);   
+		Mesh->BoundsMin = First;
         Mesh->BoundsMax = Mesh->BoundsMin;
 
-        for (const auto& Vertex : Mesh->vertexs)
+		for (const FVector& Position : Mesh->Positions)
         {
-            Mesh->BoundsMin.X = (std::min)(Mesh->BoundsMin.X, Vertex.x);
-            Mesh->BoundsMin.Y = (std::min)(Mesh->BoundsMin.Y, Vertex.y);
-            Mesh->BoundsMin.Z = (std::min)(Mesh->BoundsMin.Z, Vertex.z);
+            Mesh->BoundsMin.X = (std::min)(Mesh->BoundsMin.X, Position.X);
+            Mesh->BoundsMin.Y = (std::min)(Mesh->BoundsMin.Y, Position.Y);
+            Mesh->BoundsMin.Z = (std::min)(Mesh->BoundsMin.Z, Position.Z);
 
-            Mesh->BoundsMax.X = (std::max)(Mesh->BoundsMax.X, Vertex.x);
-            Mesh->BoundsMax.Y = (std::max)(Mesh->BoundsMax.Y, Vertex.y);
-            Mesh->BoundsMax.Z = (std::max)(Mesh->BoundsMax.Z, Vertex.z);
+            Mesh->BoundsMax.X = (std::max)(Mesh->BoundsMax.X, Position.X);
+            Mesh->BoundsMax.Y = (std::max)(Mesh->BoundsMax.Y, Position.Y);
+            Mesh->BoundsMax.Z = (std::max)(Mesh->BoundsMax.Z, Position.Z);
         }
 
         Mesh->bHasBounds = true;
@@ -116,6 +142,27 @@ FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
     
 }
 
+FTextureResource* GResourceManager::LoadTexture(FStringView FilePath)
+{
+    const FString Key{ FilePath };
+    if (const auto Existing = TextureCache.find(Key); Existing != TextureCache.end()) return Existing->second;
+    if (!Device || !Device->GetDevice() || !Device->GetContext()) return nullptr;
+
+    auto Texture = std::make_unique<FTextureResource>();
+    const std::wstring WidePath = std::filesystem::absolute(std::filesystem::path(Key)).wstring();
+    const HRESULT Result = DirectX::CreateWICTextureFromFile(
+        Device->GetDevice(), Device->GetContext(), WidePath.c_str(), nullptr, &Texture->ShaderResourceView);
+    if (FAILED(Result))
+    {
+        UE_LOG("[Resource] 텍스처 로드 실패: {} ({})", Key, static_cast<uint32>(Result));
+        return nullptr;
+    }
+
+    const auto [It, Inserted] = TextureCache.emplace(Key, Texture.get());
+    if (Inserted) Texture.release();
+    return It->second;
+}
+
 void GResourceManager::Shutdown()
 {
     for (auto& [type, mesh] : PrimitiveCache)
@@ -123,6 +170,11 @@ void GResourceManager::Shutdown()
         delete mesh;
     }
     PrimitiveCache.clear();
+	for (auto& [path, texture] : TextureCache)
+	{
+		delete texture;
+	}
+	TextureCache.clear();
 	DefaultFont.Release();
     Device = nullptr;
 

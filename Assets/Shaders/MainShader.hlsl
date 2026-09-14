@@ -39,7 +39,12 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     return input.color;
 }
 
-VS_OUTPUT VS_Highlight(VS_INPUT input)
+struct VS_HIGHLIGHT_INPUT
+{
+    float3 position : POSITION;
+};
+
+VS_OUTPUT VS_Highlight(VS_HIGHLIGHT_INPUT input)
 {
     VS_OUTPUT output;
     

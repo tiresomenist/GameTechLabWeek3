@@ -9,9 +9,6 @@
 
 #include "Core/Core.h"
 
-struct FVertexSimple;
-struct FVertexTest;
-
 // Device 생성 → Renderer/ResourceManager 생성 → (역순으로) Renderer/ResourceManager 소멸 → Device 소멸
 
 class GDevice
@@ -30,7 +27,7 @@ public:
     bool CreateDepthStencilBuffer(int32 InWidth, int32 InHeight); 
     void ReleaseDepthStencilBuffer(); 
 
-    ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth);
+    ID3D11Buffer* CreateVertexBuffer(const void* Vertices, UINT ByteWidth);
     //ID3D11Buffer* CreateVertexBuffer(FVertexTest* vertices, UINT byteWidth);
     void ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer);
     ID3D11Buffer* CreateIndexBuffer(uint32_t* indices, UINT byteWidth);
