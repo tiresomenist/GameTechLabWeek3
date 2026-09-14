@@ -5,7 +5,7 @@
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Component/USceneComponent.h"
 
-UActorComponent* UActor::CreateComponent(FClassType* Type, uint32 UUID)
+UActorComponent* UActor::CreateComponent(FClassType* Type, uint32 UUID, FName InName)
 {
     if (Type == nullptr || !Type->IsA(UActorComponent::GetClass()))
     {
@@ -16,6 +16,15 @@ UActorComponent* UActor::CreateComponent(FClassType* Type, uint32 UUID)
         FObjectFactory::ConstructSceneObject(Type, UUID));
 
     Component->SetOwner(this);
+    if (InName.GetComparisonIndex() == -1)
+    {
+        Component->SetName(FName(Type->Name));
+    }
+    else
+    {
+        Component->SetName(InName);
+    }
+
     Components.Add(Component);
 
     if (RootComponent == nullptr && Component->IsA(USceneComponent::GetClass()) && static_cast<USceneComponent*>(Component)->CanBeRootComponent())
@@ -76,6 +85,18 @@ void UActor::SetRootComponent(USceneComponent* Component)
     }
 
     RootComponent = Component;
+}
+
+UActorComponent* UActor::FindComponentByName(const FName& InName) const
+{
+    for (UActorComponent* Component : Components)
+    {
+        if (Component && Component->GetName() == InName)
+        {
+            return Component;
+        }
+    }
+    return nullptr;
 }
 
 void UActor::BeginPlay()

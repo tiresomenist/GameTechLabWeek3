@@ -20,7 +20,10 @@ bool UWidgetComponent::BuildTextItem(const UCameraComponent* Camera, FWorldTextI
 	// Widget의 위치는 Root 로컬 공간의 추가 오프셋이며, 라벨은 메시 상단보다 0.3 위에 둔다.
 	const FVector LocalAnchor = FVector(0.0f, 0.0f, BoundsMax.Z) + GetRelativeLocation();
 	const FVector Anchor = Primitive->GetWorldMatrix().TransformPosition(LocalAnchor) + FVector::Up * 0.3f;
-	OutItem.Text = std::to_string(Primitive->GetUUID());
+
+	const FName& Name = Primitive->GetName();
+	OutItem.Text = Name.ToString().c_str() + std::string(" [ID: ") + std::to_string(Name.GetComparisonIndex()) + "]";
+	//OutItem.Text = std::to_string(Primitive->GetUUID());
 	OutItem.WorldMatrix = FMatrix::MakeScaleMatrix(GetRelativeScale3D())
 		* Camera->GetRelativeRotation().ToRotationMatrix()
 		* FMatrix::MakeTranslationMatrix(Anchor);

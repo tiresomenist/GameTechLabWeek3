@@ -12,8 +12,10 @@ class UActor : public UObject
     UCLASS(UActor, "Actor", UObject)
 
 public:
-    UActorComponent* CreateComponent(FClassType* Type, uint32 UUID = -1);
+    UActorComponent* CreateComponent(FClassType* Type, uint32 UUID = -1, FName InName = FName());
     bool RemoveComponent(UActorComponent* Component, bool bDestroy = true);
+
+    UActorComponent* FindComponentByName(const FName& InName) const;
 
     void SetRootComponent(USceneComponent* Component);
     USceneComponent* GetRootComponent() const { return RootComponent; }
@@ -31,5 +33,6 @@ private:
 
     TArray<UActorComponent*> Components;
     USceneComponent* RootComponent = nullptr;
+    FName ActorName;
     bool bHasBegunPlay = false;
 };

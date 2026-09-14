@@ -211,9 +211,13 @@ void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
 	for (int i = 0; i < Count; ++i)
 	{
 		UActor* Actor = CurrentScene->SpawnActor<UActor*>(UActor::GetClass());
-		if (Actor->CreateComponent(PrimitiveType))
+
+		FString CompNameStr = PrimitiveType->Name + "Component";
+		FName CompFName(CompNameStr);
+		if (Actor->CreateComponent(PrimitiveType, -1, FName(CompNameStr)))
 		{
-			Actor->CreateComponent(UWidgetComponent::GetClass());
+			FString WidgetNameStr = "WidgetComponent";
+			UActorComponent* WidgetComp = Actor->CreateComponent(UWidgetComponent::GetClass(), -1, FName(WidgetNameStr));
 		}
 	}
 }

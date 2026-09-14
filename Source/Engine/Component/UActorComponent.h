@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Object/UObject.h"
+#include "Core/Container/FName.h"
 
 class UActor;
 
@@ -11,6 +12,9 @@ class UActorComponent : public UObject
 
 public:
     UActor* GetOwner() const { return Owner; }
+
+    void SetName(const FName& InName) { ComponentName = InName; }
+    FName GetName() const { return ComponentName; }
 
     // Owner가 설정된 뒤 한 번 호출됩니다. Owner가 필요한 초기화는 여기서 합니다.
     virtual void OnRegister() {}
@@ -25,6 +29,8 @@ private:
     UActor* Owner = nullptr;
 
     void SetOwner(UActor* InOwner) { Owner = InOwner; }
+
+    FName ComponentName;
 
     friend class UActor;
 };
