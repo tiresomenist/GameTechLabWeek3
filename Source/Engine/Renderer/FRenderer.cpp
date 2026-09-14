@@ -50,6 +50,8 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
 	CreateTextResources();
+	CreateTexturePlaneResources();
+	Texture.LoadFromFile(D3DDevice, "Assets/Textures/FlameTexture.png");
 
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
@@ -69,6 +71,8 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 void FRenderer::Shutdown()
 {
 	LineBatcher.Release();
+	Texture.Release();
+	ReleaseTexturePlaneResources();
 
 	if (DeviceContext) DeviceContext->ClearState();
 	ReleaseConstantBuffer();
@@ -132,6 +136,22 @@ bool FRenderer::CreateShaders()
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &BatchLinePixelShader));
 	shaderBlob.Reset();
 
+	if (!CompileShader(L"Assets/Shaders/TextureShader.hlsl", "VS_Texture", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &TextureVertexShader));
+
+	D3D11_INPUT_ELEMENT_DESC texLayout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	CheckHR(D3DDevice->CreateInputLayout(texLayout, ARRAYSIZE(texLayout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &TextureInputLayout));
+	shaderBlob.Reset();
+
+	if (!CompileShader(L"Assets/Shaders/TextureShader.hlsl", "PS_Texture", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &TexturePixelShader));
+	shaderBlob.Reset();
+
 	return true;
 }
 bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob)
@@ -192,6 +212,18 @@ void FRenderer::ReleaseShaders()
 	{
 		BatchLinePixelShader->Release();
 		BatchLinePixelShader = nullptr;
+	}
+	if (TextureInputLayout) 
+	{ 
+		TextureInputLayout->Release(); TextureInputLayout = nullptr; 
+	}
+	if (TexturePixelShader) 
+	{ 
+		TexturePixelShader->Release(); TexturePixelShader = nullptr;
+	}
+	if (TextureVertexShader) 
+	{ 
+		TextureVertexShader->Release(); TextureVertexShader = nullptr;
 	}
 }
 
@@ -558,6 +590,8 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderPrimitive(Item);
 	}
 
+	RenderTexturePlane(ViewProjMatrix);
+
 	// Render Windows
 	for (auto Item : Editor->GetWindows())
 	{
@@ -824,4 +858,72 @@ void FRenderer::RenderBatchLine(const FMatrix& ViewProj)
 
 	// 나중에 같은 데이터로 여러번 그리려면 Clear() 분리가 필요할 수 있음
 	LineBatcher.Clear();
+}
+
+void FRenderer::RenderTexturePlane(const FMatrix& ViewProj)
+{
+	if (PlaneIndexCount == 0 || !PlaneVertexBuffer || !PlaneIndexBuffer) return;
+
+	FMatrix World = FMatrix::Identity;
+	UpdateTransformConstantBuffer(World * ViewProj);
+
+	UINT Stride = sizeof(FVertexTest);
+	UINT Offset = 0;
+	DeviceContext->IASetInputLayout(TextureInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &PlaneVertexBuffer, &Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(PlaneIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	DeviceContext->VSSetShader(TextureVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+
+	DeviceContext->PSSetShader(TexturePixelShader, nullptr, 0);
+
+	Texture.Bind(DeviceContext, 0, 0);
+
+	DeviceContext->RSSetState(CullNoneRasterizerState);
+	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+
+	DeviceContext->DrawIndexed(PlaneIndexCount, 0, 0);
+
+	Texture.Unbind(DeviceContext, 0, 0);
+}
+
+void FRenderer::CreateTexturePlaneResources()
+{
+	TArray<FVertexTest> Vertices;
+	TArray<uint32> Indices;
+	FGeometryGenerator::CreatePlane(2.0f, 2.0f, 1, 1, Vertices, Indices);
+	PlaneIndexCount = static_cast<UINT>(Indices.Num());
+
+	D3D11_BUFFER_DESC vbDesc = {};
+	vbDesc.ByteWidth = static_cast<UINT>(sizeof(FVertexTest) * Vertices.Num());
+	vbDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA vbData = {};
+	vbData.pSysMem = Vertices.GetData();
+	CheckHR(D3DDevice->CreateBuffer(&vbDesc, &vbData, &PlaneVertexBuffer));
+
+	D3D11_BUFFER_DESC ibDesc = {};
+	ibDesc.ByteWidth = static_cast<UINT>(sizeof(uint32) * Indices.Num());
+	ibDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = Indices.GetData();
+	CheckHR(D3DDevice->CreateBuffer(&ibDesc, &ibData, &PlaneIndexBuffer));
+}
+
+void FRenderer::ReleaseTexturePlaneResources()
+{
+	if (PlaneVertexBuffer)
+	{
+		PlaneVertexBuffer->Release();
+		PlaneVertexBuffer = nullptr;
+	}
+	if (PlaneIndexBuffer)
+	{
+		PlaneIndexBuffer->Release();
+		PlaneIndexBuffer = nullptr;
+	}
+	PlaneIndexCount = 0;
 }

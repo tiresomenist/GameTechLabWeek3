@@ -18,6 +18,8 @@
 #include "Engine/Renderer/Text/FTextMeshBuilder.h"
 
 #include "FLineBatcher.h"
+#include "Texture/FTexture.h"
+#include "Mesh/FGeometryGenerator.h"
 
 // Add a mode here to generate both its enum value and its UI entry.
 #define VIEW_MODE_LIST(X) \
@@ -105,6 +107,15 @@ public:
 	ID3D11PixelShader* TextPixelShader = nullptr;
 	ID3D11InputLayout* TextInputLayout = nullptr;
 
+	// Texture
+	FTexture Texture;
+	ID3D11VertexShader* TextureVertexShader = nullptr;
+	ID3D11PixelShader* TexturePixelShader = nullptr;
+	ID3D11InputLayout* TextureInputLayout = nullptr;
+	ID3D11Buffer* PlaneVertexBuffer = nullptr;
+	ID3D11Buffer* PlaneIndexBuffer = nullptr;
+	UINT PlaneIndexCount = 0;
+
 	ID3D11SamplerState* FontSamplerState = nullptr;
 	ID3D11DepthStencilState* TextDepthStencilState = nullptr;
 
@@ -154,4 +165,8 @@ public:
 	void ReleaseTextResources();
 	void UpdateTextVertexBuffer(TArray<FVertexText>& Vertices);
 	void RenderText(UINT IndexCount);
+
+	void CreateTexturePlaneResources();
+	void ReleaseTexturePlaneResources();
+	void RenderTexturePlane(const FMatrix& ViewProj);
 };
