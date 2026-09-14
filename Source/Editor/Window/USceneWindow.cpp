@@ -188,6 +188,11 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			Editor->SetShowBoundingBoxes(bShowBoundingBoxes);
 		}
+		bool bShowPrimitives = Editor->IsShowingPrimitives();
+		if (ImGui::Checkbox("Show Primitives", &bShowPrimitives))
+		{
+			Editor->SetShowPrimitives(bShowPrimitives);
+		}
 		ImGui::PushItemWidth(WideItemWidth);
 		float GridInterval = Editor->GetGrid().Interval;
 		if (ImGui::DragFloat("Grid Spacing", &GridInterval, 0.1f,

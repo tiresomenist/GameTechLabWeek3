@@ -91,12 +91,17 @@ void FEditor::Tick(float DeltaTime)
 		//기즈모가 선택 안되면 오브젝트 선택
 		else
 		{
-			UPrimitiveComponent* Selected = ObjectPicker->Pick();
+			if (bShowPrimitives)
+			{
+				UPrimitiveComponent* Selected = ObjectPicker->Pick();
 
-			SetSelectedSceneComponent(Selected);
-			if (Selected != nullptr) {
-				UE_LOG("[{}] : [{}번째 오브젝트 선택]", Time, Selected->GetUUID());
+				SetSelectedSceneComponent(Selected);
+				if (Selected != nullptr) {
+					UE_LOG("[{}] : [{}번째 오브젝트 선택]", Time, Selected->GetUUID());
+				}
 			}
+			else
+				SetSelectedSceneComponent(nullptr);
 		}
 	}
 

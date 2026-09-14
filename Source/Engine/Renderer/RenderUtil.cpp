@@ -23,16 +23,19 @@ namespace
 	}
 }
 
-TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
+TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene, bool bShowPrimitives)
 {
 	TArray<FPrimitiveRenderData> RenderList;
-	Scene->ForEachPrimitive(
-		[&RenderList, Editor](UPrimitiveComponent* Primitive)
-		{
-			const bool bSelected = IsComponentSelected(Editor, Primitive);
-			RenderList.Add(Primitive->CreateRenderData(bSelected));
-		}
-	);
+	if (bShowPrimitives)
+	{
+		Scene->ForEachPrimitive(
+			[&RenderList, Editor](UPrimitiveComponent* Primitive)
+			{
+				const bool bSelected = IsComponentSelected(Editor, Primitive);
+				RenderList.Add(Primitive->CreateRenderData(bSelected));
+			}
+		);
+	}
 
 	return RenderList;
 }

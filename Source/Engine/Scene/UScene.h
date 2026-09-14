@@ -100,6 +100,6 @@ protected:
 	UCameraComponent* MainCamera = nullptr;
 
 public:
-	friend TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene);
+	friend TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene, bool bShowPrimitives);
 	friend TArray<FPrimitiveRenderData> RenderUtil::GetGizmoList(FEditor* Editor, UScene* Scene);
 };

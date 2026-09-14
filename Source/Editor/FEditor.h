@@ -35,6 +35,7 @@ private:
 	USceneComponent* SelectedSceneComponent = nullptr;
 	bool bShowUUIDLabels = true;
 	bool bShowBoundingBoxes = true;
+	bool bShowPrimitives = true;
 	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
 	FGrid Grid;
 	TArray<UGizmo*> Gizmos;
@@ -72,6 +73,8 @@ public:
 	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
 	bool IsShowingBoundingBoxes() const { return bShowBoundingBoxes; }
 	void SetShowBoundingBoxes(bool bShow) { bShowBoundingBoxes = bShow; }
+	bool IsShowingPrimitives() const { return bShowPrimitives; }
+	void SetShowPrimitives(bool bShow) { bShowPrimitives = bShow; }
 	EViewModeIndex GetViewMode() const { return ViewMode; }
 	void SetViewMode(EViewModeIndex InMode) { ViewMode = InMode; }
 	const FGrid& GetGrid() const { return Grid; }
@@ -122,6 +125,6 @@ public:
 	UObject* SpawnObject(FClassType* Type);
 
 public:
-	friend TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene);
+	friend TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene, bool bShowPrimitives);
 	friend TArray<FPrimitiveRenderData> RenderUtil::GetGizmoList(FEditor* Editor, UScene* Scene);
 };

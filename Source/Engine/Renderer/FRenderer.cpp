@@ -537,7 +537,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
-	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
+	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene, Editor->IsShowingPrimitives());
 
 	for (auto& Item : RenderList)
 	{
