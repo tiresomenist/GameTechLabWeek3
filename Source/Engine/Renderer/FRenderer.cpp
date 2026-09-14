@@ -152,6 +152,10 @@ bool FRenderer::CreateShaders()
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &TexturePixelShader));
 	shaderBlob.Reset();
 
+	if (!CompileShader(L"Assets/Shaders/SpriteShader.hlsl", "VS_Sprite", "vs_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreateVertexShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SpriteVertexShader));
+	shaderBlob.Reset();
+
 	return true;
 }
 bool FRenderer::CompileShader(const WCHAR* FilePath, const LPCSTR EntryPoint, const LPCSTR ShaderModel, ID3DBlob** OutBlob)
@@ -213,17 +217,22 @@ void FRenderer::ReleaseShaders()
 		BatchLinePixelShader->Release();
 		BatchLinePixelShader = nullptr;
 	}
-	if (TextureInputLayout) 
-	{ 
-		TextureInputLayout->Release(); TextureInputLayout = nullptr; 
+	if (TextureInputLayout)
+	{
+		TextureInputLayout->Release(); TextureInputLayout = nullptr;
 	}
-	if (TexturePixelShader) 
-	{ 
+	if (TexturePixelShader)
+	{
 		TexturePixelShader->Release(); TexturePixelShader = nullptr;
 	}
-	if (TextureVertexShader) 
-	{ 
+	if (TextureVertexShader)
+	{
 		TextureVertexShader->Release(); TextureVertexShader = nullptr;
+	}
+	if (SpriteVertexShader)
+	{
+		SpriteVertexShader->Release();
+		SpriteVertexShader = nullptr;
 	}
 }
 
@@ -284,6 +293,14 @@ void FRenderer::CreateConstantBuffer()
 	gridconstantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	CheckHR(D3DDevice->CreateBuffer(&gridconstantbufferdesc, nullptr, &GridConstantBuffer));
+
+	D3D11_BUFFER_DESC spriteconstantbufferdesc = {};
+	spriteconstantbufferdesc.ByteWidth = (sizeof(FSpriteConstants) + 0xf) & 0xfffffff0;
+	spriteconstantbufferdesc.Usage = D3D11_USAGE_DYNAMIC;
+	spriteconstantbufferdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	spriteconstantbufferdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+	CheckHR(D3DDevice->CreateBuffer(&spriteconstantbufferdesc, nullptr, &SpriteConstantBuffer));
 }
 
 void FRenderer::ReleaseConstantBuffer()
@@ -297,6 +314,11 @@ void FRenderer::ReleaseConstantBuffer()
 	{
 		GridConstantBuffer->Release();
 		GridConstantBuffer = nullptr;
+	}
+	if (SpriteConstantBuffer)
+	{
+		SpriteConstantBuffer->Release();
+		SpriteConstantBuffer = nullptr;
 	}
 }
 
@@ -590,7 +612,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderPrimitive(Item);
 	}
 
-	RenderTexturePlane(ViewProjMatrix);
+	RenderTexturePlane(ViewProjMatrix, DeltaTime);
 
 	// Render Windows
 	for (auto Item : Editor->GetWindows())
@@ -719,6 +741,30 @@ void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
 	else
 	{
 		UE_LOG("[FRenderer] Failed to Map GridConstantBuffer. HRESULT: {}\n", hr);
+	}
+}
+
+void FRenderer::UpdateSpriteConstantBuffer(const FSpriteConstants& SpriteConstants)
+{
+	if (!DeviceContext || !SpriteConstantBuffer)
+	{
+		return;
+	}
+
+	D3D11_MAPPED_SUBRESOURCE MappedResource{};
+	HRESULT hr = DeviceContext->Map(SpriteConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+	if (SUCCEEDED(hr))
+	{
+		FSpriteConstants* Constants = (FSpriteConstants*)MappedResource.pData;
+		if (Constants)
+		{
+			*Constants = SpriteConstants;
+		}
+		DeviceContext->Unmap(SpriteConstantBuffer, 0);
+	}
+	else
+	{
+		UE_LOG("[FRenderer] Failed to Map SpriteConstantBuffer. HRESULT: {}\n", hr);
 	}
 }
 
@@ -860,9 +906,20 @@ void FRenderer::RenderBatchLine(const FMatrix& ViewProj)
 	LineBatcher.Clear();
 }
 
-void FRenderer::RenderTexturePlane(const FMatrix& ViewProj)
+void FRenderer::RenderTexturePlane(const FMatrix& ViewProj, float DeltaTime)
 {
 	if (PlaneIndexCount == 0 || !PlaneVertexBuffer || !PlaneIndexBuffer) return;
+
+	static float AccumulatedTime = 0.0f;
+	AccumulatedTime += DeltaTime;
+
+	FSpriteConstants SpriteData;
+	SpriteData.TotalTime = AccumulatedTime;
+	SpriteData.AnimFPS = 24.0f;
+	SpriteData.Cols = 6;
+	SpriteData.Rows = 6;
+
+	UpdateSpriteConstantBuffer(SpriteData);
 
 	FMatrix World = FMatrix::Identity;
 	UpdateTransformConstantBuffer(World * ViewProj);
@@ -874,12 +931,16 @@ void FRenderer::RenderTexturePlane(const FMatrix& ViewProj)
 	DeviceContext->IASetIndexBuffer(PlaneIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	DeviceContext->VSSetShader(TextureVertexShader, nullptr, 0);
+	DeviceContext->VSSetShader(SpriteVertexShader, nullptr, 0);
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+	DeviceContext->VSSetConstantBuffers(1, 1, &SpriteConstantBuffer);
 
 	DeviceContext->PSSetShader(TexturePixelShader, nullptr, 0);
 
 	Texture.Bind(DeviceContext, 0, 0);
+
+	float BlendFactor[4] = { 0, 0, 0, 0 };
+	DeviceContext->OMSetBlendState(AlphaBlendState, BlendFactor, 0xffffffff);
 
 	DeviceContext->RSSetState(CullNoneRasterizerState);
 	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);

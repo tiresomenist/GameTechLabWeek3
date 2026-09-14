@@ -58,6 +58,13 @@ struct FGridConstants
 	FVector CameraPos;
 	int GridPlaneType;
 };
+struct FSpriteConstants
+{
+	float TotalTime = 0.0f;
+	float AnimFPS = 24.0f;
+	int Cols = 6;
+	int Rows = 6;
+};
 class UScene;
 class FEditor;
 struct FPrimitiveRenderData;
@@ -88,6 +95,7 @@ public:
 
 	ID3D11Buffer* TransformConstantBuffer = nullptr;
 	ID3D11Buffer* GridConstantBuffer = nullptr;
+	ID3D11Buffer* SpriteConstantBuffer = nullptr;
 
 	FLOAT                   ClearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	D3D11_VIEWPORT          ViewportInfo;
@@ -116,6 +124,8 @@ public:
 	ID3D11Buffer* PlaneIndexBuffer = nullptr;
 	UINT PlaneIndexCount = 0;
 
+	ID3D11VertexShader* SpriteVertexShader = nullptr;
+
 	ID3D11SamplerState* FontSamplerState = nullptr;
 	ID3D11DepthStencilState* TextDepthStencilState = nullptr;
 
@@ -140,6 +150,7 @@ public:
 	void CreateConstantBuffer();
 	void UpdateTransformConstantBuffer(const FMatrix& WorldMatrix);
 	void UpdateGridConstantBuffer(const FGridConstants& GridConstants);
+	void UpdateSpriteConstantBuffer(const FSpriteConstants& SpriteConstants);
 	void ReleaseConstantBuffer();
 
 	void CreateRasterizerState();
@@ -168,5 +179,5 @@ public:
 
 	void CreateTexturePlaneResources();
 	void ReleaseTexturePlaneResources();
-	void RenderTexturePlane(const FMatrix& ViewProj);
+	void RenderTexturePlane(const FMatrix& ViewProj, float DeltaTime);
 };
