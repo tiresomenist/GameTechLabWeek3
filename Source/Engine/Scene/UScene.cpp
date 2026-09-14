@@ -67,6 +67,9 @@ void UScene::Serialize(TArray<FArchive>& ObjectInfoList)
     {
         for (UActorComponent* Component : Actor->GetComponents())
         {
+            // UUID 표시는 런타임에 자동 추가하는 보조 컴포넌트이므로 씬 파일에는 저장하지 않는다.
+            if (Component->IsA(UWidgetComponent::GetClass())) continue;
+
             FArchive Archive;
             Archive.SetUInt32("UUID", Component->GetUUID());
             Archive.SetUInt32("ActorUUID", Actor->GetUUID());
@@ -83,6 +86,9 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
     {
         FString TypeName = Item.GetString("Type");
         if (!IsAllowedSceneType(TypeName)) throw std::runtime_error("Unsupported scene type");
+        // 이전 버전에서 저장된 UUID 위젯은 로드 후 EnsureUUIDWidgets가 다시 생성한다.
+        if (TypeName == "WidgetComponent") continue;
+
         FClassType* Type = FClassRegistry::FindClassType(TypeName);
 
         uint32 UUID = Item.GetUInt32("UUID");
