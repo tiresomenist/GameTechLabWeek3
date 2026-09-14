@@ -89,7 +89,7 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         // 이전 버전에서 저장된 UUID 위젯은 로드 후 EnsureUUIDWidgets가 다시 생성한다.
         if (TypeName == "WidgetComponent") continue;
 
-        FClassType* Type = FClassRegistry::FindClassType(TypeName);
+        FClassType* Type = FClassRegistry::FindClassType(FName(TypeName));
 
         uint32 UUID = Item.GetUInt32("UUID");
         UActor* Actor = nullptr;

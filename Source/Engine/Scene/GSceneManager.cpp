@@ -106,7 +106,7 @@ bool ValidateSceneJSON(const nlohmann::json& Root)
             const auto& Object = Item.value();
             if (!Object.is_object() || !Object.at("Type").is_string()) return false;
             const FString Type = Object.at("Type").get<FString>();
-            if (!IsAllowedSceneType(Type) || !FClassRegistry::FindClassType(Type)) return false;
+            if (!IsAllowedSceneType(Type) || !FClassRegistry::FindClassType(FName(Type))) return false;
         }
         return true;
     }

@@ -32,7 +32,7 @@ public:
 
     FMeshResource* GetMeshResource() const
     {
-        return GResourceManager::GetInstance()->GetPrimitive(FString(GetInstanceClass()->Name));
+		return GResourceManager::GetInstance()->GetPrimitive(GetInstanceClass()->Name.ToString());
     }
 };
 

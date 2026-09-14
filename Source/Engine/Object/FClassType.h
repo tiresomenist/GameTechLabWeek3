@@ -2,7 +2,7 @@
 
 #include <functional>
 #include "Core/Core.h"
-#include "Core/Container/FString.h"
+#include "Core/Container/FName.h"
 
 // 전방 선언
 class UObject;
@@ -15,7 +15,7 @@ using Constructor = std::function<UObject* (const FObjectCreateInfo&)>;
 struct FClassType
 {
     // 객체를 직렬화/역직렬화 할 때 사용되는 이름입니다.
-    const FString Name;
+    const FName Name;
 
     // TypeInfo로 객체를 생성할 때 사용되는 객체 생성 함수입니다.
     const Constructor ClassConstructor;

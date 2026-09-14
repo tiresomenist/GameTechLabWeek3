@@ -34,7 +34,7 @@ public:                                                               \
                                                                       \
 		static FClassType Type                                        \
 		{                                                             \
-			.Name = SerializeName,                                    \
+			.Name = FName(SerializeName),                             \
 			.ClassConstructor = CreateObject,                         \
 			.ParentClassType = Super::GetClass(),                     \
 		};                                                            \

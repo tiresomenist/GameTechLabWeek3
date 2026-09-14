@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Container/TArray.h"
-#include "Core/Container/FString.h"
+#include "Core/Container/FName.h"
 
 struct FClassType;
 
@@ -21,9 +21,9 @@ public:
 	static void* __INTERNAL__Add(FClassType* Type);
 
 	/// <summary>
-	/// 주어진 타입 문자열로 FClassType을 검색합니다.
+	/// 주어진 타입 이름으로 FClassType을 검색합니다.
 	/// </summary>
 	/// <param name="TypeName">찾고자 하는 FClassType의 Name</param>
 	/// <returns></returns>
-	static FClassType* FindClassType(FStringView TypeName);
+	static FClassType* FindClassType(const FName& TypeName);
 };

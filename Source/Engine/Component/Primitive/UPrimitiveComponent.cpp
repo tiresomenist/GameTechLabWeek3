@@ -11,7 +11,7 @@ void UPrimitiveComponent::Initialize()
 FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 {
 	FClassType* ClassType = GetInstanceClass();
-	FMeshResource* MeshResource = GResourceManager::GetInstance()->GetPrimitive(FString{ ClassType->Name });
+	FMeshResource* MeshResource = GResourceManager::GetInstance()->GetPrimitive(ClassType->Name.ToString());
 
 	FPrimitiveRenderData OutData{};
 	if (MeshResource == nullptr) { return OutData; }

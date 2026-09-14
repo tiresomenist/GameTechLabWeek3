@@ -34,7 +34,7 @@ void* FClassRegistry::__INTERNAL__Add(FClassType* Type)
 	{
 		if (Item->Name == Type->Name)
 		{
-			assert(std::format("FClassType.Name이 중복되었습니다. 중복되는 이름: {}", Item->Name).c_str());
+			assert(std::format("FClassType.Name이 중복되었습니다. 중복되는 이름: {}", Item->Name.ToString()).c_str());
 		}
 	}
 
@@ -42,7 +42,7 @@ void* FClassRegistry::__INTERNAL__Add(FClassType* Type)
 	return nullptr;
 }
 
-FClassType* FClassRegistry::FindClassType(FStringView TypeName)
+FClassType* FClassRegistry::FindClassType(const FName& TypeName)
 {
 	for (auto Item : ClassTypeList)
 	{

@@ -125,13 +125,15 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Separator();
 
 		ImGui::PushItemWidth(WideItemWidth);
-		if (ImGui::BeginCombo("Primitive", SelectedClass->Name.c_str(), ImGuiComboFlags_HeightSmall))
+		const FString SelectedClassName = SelectedClass->Name.ToString();
+		if (ImGui::BeginCombo("Primitive", SelectedClassName.c_str(), ImGuiComboFlags_HeightSmall))
 		{
 			for (FClassType* ClassType : Spawnables)
 			{
 				bool bSelected = (SelectedClass == ClassType);
 
-				if (ImGui::Selectable(ClassType->Name.c_str(), bSelected))
+				const FString ClassName = ClassType->Name.ToString();
+				if (ImGui::Selectable(ClassName.c_str(), bSelected))
 				{
 					SelectedClass = ClassType;
 				}
