@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 #include "Engine/Component/UActorComponent.h"
 #include "Core/Core.h"
@@ -15,6 +16,7 @@ class USceneComponent : public UActorComponent
 
 public:
 	virtual bool CanBeRootComponent() const { return true; }
+	~USceneComponent() override;
 
     FVector& GetRelativeLocation() { return RelativeLocation; };
 	const FVector& GetRelativeLocation() const { return RelativeLocation; }
@@ -29,6 +31,13 @@ public:
     void AddLocalRotation(const FQuaternion& Delta);
     void AddWorldRotation(const FQuaternion& Delta);
     void SetRelativeScale3D(const FVector& Scale3D);
+
+    // 같은 Actor 안에서만 부모-자식 Transform 관계를 만든다.
+    // Attach 후 Relative Transform은 Parent 기준 오프셋으로 해석된다.
+    bool AttachTo(USceneComponent* Parent);
+    void DetachFromParent();
+    USceneComponent* GetAttachParent() const { return AttachParent; }
+    const std::vector<USceneComponent*>& GetAttachChildren() const { return AttachChildren; }
 
     const FMatrix& GetWorldMatrix() const;
     FVector GetWorldLocation() const
@@ -47,13 +56,12 @@ protected:
     // (0, 0, 0)이므로 명시하지 않으면 메시 정점이 원점으로 붕괴한다.
     FVector RelativeScale3D{ 1.0f, 1.0f, 1.0f };
 
-    // 계층 구조(구현X)
+    // 계층 구조
     USceneComponent* AttachParent = nullptr;
     std::vector<USceneComponent*> AttachChildren;
 
-    // 최종 월드 행렬 캐싱 & 더티 플래그(구현X)
+    // 최종 월드 행렬 캐싱
     mutable FMatrix CachedWorldMatrix;
-    mutable bool bWorldMatrixDirty = true;
 
     void UpdateWorldTransform() const;
 private:

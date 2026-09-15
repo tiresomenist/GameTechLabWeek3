@@ -170,6 +170,23 @@ void UPropertyWindow::Render(float DeltaTime)
 		{
 			const FString ActorName = SelectedActor->GetName().ToString();
 			ImGui::Text("Actor: %s", ActorName.c_str());
+			if (NameEditingActor != SelectedActor)
+			{
+				NameEditingActor = SelectedActor;
+				ActorNameBuffer.fill('\0');
+				const size_t CopyLength = std::min(ActorName.size(), ActorNameBuffer.size() - 1);
+				std::copy_n(ActorName.begin(), CopyLength, ActorNameBuffer.begin());
+			}
+
+			ImGui::SetNextItemWidth(-1.0f);
+			if (ImGui::InputText("Actor Name", ActorNameBuffer.data(), ActorNameBuffer.size(),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				if (ActorNameBuffer[0] != '\0')
+				{
+					SelectedActor->SetName(FName(ActorNameBuffer.data()));
+				}
+			}
 
 			if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
 			{
@@ -192,7 +209,7 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 			}
 
-			if (ImGui::CollapsingHeader("Add Component", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader("Add Component##Section", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				if (ImGui::BeginCombo("Component Type", SelectedAddComponentClass->Name.c_str()))
 				{
@@ -226,7 +243,7 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 
 				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
-					? "Apply Static Mesh" : "Add Component"))
+					? "Apply Static Mesh##Action" : "Add Component##Action"))
 				{
 					UActorComponent* AddedComponent = nullptr;
 					if (bAddingStaticMesh)

@@ -70,6 +70,15 @@ public:
 	}
 
 	template <typename Func>
+	void ForEachActor(Func&& Function) const
+	{
+		for (AActor* Actor : Actors)
+		{
+			Function(Actor);
+		}
+	}
+
+	template <typename Func>
 	void ForEachWidget(Func&& Function) const
 	{
 		for (AActor* Actor : Actors)
