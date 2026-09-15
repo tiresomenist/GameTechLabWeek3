@@ -26,4 +26,7 @@ private:
 
 	FVector RotationAxis = FVector(0.0f, 0.0f, 1.0f);
 	FVector OrbitAxis = FVector(0.0f, 0.0f, 1.0f);
+	FVector OrbitPlane = FVector(1.0f, 0.0f, 0.0f);
+
+	FVector GetOrbitPlane(FVector Axis) const;
 };

@@ -16,15 +16,7 @@ void URotationComponent::Tick(float DeltaTime)
 			return;
 		}
 
-		for (const auto Comp : Owner->GetComponents())
-		{
-			if (Comp->IsA(USceneComponent::GetClass()))
-			{
-				OwnerTransform = static_cast<USceneComponent*>(Comp);
-				break;
-			}
-		}
-
+		OwnerTransform = Owner->GetRootComponent();
 		if (!OwnerTransform)
 		{
 			return;
@@ -38,9 +30,10 @@ void URotationComponent::Tick(float DeltaTime)
 		return;
 	}
 
-	OwnerTransform->SetRelativeLocation(OrbitAxis * OrbitRadius);
-	OwnerTransform->AddLocalRotation(FQuaternion::FromAxisAngle(OrbitAxis, OrbitSpeed * ElapsedTime));
-	OwnerTransform->SetRelativeLocation(OwnerTransform->GetRelativeLocation() + PivotTransform->GetRelativeLocation());
+	FVector Offset = OrbitPlane * OrbitRadius;
+	FVector Rotated = FQuaternion::FromAxisAngle(OrbitAxis, OrbitSpeed * ElapsedTime).ToRotationMatrix().TransformPosition(Offset);
+	OwnerTransform->SetRelativeLocation(Rotated + PivotTransform->GetRelativeLocation());
+	OwnerTransform->AddWorldRotation(FQuaternion::FromAxisAngle(OrbitAxis, OrbitSpeed * ElapsedTime));
 }
 
 void URotationComponent::SetRotation(float Speed, FVector Axis)
@@ -56,9 +49,24 @@ void URotationComponent::SetOrbit(float Speed, float Radius, FVector Axis)
 	OrbitRadius = Radius;
 	OrbitAxis = Axis;
 	OrbitAxis.Normalize();
+	OrbitPlane = GetOrbitPlane(OrbitAxis);
 }
 
 void URotationComponent::SetPivot(USceneComponent* Transform)
 {
 	PivotTransform = Transform;
+}
+
+FVector URotationComponent::GetOrbitPlane(FVector Axis) const
+{
+	FVector X(1.0f, 0.0f, 0.0f);
+	if ((Axis - X).LengthSquared() <= 1e-5f)
+	{
+		X = FVector(0.0f, 1.0f, 0.0f);
+	}
+
+	FVector Ret = Axis.Cross(X);
+	Ret.Normalize();
+
+	return Ret;
 }
