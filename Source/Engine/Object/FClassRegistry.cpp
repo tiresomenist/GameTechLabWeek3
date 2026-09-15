@@ -14,16 +14,9 @@
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
-#include "Engine/Component/Primitive/UCubeComponent.h"
-#include "Engine/Component/Primitive/UPlaneComponent.h"
-#include "Engine/Component/Primitive/USphereComponent.h"
-#include "Engine/Component/Primitive/UPepeComponent.h"
-#include "Engine/Component/Primitive/UArrowBlueComponent.h"
-#include "Engine/Component/Primitive/UArrowGreenComponent.h"
-#include "Engine/Component/Primitive/UArrowRedComponent.h"
-#include "Engine/Component/Primitive/UOctopusComponent.h"
 #include "Engine/Component/Primitive/UTextComponent.h"
 #include "Engine/Component/Primitive/UFlameComponent.h"
 

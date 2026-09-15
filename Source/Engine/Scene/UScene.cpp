@@ -10,9 +10,9 @@
 #include "Engine/Actor/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
-#include "Engine/Component/Primitive/USphereComponent.h"
 
 #include "Engine/Object/FArchive.h"
 #include "Engine/Object/FClassRegistry.h"
@@ -91,7 +91,15 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         // 이전 버전에서 저장된 UUID 위젯은 로드 후 EnsureUUIDWidgets가 다시 생성한다.
         if (TypeName == "WidgetComponent") continue;
 
-        FClassType* Type = FClassRegistry::FindClassType(TypeName);
+        const bool bLegacyStaticMesh =
+            TypeName == "Plane" || TypeName == "Cube" ||
+            TypeName == "Sphere" || TypeName == "Triangle" ||
+            TypeName == "Pepe" || TypeName == "Octopus" ||
+            TypeName == "ArrowRed" || TypeName == "ArrowGreen" ||
+            TypeName == "ArrowBlue";
+        FClassType* Type = bLegacyStaticMesh
+            ? UStaticMeshComponent::GetClass()
+            : FClassRegistry::FindClassType(TypeName);
 
         uint32 UUID = Item.GetUInt32("UUID");
         AActor* Actor = nullptr;
@@ -129,6 +137,10 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         }
 
         Component->Deserialize(Item);
+        if (bLegacyStaticMesh)
+        {
+            static_cast<UStaticMeshComponent*>(Component)->SetStaticMesh(TypeName);
+        }
         // 역직렬화 확인 임시코드
         UE_LOG("[Object Restored] UUID:{} Name:{} ActorName:{}",Component->GetUUID(),Component->GetName().ToString(),Actor->GetName().ToString()
         );
