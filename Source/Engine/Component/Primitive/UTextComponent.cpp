@@ -20,9 +20,16 @@ const FMatrix& UTextComponent::GetRenderWorldMatrix(const UCameraComponent* Came
 {
 	if (!Camera) return GetWorldMatrix();
 
-	BillboardWorldMatrix = FMatrix::MakeScaleMatrix(GetRelativeScale3D())
+	// 빌보드 방향은 카메라를 따르되, 위치와 크기는 Attach 부모까지 반영한다.
+	const FMatrix& WorldMatrix = GetWorldMatrix();
+	const FVector WorldScale(
+		WorldMatrix.GetAxis(0).Length(),
+		WorldMatrix.GetAxis(1).Length(),
+		WorldMatrix.GetAxis(2).Length());
+
+	BillboardWorldMatrix = FMatrix::MakeScaleMatrix(WorldScale)
 		* Camera->GetRelativeRotation().ToRotationMatrix()
-		* FMatrix::MakeTranslationMatrix(GetRelativeLocation());
+		* FMatrix::MakeTranslationMatrix(WorldMatrix.GetOrigin());
 	return BillboardWorldMatrix;
 }
 
