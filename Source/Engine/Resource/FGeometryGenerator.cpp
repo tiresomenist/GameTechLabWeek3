@@ -118,17 +118,17 @@ void FGeometryGenerator::CreateSphere(
     OutVertices.Empty();
     OutIndices.Empty();
 
-    FVertexTexture TopPole = { 0.0f, Radius, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.0f};
+    FVertexTexture TopPole = { 0.0f, 0.0f, Radius, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.0f};
     uint32 TopPoleIndex = OutVertices.Num();
     OutVertices.Add(TopPole);
 
-    for (int i = 1;i <= StackCount - 1;++i)
+    for (uint32 i = 1;i <= StackCount - 1;++i)
     {
         float Phi = i * (PI / StackCount);
         float Z = Radius * cos(Phi);
         float R = Radius * sin(Phi);
         float V = i / static_cast<float> (StackCount);
-        for (int j = 0;j <= SliceCount; ++j)
+        for (uint32 j = 0;j <= SliceCount; ++j)
         {
             float theta = j * (PI * 2 / SliceCount);
             float X = R * cos(theta);
@@ -143,7 +143,7 @@ void FGeometryGenerator::CreateSphere(
         }
     }
 
-    FVertexTexture BottomPole = { 0.0f, -Radius, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f };
+    FVertexTexture BottomPole = { 0.0f, 0.0f, -Radius, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f };
     uint32 BottomPoleIndex = OutVertices.Num();
     OutVertices.Add(BottomPole);
 

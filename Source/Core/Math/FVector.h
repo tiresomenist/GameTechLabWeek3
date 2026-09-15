@@ -60,8 +60,6 @@ struct FVector4
 	float LengthSquared3()const;
 	float Length3()const;
 	FVector4(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f, float _w = 0.0f) : X(_x), Y(_y), Z(_z), W(_w) {}
-	FVector4(FVector rhs, float _w = 0.0f) : X(rhs.X), Y(rhs.Y), Z(rhs.Z), W(_w) {}
 	explicit  FVector4(const FVector& InVector, float _w);
 	FVector getXYZ()const;
-	
 };

@@ -78,7 +78,7 @@ void GResourceManager::Initialize(GDevice* InDevice)
 
     TArray<FVertexTexture> SphereVertices;
     TArray<uint32> SphereIndices;
-    FGeometryGenerator::CreateSphere(1.0f, 32, 16, SphereVertices, SphereIndices);
+    FGeometryGenerator::CreateSphere(1.0f, 64, 32, SphereVertices, SphereIndices);
 
     if (!CreateTexturedMesh("Sphere", SphereVertices, SphereIndices))
     {
