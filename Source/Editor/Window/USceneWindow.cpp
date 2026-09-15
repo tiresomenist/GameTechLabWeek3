@@ -16,6 +16,7 @@
 #include "Engine/Component/Primitive/UPepeComponent.h"
 #include "Engine/Component/Primitive/UOctopusComponent.h"
 #include "Engine/Component/Primitive/UTextComponent.h"
+#include "Engine/Component/Primitive/UFlameComponent.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
@@ -24,7 +25,7 @@
 #include "ImGui/imgui_stdlib.h"
 #include "Engine/Input/GInputManager.h"
 #include "Engine/Memory/GAllocator.h"
-
+#include "Engine/Renderer/FViewSettings.h"
 #include "Engine/Scene/GSceneManager.h"
 
 void USceneWindow::SpawnPrimitive() 
@@ -55,7 +56,7 @@ void USceneWindow::Initialize(FEditor* Editor)
 	Spawnables.Add(UPepeComponent::GetClass());
 	Spawnables.Add(UOctopusComponent::GetClass());
 	Spawnables.Add(UTextComponent::GetClass());
-
+	Spawnables.Add(UFlameComponent::GetClass());
 	SelectedClass = *Spawnables.begin();
 
 	SceneName.reserve(128);
@@ -94,12 +95,12 @@ void USceneWindow::Render(float DeltaTime)
 
 	ImGui::SetNextWindowPos(
 		WorkPosition,
-		ImGuiCond_Once
+		ImGuiCond_FirstUseEver
 	);
 
 	ImGui::SetNextWindowSize(
 		ImVec2(WindowWidth, WindowHeight),
-		ImGuiCond_Once
+		ImGuiCond_FirstUseEver
 	);
 	
 	ImVec2 Available = ImGui::GetContentRegionAvail();
@@ -188,6 +189,16 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			Editor->SetShowBoundingBoxes(bShowBoundingBoxes);
 		}
+		bool bShowPrimitives = Editor->IsShowingPrimitives();
+		if (ImGui::Checkbox("Show Primitives", &bShowPrimitives))
+		{
+			Editor->SetShowPrimitives(bShowPrimitives);
+		}
+		bool bShowGrid = Editor->IsShowingGrid();
+		if (ImGui::Checkbox("Show Grid", &bShowGrid))
+		{
+			Editor->SetShowGrid(bShowGrid);
+		}
 		ImGui::PushItemWidth(WideItemWidth);
 		float GridInterval = Editor->GetGrid().Interval;
 		if (ImGui::DragFloat("Grid Spacing", &GridInterval, 0.1f,
@@ -225,6 +236,17 @@ void USceneWindow::Render(float DeltaTime)
 		EditorCamera->SetIsPerspective(!bOrthogonal);
 
 		ImGui::PushItemWidth(WideItemWidth); // Item 너비 설정
+		// 카메라의 현재 이동 속도를 조회하고 UI 변경 시 즉시 적용함
+		float CameraMoveSpeed = EditorCamera->GetMoveSpeed();
+		if (ImGui::DragFloat("Camera Move Speed", &CameraMoveSpeed, 0.1f,
+			0.1f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+		{
+			if (std::isfinite(CameraMoveSpeed))
+			{
+				EditorCamera->SetMoveSpeed(std::clamp(CameraMoveSpeed, 0.1f, 100.0f));
+			}
+		}
+
 		if (ImGui::DragFloat("FOV", &FOV, 1.0f, MinFOV, MaxFOV))
 		{
 			FOV = std::clamp(FOV, MinFOV, MaxFOV);

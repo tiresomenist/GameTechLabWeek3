@@ -74,6 +74,8 @@ void UScene::Serialize(TArray<FArchive>& ObjectInfoList)
             Archive.SetUInt32("UUID", Component->GetUUID());
             Archive.SetUInt32("ActorUUID", Actor->GetUUID());
 
+            Archive.SetString("ActorName", Actor->GetName().ToString());
+
             Component->Serialize(Archive);
             ObjectInfoList.Add(Archive);
         }
@@ -115,7 +117,10 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
             // 기존 Component-직접-소유 JSON과의 호환: Component 하나당 Actor 하나를 만듭니다.
             Actor = SpawnActor<UActor*>(UActor::GetClass());
         }
-
+        if (Item.Contains("ActorName"))
+        {
+            Actor->SetName(FName(Item.GetString("ActorName")));
+        }
         UActorComponent* Component = Actor->CreateComponent(Type, UUID);
         if (Component == nullptr)
         {
@@ -124,6 +129,9 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         }
 
         Component->Deserialize(Item);
+        // 역직렬화 확인 임시코드
+        UE_LOG("[Object Restored] UUID:{} Name:{} ActorName:{}",Component->GetUUID(),Component->GetName().ToString(),Actor->GetName().ToString()
+        );
         if (MainCamera == nullptr && Component->IsA(UCameraComponent::GetClass()))
 		{
 			MainCamera = static_cast<UCameraComponent*>(Component);

@@ -43,7 +43,7 @@ VS_OUTPUT VS_Highlight(VS_INPUT input)
 {
     VS_OUTPUT output;
     
-    float3 expandedPos = input.position * 1.05f;
+    float3 expandedPos = input.position.xyz * 1.05f;
     
     output.Pos = mul(float4(expandedPos, 1.0f), MVP);
     

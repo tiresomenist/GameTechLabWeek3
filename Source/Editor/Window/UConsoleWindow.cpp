@@ -57,12 +57,12 @@ void UConsoleWindow::Render(float DeltaTime)
 
 	ImGui::SetNextWindowPos(
 		NewPosition,
-		ImGuiCond_Once
+		ImGuiCond_FirstUseEver
 	);
 
 	ImGui::SetNextWindowSize(
 		ImVec2(WindowWidth, WindowHeight),
-		ImGuiCond_Once
+		ImGuiCond_FirstUseEver
 	);
 
 	ImGui::PushStyleColor(

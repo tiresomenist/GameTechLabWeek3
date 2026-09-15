@@ -29,7 +29,213 @@
 #include "Engine/Scene/UScene.h"
 
 #include "ImGui/imgui.h"
+#include "Core/Util/File.h"
 
+#include <charconv>
+#include <cmath>
+#include <exception>
+#include <filesystem>
+#include <format>
+#include <stdexcept>
+#include <system_error>
+
+namespace
+{
+	constexpr char EditorSettingsFileName[] = "editor.ini";
+
+	FStringView TrimIniWhitespace(FStringView Text)
+	{
+		const auto First = Text.find_first_not_of(" \t\r\n");
+		if (First == FStringView::npos)
+		{
+			return {};
+		}
+		const auto Last = Text.find_last_not_of(" \t\r\n");
+		return Text.substr(First, Last - First + 1);
+	}
+
+	bool TryReadIniValue(FStringView Text, FStringView Section, FStringView Key, FStringView& OutValue)
+	{
+		// UTF-8 BOM이 존재하는 경우 삭제
+		if (Text.starts_with("\xEF\xBB\xBF"))
+		{
+			Text.remove_prefix(3);
+		}
+
+		FStringView CurrentSection;
+		FStringView FoundValue;
+		bool bFound = false;
+
+		while (!Text.empty())
+		{
+			// 현재 줄과 이후 내용을 분리함
+			const auto Newline = Text.find('\n');
+			FStringView Line;
+
+			if (Newline == FStringView::npos)
+			{
+				Line = Text;
+				Text = {};
+			}
+			else
+			{
+				Line = Text.substr(0, Newline);
+				Text.remove_prefix(Newline + 1);
+			}
+
+			Line = TrimIniWhitespace(Line);
+
+			// 빈 줄과 전체 줄 주석을 무시함
+			if (Line.empty()||Line.front() == ';'||Line.front() == '#')
+			{
+				continue;
+			}
+
+			// 현재 섹션을 갱신함
+			if (Line.front() == '[')
+			{
+				CurrentSection = {};
+
+				if (Line.size() >= 2 && Line.back() == ']')
+				{
+					CurrentSection = TrimIniWhitespace(Line.substr(1, Line.size() - 2));
+				}
+
+				continue;
+			}
+
+			if (CurrentSection != Section)
+			{
+				continue;
+			}
+
+			// 키와 값을 첫 번째 등호를 기준으로 분리함
+			const auto EqualPosition = Line.find('=');
+
+			if (EqualPosition == FStringView::npos)
+			{
+				continue;
+			}
+
+			const FStringView LineKey = TrimIniWhitespace(Line.substr(0, EqualPosition));
+
+			if (LineKey != Key)
+			{
+				continue;
+			}
+
+			FoundValue = TrimIniWhitespace(Line.substr(EqualPosition + 1));
+
+			// 동일한 키가 중복되면 마지막 값을 사용함
+			bFound = true;
+		}
+
+		if (!bFound)
+		{
+			return false;
+		}
+
+		OutValue = FoundValue;
+		return true;
+	}
+
+	bool TryReadIniFloat(FStringView Text,FStringView Section,FStringView Key,float& OutValue)
+	{
+		FStringView ValueText;
+
+		if (!TryReadIniValue(Text, Section, Key, ValueText))
+		{
+			return false;
+		}
+
+		float ParsedValue = 0.0f;
+		bool bValid = false;
+
+		if (!ValueText.empty())
+		{
+			const char* Begin = ValueText.data();
+			const char* End = Begin + ValueText.size();
+
+			const auto Result = std::from_chars(Begin, End,ParsedValue,std::chars_format::general);
+
+			bValid = (Result.ec==std::errc{})&&(Result.ptr == End)&&(std::isfinite(ParsedValue));
+		}
+
+		if (!bValid)
+		{
+			UE_LOG("설정 숫자 형식 오류: [{}] {}={}",Section,Key,ValueText);
+			return false;
+		}
+
+		OutValue = ParsedValue;
+		return true;
+	}
+
+	bool TryReadIniBool(FStringView Text, FStringView Section, FStringView Key, bool& OutValue)
+	{
+		FStringView ValueText;
+
+		if (!TryReadIniValue(Text, Section, Key, ValueText))
+		{
+			return false;
+		}
+
+		if (ValueText == "true" || ValueText == "1")
+		{
+			OutValue = true;
+			return true;
+		}
+
+		if (ValueText == "false" || ValueText == "0")
+		{
+			OutValue = false;
+			return true;
+		}
+
+		UE_LOG("설정 Bool 형식 오류: [{}] {}={}",Section,Key,ValueText);
+
+		return false;
+	}
+	const char* GetViewModeName(EViewModeIndex Mode)
+	{
+		for (const FViewModeEntry& Entry : ViewModeEntries)
+		{
+			if (Entry.Mode == Mode)
+			{
+				return Entry.Name;
+			}
+		}
+		return nullptr;
+	}
+
+	bool TryParseViewMode(FStringView Name, EViewModeIndex& OutMode)
+	{
+		for (const FViewModeEntry& Entry : ViewModeEntries)
+		{
+			if (Name == FStringView(Entry.Name))
+			{
+				OutMode = Entry.Mode;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	struct FShowFlagIniEntry
+	{
+		const char* Key;
+		EEngineShowFlag Flag;
+	};
+
+	// INI 키와 내부 ShowFlag의 대응 관계
+	constexpr FShowFlagIniEntry ShowFlagIniEntries[] =
+	{
+		{ "ShowUUID",       EEngineShowFlag::UUID },
+		{ "ShowPrimitives", EEngineShowFlag::Primitives },
+		{ "ShowGrid",       EEngineShowFlag::Grid },
+		{ "ShowBounds",     EEngineShowFlag::Bounds },
+	};
+}
 
 void FEditor::Initialize()
 {
@@ -46,6 +252,9 @@ void FEditor::Initialize()
 	GizmoController = new FGizmoController(this);
 	InitializeWindows();
 	InitializeGrids();
+	LoadEditorSetting();
+
+	bInitialized = true;
 }
 
 void FEditor::InitializeGizmos()
@@ -126,6 +335,18 @@ void FEditor::Tick(float DeltaTime)
 
 void FEditor::Release()
 {
+	if (bInitialized) {
+		bInitialized = false;
+		try
+		{
+			SaveEditorSetting();
+		}
+		catch (const std::exception& Exception)
+		{
+			UE_LOG("에디터 설정 저장 실패:{}", Exception.what());
+		}
+	}
+	
 	delete GizmoController;
 	GizmoController = nullptr;
 
@@ -142,6 +363,8 @@ void FEditor::Release()
 	ReleaseGizmos();
 	ReleaseWindows();
 	ReleaseGrids();
+
+	
 }
 
 void FEditor::ReleaseGizmos()
@@ -273,4 +496,143 @@ void FEditor::RegisterGrid(FClassType* Type)
 
 	Grid->Initialize(this);
 	Grids.Add(Grid);
+}
+
+
+//이하 두 함수에서 editor.ini을 읽어서 설정을 저장하거나 불러온다.
+void FEditor::LoadEditorSetting()
+{
+	// 정상적인 로드 여부가 결정되기 전까지 저장을 금지함
+	bCanSaveEditorSettings = false;
+
+	if (!EditorCamera) { return; }
+
+	try
+	{
+		// 파일이 없으면 기본값으로 시작하고 신규 저장을 허용함
+		if (!std::filesystem::exists(EditorSettingsFileName))
+		{
+			bCanSaveEditorSettings = true;
+			return;
+		}
+
+		const FString FileText = File::ReadText(EditorSettingsFileName);
+
+		// 불러오기가 실패할때 기본값으로 설정하도록 초기화
+		float LoadedMoveSpeed = EditorCamera->GetMoveSpeed();
+		float LoadedGridInterval = GetGrid().Interval;
+		FViewSettings LoadedViewSettings = ViewSettings;
+
+		float ParsedFloat = 0.0f;
+
+		// 카메라 이동 속도를 읽고 양수 여부를 검사함
+		if (TryReadIniFloat(FileText,"Camera","MoveSpeed",ParsedFloat))
+		{
+			if (ParsedFloat > 0.0f)
+			{
+				LoadedMoveSpeed = ParsedFloat;
+			}
+			else
+			{
+				UE_LOG("MoveSpeed 범위 오류. 기존 값 유지: {}",LoadedMoveSpeed);
+			}
+		}
+
+		// 그리드 간격을 읽고 허용 범위를 검사함
+		if (TryReadIniFloat(FileText,"Grid","Interval",ParsedFloat))
+		{
+			if (ParsedFloat >= FGrid::MinInterval && ParsedFloat <= FGrid::MaxInterval)
+			{
+				LoadedGridInterval = ParsedFloat;
+			}
+			else
+			{
+				UE_LOG("Grid Interval 범위 오류. 기존 값 유지: {}",LoadedGridInterval);
+			}
+		}
+
+		// 문자열로 저장된 뷰 모드를 복원함
+		FStringView ViewModeText;
+
+		if (TryReadIniValue(FileText,"Viewport","ViewMode",ViewModeText))
+		{
+			EViewModeIndex ParsedMode = LoadedViewSettings.ViewMode;
+
+			if (TryParseViewMode(ViewModeText, ParsedMode))
+			{
+				LoadedViewSettings.ViewMode = ParsedMode;
+			}
+			else
+			{
+				UE_LOG("알 수 없는 ViewMode: {}. 기존 값 유지함.",ViewModeText);
+			}
+		}
+
+		// 파일에 존재하는 정상적인 ShowFlag 항목만 변경함
+		for (const FShowFlagIniEntry& Entry : ShowFlagIniEntries)
+		{
+			bool ParsedBool = false;
+
+			if (TryReadIniBool(FileText,"Viewport",Entry.Key,ParsedBool))
+			{
+				LoadedViewSettings.ShowFlags.SetEnabled(Entry.Flag,ParsedBool);
+			}
+		}
+
+		// 모든 항목의 해석 완료 후 실제 설정에 적용함
+		EditorCamera->SetMoveSpeed(LoadedMoveSpeed);
+		SetGridInterval(LoadedGridInterval);
+		ViewSettings = LoadedViewSettings;
+
+		bCanSaveEditorSettings = true;
+	}
+	catch (const std::exception& Exception)
+	{
+		UE_LOG("에디터 설정 로드 실패: {}. 기존 설정과 파일을 유지함.",Exception.what());
+	}
+}
+
+void FEditor::SaveEditorSetting() {
+	if (!EditorCamera||!bCanSaveEditorSettings) { return; }
+	
+	const float MoveSpeed = EditorCamera->GetMoveSpeed();
+	const float GridInterval = GetGrid().Interval;
+	const char* ViewModeName = GetViewModeName(ViewSettings.ViewMode);
+	if (!std::isfinite(MoveSpeed) || MoveSpeed <= 0.0f)
+	{
+		throw std::runtime_error("잘못된 카메라 이동속도를 저장할 수 없음");
+	}
+
+	if (!std::isfinite(GridInterval) || GridInterval < FGrid::MinInterval || GridInterval > FGrid::MaxInterval)
+	{
+		throw std::runtime_error("잘못된 그리드 간격을 저장할 수 없음");
+	}
+
+	if (!ViewModeName)
+	{
+		throw std::runtime_error("알수 없는 뷰모드를 저장할 수 없음");
+	}
+	//// 현재 설정값을 INI 형식으로 구성함
+	FString FileText = std::format(
+		"[Camera]\n"
+		"MoveSpeed={}\n"
+		"\n"
+		"[Grid]\n"
+		"Interval={}\n"
+		"\n"
+		"[Viewport]\n"
+		"ViewMode={}\n", 
+		EditorCamera->GetMoveSpeed(),
+		GetGrid().Interval, 
+		ViewModeName
+		//ShowFlags는 어떻게 처리할지 고민좀 해봐야됨
+	);
+
+	for (const FShowFlagIniEntry& Entry : ShowFlagIniEntries)
+	{
+		const bool bEnabled = ViewSettings.ShowFlags.IsEnabled(Entry.Flag);
+		FileText += std::format("{}={}\n",Entry.Key,bEnabled ? "true" : "false");
+	}
+
+	File::WriteText("editor.ini", FileText);
 }

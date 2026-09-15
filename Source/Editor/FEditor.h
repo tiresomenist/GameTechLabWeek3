@@ -13,6 +13,7 @@
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/GEngine.h"
 #include "Engine/FConsole.h"
+#include "Engine/Renderer/FViewSettings.h"
 
 class USceneComponent;
 class UCameraComponent;
@@ -33,14 +34,16 @@ private:
 	FGizmoController* GizmoController = nullptr;
 
 	USceneComponent* SelectedSceneComponent = nullptr;
-	bool bShowUUIDLabels = true;
-	bool bShowBoundingBoxes = true;
-	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
+	FViewSettings ViewSettings;
 	FGrid Grid;
 	TArray<UGizmo*> Gizmos;
 	TArray<UEditorWindow*> Windows;
 	TArray<UGrid*> Grids;
 	UGizmo* ObjectAxisGizmo = nullptr;
+
+	//예외처리용 초기화 여부
+	bool bInitialized = false;
+	bool bCanSaveEditorSettings = false;
 
 	void InitializeGizmos();
 	void InitializeWindows();
@@ -68,12 +71,18 @@ public:
 	UCameraComponent* GetEditorCamera() { return EditorCamera; }
 
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
-	bool IsShowingUUIDLabels() const { return bShowUUIDLabels; }
-	void SetShowUUIDLabels(bool bShow) { bShowUUIDLabels = bShow; }
-	bool IsShowingBoundingBoxes() const { return bShowBoundingBoxes; }
-	void SetShowBoundingBoxes(bool bShow) { bShowBoundingBoxes = bShow; }
-	EViewModeIndex GetViewMode() const { return ViewMode; }
-	void SetViewMode(EViewModeIndex InMode) { ViewMode = InMode; }
+	
+	//내부적으로 비트마스킹으로 처리해줌.
+	bool IsShowingUUIDLabels() const { return ViewSettings.ShowFlags.IsEnabled(EEngineShowFlag::UUID); }
+	void SetShowUUIDLabels(bool bShow) { ViewSettings.ShowFlags.SetEnabled(EEngineShowFlag::UUID, bShow); }
+	bool IsShowingBoundingBoxes() const { return ViewSettings.ShowFlags.IsEnabled(EEngineShowFlag::Bounds); }
+	void SetShowBoundingBoxes(bool bShow) { ViewSettings.ShowFlags.SetEnabled(EEngineShowFlag::Bounds, bShow); }
+	EViewModeIndex GetViewMode() const { return ViewSettings.ViewMode; }
+	void SetViewMode(EViewModeIndex InMode) { ViewSettings.ViewMode = InMode; }
+	bool IsShowingPrimitives() const{return ViewSettings.ShowFlags.IsEnabled(EEngineShowFlag::Primitives);}
+	void SetShowPrimitives(bool bShow){ViewSettings.ShowFlags.SetEnabled(EEngineShowFlag::Primitives, bShow);}
+	bool IsShowingGrid() const{return ViewSettings.ShowFlags.IsEnabled(EEngineShowFlag::Grid);}
+	void SetShowGrid(bool bShow){ViewSettings.ShowFlags.SetEnabled(EEngineShowFlag::Grid, bShow);}
 	const FGrid& GetGrid() const { return Grid; }
 	void SetGridInterval(float InInterval)
 	{
@@ -90,6 +99,10 @@ public:
 	void RegisterGizmo(FClassType* Type);
 	void RegisterWindow(FClassType* Type);
 	void RegisterGrid(FClassType* Type);
+
+	void LoadEditorSetting();
+
+	void SaveEditorSetting();
 
 	const TArray<UGizmo*>& GetGizmos() const { return Gizmos; }
 	const TArray<UEditorWindow*>& GetWindows() const { return Windows; }

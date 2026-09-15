@@ -321,11 +321,11 @@ void UObjectAxisGizmo::SetMode(EGizmoMode InMode)
 		if (!Mesh) continue;
 		// 이동/스케일은 원점부터 Z축 끝까지, 회전은 XY 평면의 반지름.
 		// 메시 정점 순회는 모드 변경 때만 수행한다.
-		for (const auto& Vertex : Mesh->GetVertices())
+		for (const FVector& Position : Mesh->GetPositions())
 		{
 			const float Length = Mode == EGizmoMode::Rotate
-				? std::hypot(Vertex.x * GizmoScale.X, Vertex.y * GizmoScale.Y)
-				: std::fabs(Vertex.z * GizmoScale.Z);
+				? std::hypot(Position.X * GizmoScale.X, Position.Y * GizmoScale.Y)
+				: std::fabs(Position.Z * GizmoScale.Z);
 			if (!std::isfinite(Length))
 			{
 				HandleBaseLengths[Axis] = 0.0f;

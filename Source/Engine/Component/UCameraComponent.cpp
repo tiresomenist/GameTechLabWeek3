@@ -136,6 +136,16 @@ void UCameraComponent::LookAt(const FVector& InTargetPosition)
 
 }
 
+void UCameraComponent::SetMoveSpeed(const float& InMoveSpeed)
+{
+	MoveSpeed = InMoveSpeed;
+}
+
+float UCameraComponent::GetMoveSpeed() const
+{
+	return MoveSpeed;
+}
+
 void UCameraComponent::Serialize(FArchive& Archive)
 {
 	Super::Serialize(Archive);

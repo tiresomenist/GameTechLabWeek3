@@ -14,19 +14,9 @@
 #include "Engine/Renderer/FVertexSimple.h"
 #include "Engine/Resource/FMeshResource.h"
 #include "Engine/Renderer/Text/FFontAtlas.h"
+#include "Core/Container/TMap.h"
 
-//struct FMeshResource
-//{
-//	ID3D11Buffer* VertexBuffer = nullptr;
-//	ID3D11Buffer* IndexBuffer = nullptr;
-//	UINT VertexCount = 0;
-//	UINT IndexCount = 0;
-//	UINT Stride = 0;
-//
-//	TArray<FVertexSimple> vertexs;
-//	TArray<uint32> indexes;
-//};
-
+class FTextureResource;
 struct FShaderResource
 {
 	ID3D11VertexShader* VertexShader = nullptr;
@@ -34,10 +24,6 @@ struct FShaderResource
 	ID3D11InputLayout* InputLayout = nullptr;
 };
 
-//enum class EPrimitiveType
-//{
-//	Sphere, Cube, Cylinder, Cone, Plane
-//};
 
 class GResourceManager
 {
@@ -47,10 +33,11 @@ public:
 	void Initialize(GDevice* InDevice);
 	void Shutdown();
 	FMeshResource* CreateMesh(const FString& MeshName, std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices);
-
+	// 위치와 UV 정점으로 삼각형 메시를 생성하며 실패 시 nullptr을 반환함
+	FMeshResource* CreateTexturedMesh(const FString& MeshName, const TArray<FVertexTexture>& Vertices, const TArray<uint32>& Indices);
 	FMeshResource* GetPrimitive(const FString& Type);
 	FFontAtlas* GetDefaultFont() { return DefaultFont.GetSRV() ? &DefaultFont : nullptr; }
-
+	FTextureResource* GetOrLoadTexture(const FString& FilePath);
 	FShaderResource* GetShader(
 		const std::wstring& FilePath,
 		const std::string& VSEntry,
@@ -68,6 +55,7 @@ private:
 	GDevice* Device = nullptr;
 
 	std::unordered_map<std::string, FMeshResource*> PrimitiveCache;
+	TMap<FString, FTextureResource*> TextureCache;
 	FFontAtlas DefaultFont;
 	//std::unordered_map<std::string, FShaderResource*> ShaderCache;	// 일단 Renderer에서 - 셰이더 무조건 하나만 쓰니까..
 	//std::map<std::pair<D3D11_FILL_MODE, D3D11_CULL_MODE>, ID3D11RasterizerState*> RasterizerStateCache;

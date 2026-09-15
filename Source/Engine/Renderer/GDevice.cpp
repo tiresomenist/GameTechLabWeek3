@@ -226,14 +226,21 @@ void GDevice::ReleaseDepthStencilBuffer()
     }
 }
 
-ID3D11Buffer* GDevice::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth)
+//const void를 사용함으로써 FVertex 종류가 달라져도 호환가능하게됨.
+//구분은 렌더러의 stride,InputLayout으로 가능
+ID3D11Buffer* GDevice::CreateVertexBuffer(const void* VertexData, UINT ByteWidth)
 {
+    if (!Device || !VertexData || ByteWidth == 0)
+    {
+        return nullptr;
+    }
     D3D11_BUFFER_DESC vertexbufferdesc = {};
-    vertexbufferdesc.ByteWidth = byteWidth;
+    vertexbufferdesc.ByteWidth = ByteWidth;
     vertexbufferdesc.Usage = D3D11_USAGE_IMMUTABLE;
     vertexbufferdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    D3D11_SUBRESOURCE_DATA vertexbufferSRD = { vertices };
+    D3D11_SUBRESOURCE_DATA vertexbufferSRD{};
+    vertexbufferSRD.pSysMem = VertexData;
 
     ID3D11Buffer* vertexBuffer = nullptr;
 

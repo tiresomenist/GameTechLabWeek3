@@ -1,10 +1,30 @@
 #pragma once
 
 #include <d3d11.h>
-
 #include "Core/Math/FVector.h"
 
-struct FMatrix;
+struct FMatrix; 
+enum class EPrimitivePipeline : uint32
+{
+	Color,
+	Texture,
+};
+
+enum class EPrimitiveBlendMode : uint32
+{
+	Opaque,
+	Additive,
+};
+
+// HLSL의 float2 크기와 float2 오프셋에 대응하는 16바이트 상수
+struct FTextureUVTransform
+{
+    float ScaleU = 1.0f;
+    float ScaleV = 1.0f;
+    float OffsetU = 0.0f;
+    float OffsetV = 0.0f;
+};
+static_assert(sizeof(FTextureUVTransform) == 16);
 
 struct FPrimitiveRenderData
 {
@@ -21,4 +41,11 @@ struct FPrimitiveRenderData
 
 	FVector Min;
 	FVector Max;
+	//어느 셰이더 파이프라인을 사용할것인가?
+	EPrimitivePipeline Pipeline = EPrimitivePipeline::Color;
+	//어떤 블렌딩 모드를 사용할것인가?
+	EPrimitiveBlendMode BlendMode = EPrimitiveBlendMode::Opaque;
+    // 기본값은 텍스처 전체를 사용함
+    FTextureUVTransform UVTransform;
+
 };

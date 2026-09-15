@@ -5,6 +5,7 @@
 #include "Engine/Object/EObjectDomain.h"
 #include "Core/Core.h"
 #include "Core/Container/FString.h"
+#include "Core/Name/FName.h"
 
 /// <summary>
 /// UObject 클래스 정의를 생성합니다. UObject로 부터 상속받는 모든 클래스는
@@ -60,6 +61,7 @@ struct FObjectCreateInfo
 	uint32 InternalIndex;
 	FClassType* ClassType;
 	EObjectDomain Domain;
+	uint32 NameNumber = 0;
 };
 
 /// <summary>
@@ -85,6 +87,11 @@ private:
 
 	FClassType* ClassType;
 
+/// <summary>
+///  객체의 FName. 어떤 객체인지 내부적으로 탐색할때 빠르게 사용하기 위해 사용
+/// </summary>
+	FName Name;
+
 protected:
 
 	UObject(const FObjectCreateInfo& Info);
@@ -103,6 +110,9 @@ public:
 	/// </summary>
 	/// <returns>이 객체의 타입 정보</returns>
 	FClassType* GetInstanceClass() const { return ClassType; }
+
+	FName GetName() const { return Name; }
+	void SetName(const FName& InName) { Name = InName; }
 
 	/// <summary>
 	/// 이 객체가 주어진 타입의 자식인지 확인합니다.

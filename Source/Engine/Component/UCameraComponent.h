@@ -40,6 +40,10 @@ public:
     //카메라가 원하는 지점을 바라보도록 하는 함수
     void LookAt(const FVector& InTargetPosition);
     
+    void SetMoveSpeed(const float& InMoveSpeed);
+    float GetMoveSpeed() const;
+
+
     virtual void Serialize(FArchive& Archive) override;
     virtual void Deserialize(FArchive& Archive) override;
 

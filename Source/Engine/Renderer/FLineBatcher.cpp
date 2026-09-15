@@ -47,6 +47,36 @@ void FLineBatcher::AddBoundBox(const FVector& Min, const FVector& Max, const FMa
 	}
 }
 
+void FLineBatcher::AddWorldAxis(FGrid Grid, FVector CameraPos) {
+	// 축은 그리드와 달리 카메라를 따라가지 않고 항상 원점에 고정한다.
+	// 위 루프에서 건너뛴 선을 대신 메우도록 패치 끝까지 그린다.
+	// 양 끝 정점의 색이 같아야 보간되지 않고 단색으로 나온다.
+
+	const float Half = Grid.Extent;
+	const float Length = Half * 2.0f;
+	const double Interval = Grid.Interval;
+	const double CenterX = std::floor(static_cast<double>(CameraPos.X) / Interval) * Interval;
+	const double CenterY = std::floor(static_cast<double>(CameraPos.Y) / Interval) * Interval;
+	const float MinX = static_cast<float>(CenterX - Half);
+	const float MinY = static_cast<float>(CenterY - Half);
+	const float MaxX = static_cast<float>(CenterX + Half);
+	const float MaxY = static_cast<float>(CenterY + Half);
+
+	const float AxisMinX = MinX;
+	const float AxisMaxX = MaxX;
+	const float AxisMinY = MinY;
+	const float AxisMaxY = MaxY;
+	const float AxisMinZ = CameraPos.Z - Length;
+	const float AxisMaxZ = CameraPos.Z + Length;
+
+	AddLine({ AxisMinX, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
+		{ AxisMaxX, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f });
+	AddLine({ 0.0f, AxisMinY, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
+		{ 0.0f, AxisMaxY, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f });
+	AddLine({ 0.0f, 0.0f, AxisMinZ, 0.0f, 0.0f, 1.0f, 1.0f },
+		{ 0.0f, 0.0f,  AxisMaxZ, 0.0f, 0.0f, 1.0f, 1.0f });
+}
+
 void FLineBatcher::AddGrid(FGrid Grid, FVector CameraPos)
 {
 	if (!std::isfinite(Grid.Interval) || Grid.Interval < FGrid::MinInterval ||
@@ -83,9 +113,13 @@ void FLineBatcher::AddGrid(FGrid Grid, FVector CameraPos)
 	// 부동소수 누적 오차를 감안한 허용 오차. 간격의 1%면 인접 선과 헷갈릴 일이 없다.
 	const float AxisTolerance = Grid.Interval * 0.01f;
 
-	const auto GetAlpha = [](double Distance)
+	const auto GetAlpha = [Half](double Distance)
 	{
-		return static_cast<float>(2.0 / (std::max)(Distance, 2.0));
+		double FadeEnd = Half;
+		double FadeStart = Half * 0.7;
+		double T = std::clamp((Distance - FadeStart) / (FadeEnd - FadeStart),0.0, 1.0);
+		const double Fade = T * T * (3.0 - 2.0 * T);
+		return static_cast<float>(1.0 - Fade);
 	};
 
 	for (uint32 i = 0; i < static_cast<uint32>(CountX); ++i)
@@ -119,22 +153,7 @@ void FLineBatcher::AddGrid(FGrid Grid, FVector CameraPos)
 		}
 	}
 
-	// 축은 그리드와 달리 카메라를 따라가지 않고 항상 원점에 고정한다.
-	// 위 루프에서 건너뛴 선을 대신 메우도록 패치 끝까지 그린다.
-	// 양 끝 정점의 색이 같아야 보간되지 않고 단색으로 나온다.
-	const float AxisMinX = MinX;
-	const float AxisMaxX = MaxX;
-	const float AxisMinY = MinY;
-	const float AxisMaxY = MaxY;
-	const float AxisMinZ = CameraPos.Z - Length;
-	const float AxisMaxZ = CameraPos.Z + Length;
 
-	AddLine({ AxisMinX, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
-		{ AxisMaxX, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f });
-	AddLine({ 0.0f, AxisMinY, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
-		{ 0.0f, AxisMaxY, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f });
-	AddLine({ 0.0f, 0.0f, AxisMinZ, 0.0f, 0.0f, 1.0f, 1.0f },
-		{ 0.0f, 0.0f,  AxisMaxZ, 0.0f, 0.0f, 1.0f, 1.0f });
 }
 
 bool FLineBatcher::Build()

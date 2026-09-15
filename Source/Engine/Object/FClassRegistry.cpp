@@ -24,6 +24,8 @@
 #include "Engine/Component/Primitive/UArrowGreenComponent.h"
 #include "Engine/Component/Primitive/UArrowRedComponent.h"
 #include "Engine/Component/Primitive/UOctopusComponent.h"
+#include "Engine/Component/Primitive/UTextComponent.h"
+#include "Engine/Component/Primitive/UFlameComponent.h"
 
 #include <cassert>
 #include <format>

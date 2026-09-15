@@ -11,6 +11,7 @@ class FLineBatcher
 public:
 	void AddLine(const FVertexSimple& A, const FVertexSimple& B);
 	void AddBoundBox(const FVector& Min, const FVector& Max, const FMatrix& World);
+	void AddWorldAxis(FGrid Grid, FVector CameraPos);
 	void AddGrid(FGrid Grid, FVector CameraPos);
 	bool Build();
 	void Clear();

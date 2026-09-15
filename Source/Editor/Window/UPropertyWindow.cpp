@@ -5,6 +5,7 @@
 #include "ImGui/imgui.h"
 #include "Editor/FEditor.h"
 #include "Core/Math/FQuaternion.h"
+#include "Engine/Component/Primitive/UFlameComponent.h"
 
 void UPropertyWindow::GetSelectedValue()
 {
@@ -81,12 +82,12 @@ void UPropertyWindow::Render(float DeltaTime)
 
 	ImGui::SetNextWindowPos(
 		NewPosition,
-		ImGuiCond_Once
+		ImGuiCond_FirstUseEver
 	);
 
 	ImGui::SetNextWindowSize(
 		ImVec2(WindowWidth, WindowHeight),
-		ImGuiCond_Once
+		ImGuiCond_FirstUseEver
 	);
 
 	ImVec2 Available = ImGui::GetContentRegionAvail();
@@ -187,6 +188,41 @@ void UPropertyWindow::Render(float DeltaTime)
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
 			ImGui::Checkbox("Scale Lock", &bScaleLock);
+            if (SelectedComponent->IsA(UFlameComponent::GetClass()) &&
+                ImGui::CollapsingHeader("SubUV", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                auto* Flame = static_cast<UFlameComponent*>(SelectedComponent);
+                int Grid[2] = { Flame->GetColumns(), Flame->GetRows() };
+                if (ImGui::InputInt2("Columns / Rows", Grid))
+                    Flame->SetAtlasGrid(Grid[0], Grid[1]);
+
+                int FrameCount = Flame->GetFrameCount();
+                if (ImGui::InputInt("Frame Count", &FrameCount))
+                    Flame->SetAtlasGrid(Flame->GetColumns(), Flame->GetRows(), FrameCount);
+
+                float FPS = Flame->GetFramesPerSecond();
+                if (ImGui::DragFloat("FPS", &FPS, 1.0f, 0.0f, 240.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp))
+                    Flame->SetFramesPerSecond(FPS);
+                float Rate = Flame->GetPlayRate();
+                if (ImGui::DragFloat("Play Rate", &Rate, 0.05f, 0.0f, 10.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp))
+                    Flame->SetPlayRate(Rate);
+
+                bool bLoop = Flame->IsLooping();
+                if (ImGui::Checkbox("Loop", &bLoop)) Flame->SetLooping(bLoop);
+                ImGui::SameLine();
+                bool bPlaying = Flame->IsPlaying();
+                if (ImGui::Checkbox("Playing", &bPlaying)) Flame->SetPlaying(bPlaying);
+                ImGui::SameLine();
+                if (ImGui::Button("Restart")) Flame->Restart();
+
+                // 프레임을 직접 선택하면 정지하여 해당 칸을 확인함
+                int Frame = Flame->GetCurrentFrame();
+                if (ImGui::SliderInt("Frame", &Frame, 0, Flame->GetFrameCount() - 1))
+                {
+                    Flame->SetCurrentFrame(Frame);
+                    Flame->SetPlaying(false);
+                }
+            }
 			if (ImGui::Button("Delete"))
 			{
 				DeleteSelected();

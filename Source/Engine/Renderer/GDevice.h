@@ -30,8 +30,7 @@ public:
     bool CreateDepthStencilBuffer(int32 InWidth, int32 InHeight); 
     void ReleaseDepthStencilBuffer(); 
 
-    ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth);
-    //ID3D11Buffer* CreateVertexBuffer(FVertexTest* vertices, UINT byteWidth);
+    ID3D11Buffer* CreateVertexBuffer(const void* VertexData, UINT ByteWidth);    //ID3D11Buffer* CreateVertexBuffer(FVertexTest* vertices, UINT byteWidth);
     void ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer);
     ID3D11Buffer* CreateIndexBuffer(uint32_t* indices, UINT byteWidth);
     void ReleaseIndexBuffer(ID3D11Buffer* indexBuffer);

@@ -26,6 +26,7 @@ UObject::UObject(const FObjectCreateInfo& Info)
 	, InternalIndex{ Info.InternalIndex }
 	, ClassType{ Info.ClassType }
 	, Domain{ Info.Domain }
+	, Name{ Info.ClassType->Name,Info.NameNumber }
 {
 }
 
@@ -87,9 +88,13 @@ void UObject::Serialize(FArchive& Archive)
 {
 	// FClassType의 Serialize 이름 지정
 	Archive.SetString("Type", ClassType->Name);
+	Archive.SetString("Name", Name.ToString());
 }
 
 void UObject::Deserialize(FArchive& Archive)
 {
-	
+	if (Archive.Contains("Name"))
+	{
+		Name = FName(Archive.GetString("Name"));
+	}
 }

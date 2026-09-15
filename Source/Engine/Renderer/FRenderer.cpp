@@ -50,7 +50,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	CreateAlphaBlendState();
 	CreateDepthStencilStates();
 	CreateTextResources();
-
+	CreateTextureResources();
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
 	bImGuiContextCreated = true;
@@ -77,6 +77,7 @@ void FRenderer::Shutdown()
 	ReleaseAlphaBlendState();
 	ReleaseDepthStencilStates();
 	ReleaseTextResources();
+	ReleaseTextureResources();
 	if (bImGuiDX11Initialized) ImGui_ImplDX11_Shutdown();
 	if (bImGuiWin32Initialized) ImGui_ImplWin32_Shutdown();
 	if (bImGuiContextCreated) ImGui::DestroyContext();
@@ -131,6 +132,8 @@ bool FRenderer::CreateShaders()
 	if (!CompileShader(L"Assets/Shaders/BatchLineShader.hlsl", "mainPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &BatchLinePixelShader));
 	shaderBlob.Reset();
+
+
 
 	return true;
 }
@@ -336,6 +339,25 @@ void FRenderer::CreateAlphaBlendState()
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 	CheckHR(D3DDevice->CreateBlendState(&blendDesc, &AlphaBlendState));
+
+	D3D11_BLEND_DESC Desc{};
+	auto& Target = Desc.RenderTarget[0];
+
+	Target.BlendEnable = TRUE;
+
+	// 불꽃 RGB에 알파를 곱하여 기존 화면 RGB에 더함
+	Target.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	Target.DestBlend = D3D11_BLEND_ONE;
+	Target.BlendOp = D3D11_BLEND_OP_ADD;
+
+	// 기존 화면 알파 유지
+	Target.SrcBlendAlpha = D3D11_BLEND_ZERO;
+	Target.DestBlendAlpha = D3D11_BLEND_ONE;
+	Target.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+	Target.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	CheckHR(D3DDevice->CreateBlendState(&Desc,&AdditiveBlendState));
 }
 
 void FRenderer::ReleaseAlphaBlendState()
@@ -344,6 +366,11 @@ void FRenderer::ReleaseAlphaBlendState()
 	{
 		AlphaBlendState->Release();
 		AlphaBlendState = nullptr;
+	}
+	if (AdditiveBlendState)
+	{
+		AdditiveBlendState->Release();
+		AdditiveBlendState = nullptr;
 	}
 }
 
@@ -366,6 +393,13 @@ void FRenderer::CreateDepthStencilStates()
 	HighlightDesc.DepthFunc = D3D11_COMPARISON_LESS;
 
 	CheckHR(D3DDevice->CreateDepthStencilState(&HighlightDesc, &HighlightDepthStencilState));
+
+	D3D11_DEPTH_STENCIL_DESC Desc{};
+	Desc.DepthEnable = TRUE;
+	Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	Desc.DepthFunc = D3D11_COMPARISON_LESS;
+
+	CheckHR(D3DDevice->CreateDepthStencilState(&Desc, &TranslucentDepthStencilState));
 }
 
 void FRenderer::ReleaseDepthStencilStates()
@@ -384,6 +418,11 @@ void FRenderer::ReleaseDepthStencilStates()
 	{
 		HighlightDepthStencilState->Release();
 		HighlightDepthStencilState = nullptr;
+	}
+	if (TranslucentDepthStencilState)
+	{
+		TranslucentDepthStencilState->Release();
+		TranslucentDepthStencilState = nullptr;
 	}
 }
 
@@ -507,6 +546,138 @@ void FRenderer::RenderText(UINT IndexCount)
 	DeviceContext->DrawIndexed(IndexCount, 0, 0);
 }
 
+void FRenderer::CreateTextureResources()
+{
+	Microsoft::WRL::ComPtr<ID3DBlob> ShaderBlob;
+
+	// 위치 변환과 UV 전달을 수행하는 버텍스 셰이더 생성
+	if (!CompileShader(L"Assets/Shaders/TextureShader.hlsl","mainVS","vs_5_0",ShaderBlob.ReleaseAndGetAddressOf()))
+	{
+		throw std::runtime_error("Texture VS compile failed");
+	}
+
+	CheckHR(D3DDevice->CreateVertexShader(ShaderBlob->GetBufferPointer(),ShaderBlob->GetBufferSize(),nullptr,&TextureVertexShader));
+
+	// FVertexTextureSimple의 메모리 배치와 일치시킴
+	const D3D11_INPUT_ELEMENT_DESC Layout[] =
+	{
+		{ "POSITION", 0,DXGI_FORMAT_R32G32B32_FLOAT,0, 0,D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+
+	CheckHR(D3DDevice->CreateInputLayout(Layout, ARRAYSIZE(Layout), ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), &TextureInputLayout));
+
+	// 텍스처 RGBA를 출력하는 픽셀 셰이더 생성
+	if (!CompileShader(	L"Assets/Shaders/TextureShader.hlsl",	"mainPS","ps_5_0",ShaderBlob.ReleaseAndGetAddressOf()))
+	{
+		throw std::runtime_error("Texture PS compile failed");
+	}
+
+	CheckHR(D3DDevice->CreatePixelShader(ShaderBlob->GetBufferPointer(),ShaderBlob->GetBufferSize(),nullptr,&TexturePixelShader));
+
+	// 선형 필터링을 사용하고 텍스처 경계 밖에서는 가장자리 값을 사용함
+	D3D11_SAMPLER_DESC SamplerDesc{};
+	SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	SamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	SamplerDesc.MinLOD = 0.0f;
+	SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	CheckHR(D3DDevice->CreateSamplerState(&SamplerDesc,&TextureSamplerState));
+
+    // 텍스처 Draw Call마다 교체하는 UV 크기와 오프셋 버퍼
+    D3D11_BUFFER_DESC UVDesc{};
+    UVDesc.ByteWidth = sizeof(FTextureUVTransform);
+    UVDesc.Usage = D3D11_USAGE_DEFAULT;
+    UVDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    CheckHR(D3DDevice->CreateBuffer(&UVDesc, nullptr, &TextureUVConstantBuffer));
+}
+
+void FRenderer::ReleaseTextureResources()
+{
+    if (TextureUVConstantBuffer)
+    {
+        TextureUVConstantBuffer->Release();
+        TextureUVConstantBuffer = nullptr;
+    }
+	if (TextureSamplerState)
+	{
+		TextureSamplerState->Release();
+		TextureSamplerState = nullptr;
+	}
+
+	if (TextureInputLayout)
+	{
+		TextureInputLayout->Release();
+		TextureInputLayout = nullptr;
+	}
+
+	if (TexturePixelShader)
+	{
+		TexturePixelShader->Release();
+		TexturePixelShader = nullptr;
+	}
+
+	if (TextureVertexShader)
+	{
+		TextureVertexShader->Release();
+		TextureVertexShader = nullptr;
+	}
+}
+
+void FRenderer::RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewModeIndex InViewMode)
+{
+	if (!Data.VertexBuffer||!Data.IndexBuffer||!Data.Material||Data.IndexCount == 0){return;}
+
+    // 공유 메시를 수정하지 않고 이번 오브젝트의 UV 변환만 전달함
+    DeviceContext->UpdateSubresource(TextureUVConstantBuffer, 0, nullptr, &Data.UVTransform, 0, 0);
+    DeviceContext->VSSetConstantBuffers(1, 1, &TextureUVConstantBuffer);
+
+	const UINT Offset = 0;
+
+	// 위치와 UV 형식으로 정점 버퍼를 읽음
+	DeviceContext->IASetInputLayout(TextureInputLayout);
+
+	DeviceContext->IASetVertexBuffers(0,1,&Data.VertexBuffer,&Data.Stride,&Offset);
+
+	DeviceContext->IASetIndexBuffer(Data.IndexBuffer,DXGI_FORMAT_R32_UINT,0);
+
+	DeviceContext->IASetPrimitiveTopology(Data.Topology);
+
+	// 정점 위치 변환에 사용할 셰이더와 행렬을 연결함
+	DeviceContext->VSSetShader(TextureVertexShader,	nullptr,0);
+
+	DeviceContext->VSSetConstantBuffers(0,1,&TransformConstantBuffer);
+
+	// 픽셀 셰이더의 t0와 s0에 텍스처와 샘플러를 연결함
+	DeviceContext->PSSetShader(TexturePixelShader,nullptr,0);
+
+	DeviceContext->PSSetShaderResources(0,1,&Data.Material);
+
+	DeviceContext->PSSetSamplers(0,1,&TextureSamplerState);
+
+	// 일반 모드에서는 사각형의 양면을 렌더링함
+	DeviceContext->RSSetState(InViewMode == EViewModeIndex::VMI_Wireframe? WireframeRasterizerState:CullNoneRasterizerState);
+
+	//블렌드 모드에 따라 가산블렌딩으로 변환
+	const bool bAdditive = Data.BlendMode == EPrimitiveBlendMode::Additive;
+	DeviceContext->OMSetBlendState(bAdditive ? AdditiveBlendState : nullptr,nullptr,0xffffffff);
+
+	DeviceContext->OMSetDepthStencilState(bAdditive ? TranslucentDepthStencilState : DefaultDepthStencilState, 0);
+
+	DeviceContext->DrawIndexed(Data.IndexCount,0,0);
+
+	// 사용한 텍스처 슬롯을 비움
+	ID3D11ShaderResourceView* NullSRV = nullptr;
+	DeviceContext->PSSetShaderResources(0, 1, &NullSRV);
+	// 상태 복원
+	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+}
+
 void FRenderer::BeginFrame()
 {
 	ImGui_ImplDX11_NewFrame();
@@ -530,7 +701,6 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 {
 	if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
 
-	ViewMode = Editor->GetViewMode();
 	BeginFrame();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
@@ -538,31 +708,40 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	Camera->SetAspectRatio(Device->GetViewport().Width / Device->GetViewport().Height);
 	FMatrix ViewProjMatrix = Camera->GetViewMatrix() * Camera->GetProjectionMatrix();
 	TArray<FPrimitiveRenderData> RenderList = RenderUtil::GetRenderList(Editor, Scene);
-
+	const bool bShowPrimitives = Editor->IsShowingPrimitives();
+	const EViewModeIndex ViewMode = Editor->GetViewMode();
+	TArray<const FPrimitiveRenderData*> AdditiveRenderList;
 	for (auto& Item : RenderList)
 	{
 		if (!Item.WorldMatrix || !Item.VertexBuffer || !Item.IndexBuffer || Item.IndexCount == 0)
 		{
 			continue;
 		}
-		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
-		UpdateTransformConstantBuffer(MVP);
-		if (Item.isSelected)
+		if (bShowPrimitives) 
 		{
-			RenderHighlight(Item);
+			if (Item.BlendMode == EPrimitiveBlendMode::Additive)
+			{
+				AdditiveRenderList.Add(&Item);
+			}
+			else
+			{
+				FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
+				UpdateTransformConstantBuffer(MVP);
+				if (Item.isSelected)
+				{
+					RenderHighlight(Item);
+				}
+
+				RenderPrimitive(Item, ViewMode);
+			}
 		}
 		if (Editor->IsShowingBoundingBoxes() || Item.isSelected)
 		{
 			LineBatcher.AddBoundBox(Item.Min, Item.Max, *Item.WorldMatrix);
 		}
-		RenderPrimitive(Item);
 	}
 
-	// Render Windows
-	for (auto Item : Editor->GetWindows())
-	{
-		Item->Render(DeltaTime);
-	}
+	
 
 	// Render Grid
 #if 0
@@ -604,15 +783,27 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderGrid(Item->GetMeshResource());
 	}
 #else
-	LineBatcher.AddGrid(Editor->GetGrid(), Camera->GetWorldLocation());
+	if (Editor->IsShowingGrid())
+	{
+		// 그리드가 표시되는 경우에만 배치에 선을 추가함
+		LineBatcher.AddGrid(Editor->GetGrid(),Camera->GetWorldLocation());
+	}
+	LineBatcher.AddWorldAxis(Editor->GetGrid(), Camera->GetWorldLocation());
 #endif
-
 	// BatchLine
 	RenderBatchLine(ViewProjMatrix);
 
+	for (const FPrimitiveRenderData* Item : AdditiveRenderList)
+	{
+		const FMatrix MVP = (*Item->WorldMatrix) * ViewProjMatrix;
+		UpdateTransformConstantBuffer(MVP);
+
+		RenderPrimitive(*Item, ViewMode);
+	}
+
 	// Render Gizmo
 	TArray<FPrimitiveRenderData> GizmoRenderList = RenderUtil::GetGizmoList(Editor, Scene);
-	for (auto Item : GizmoRenderList)
+	for (const auto& Item : GizmoRenderList)
 	{
 		FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 		UpdateTransformConstantBuffer(MVP);
@@ -635,6 +826,12 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	}
 
 	UpdateTransformConstantBuffer(ViewProjMatrix);
+
+	// Render Windows
+	for (auto Item : Editor->GetWindows())
+	{
+		Item->Render(DeltaTime);
+	}
 	EndFrame();
 }
 
@@ -688,8 +885,12 @@ void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
 	}
 }
 
-void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
+void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex InViewMode)
 {
+	if (Data.Pipeline == EPrimitivePipeline::Texture) {
+		RenderTexturedPrimitive(Data, InViewMode);
+		return;
+	}
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(SimpleInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
@@ -700,7 +901,7 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data)
 	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
 
 	// Lit currently uses the unlit pipeline until lighting is implemented.
-	DeviceContext->RSSetState(ViewMode == EViewModeIndex::VMI_Wireframe ? WireframeRasterizerState : DefaultRasterizerState);
+	DeviceContext->RSSetState(InViewMode == EViewModeIndex::VMI_Wireframe ? WireframeRasterizerState : DefaultRasterizerState);
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 

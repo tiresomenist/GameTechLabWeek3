@@ -16,35 +16,8 @@
 #include "Engine/Renderer/Text/FFontAtlas.h"
 #include "Engine/Renderer/Text/FVertexText.h"
 #include "Engine/Renderer/Text/FTextMeshBuilder.h"
-
+#include "Engine/Renderer/FViewSettings.h"
 #include "FLineBatcher.h"
-
-// Add a mode here to generate both its enum value and its UI entry.
-#define VIEW_MODE_LIST(X) \
-	X(Lit) \
-	X(Unlit) \
-	X(Wireframe)
-
-enum class EViewModeIndex : uint32
-{
-#define MAKE_VIEW_MODE_ENUM(Name) VMI_##Name,
-	VIEW_MODE_LIST(MAKE_VIEW_MODE_ENUM)
-#undef MAKE_VIEW_MODE_ENUM
-};
-
-struct FViewModeEntry
-{
-	EViewModeIndex Mode;
-	const char* Name;
-};
-
-inline constexpr FViewModeEntry ViewModeEntries[] =
-{
-#define MAKE_VIEW_MODE_ENTRY(Name) { EViewModeIndex::VMI_##Name, #Name },
-	VIEW_MODE_LIST(MAKE_VIEW_MODE_ENTRY)
-#undef MAKE_VIEW_MODE_ENTRY
-};
-#undef VIEW_MODE_LIST
 
 //struct FVertexSimple;
 struct FConstants
@@ -76,7 +49,7 @@ public:
 	ID3D11RasterizerState* CullNoneRasterizerState = nullptr;
 	ID3D11RasterizerState* WireframeRasterizerState = nullptr;
 
-	EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
+	//EViewModeIndex ViewMode = EViewModeIndex::VMI_Unlit;
 
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;
@@ -112,6 +85,18 @@ public:
 	ID3D11Buffer* TextIndexBuffer = nullptr;
 	static const UINT MaxTextVertices = 8192;
 
+	// ---- Texture ----
+	ID3D11VertexShader* TextureVertexShader = nullptr;
+	ID3D11PixelShader* TexturePixelShader = nullptr;
+	ID3D11InputLayout* TextureInputLayout = nullptr;
+	ID3D11SamplerState* TextureSamplerState = nullptr;
+    ID3D11Buffer* TextureUVConstantBuffer = nullptr;
+	ID3D11DepthStencilState* TranslucentDepthStencilState = nullptr;
+
+	// ---- 블렌드 스테이트 모드 ----
+	ID3D11BlendState* AdditiveBlendState = nullptr;
+
+
 	bool bImGuiContextCreated = false;
 	bool bImGuiWin32Initialized = false;
 	bool bImGuiDX11Initialized = false;
@@ -144,7 +129,7 @@ public:
 	void EndFrame();
 
 	void Render(float DeltaTime, FEditor* Editor, UScene* Scene);
-	void RenderPrimitive(const FPrimitiveRenderData& Data);
+	void RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex InViewMode);
 	void RenderHighlight(const FPrimitiveRenderData& Data);
 	void RenderGrid(FMeshResource* Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
@@ -154,4 +139,9 @@ public:
 	void ReleaseTextResources();
 	void UpdateTextVertexBuffer(TArray<FVertexText>& Vertices);
 	void RenderText(UINT IndexCount);
+
+	void CreateTextureResources();
+	void ReleaseTextureResources();
+
+	void RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewModeIndex InViewMode);
 };

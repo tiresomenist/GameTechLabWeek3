@@ -11,7 +11,7 @@ inline bool IsAllowedSceneType(FStringView Name)
         Name == "Triangle" || Name == "Pepe" || Name == "Octopus" ||
         Name == "CameraComponent" || Name == "ArrowRed" ||
         Name == "ArrowGreen" || Name == "ArrowBlue" ||
-        Name == "WidgetComponent";
+        Name == "WidgetComponent"||Name=="Flame";
 }
 
 inline uint32 ParseSceneUUID(FStringView Text, bool AllowExhaustedCounter = false)
