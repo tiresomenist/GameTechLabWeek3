@@ -4,7 +4,37 @@
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Object/FArchive.h"
 #include "Core/Math/FQuaternion.h"
+namespace
+{
+    bool IsSameRotation(const FQuaternion& Left,const FQuaternion& Right)
+    {
+        FQuaternion A = Left;
+        FQuaternion B = Right;
 
+        A.Normalize();
+        B.Normalize();
+
+        const auto Square = [](double Value) {return Value * Value;};
+
+        // 같은 부호로 표현된 Quaternion의 차이 계산함
+        const double SameSignDistance =
+            Square(static_cast<double>(A.X) - B.X) +
+            Square(static_cast<double>(A.Y) - B.Y) +
+            Square(static_cast<double>(A.Z) - B.Z) +
+            Square(static_cast<double>(A.W) - B.W);
+
+        // 반대 부호로 표현된 동일 자세까지 비교함
+        const double OppositeSignDistance =
+            Square(static_cast<double>(A.X) + B.X) +
+            Square(static_cast<double>(A.Y) + B.Y) +
+            Square(static_cast<double>(A.Z) + B.Z) +
+            Square(static_cast<double>(A.W) + B.W);
+
+        constexpr double ToleranceSquared = 1.0e-12;
+
+        return (std::min)(SameSignDistance, OppositeSignDistance) <= ToleranceSquared;
+    }
+}
 void USceneComponent::SetRelativeLocation(const FVector& Location)
 {
     if (!std::isfinite(Location.X) || !std::isfinite(Location.Y) || !std::isfinite(Location.Z)) return;
@@ -14,8 +44,17 @@ void USceneComponent::SetRelativeLocation(const FVector& Location)
 
 void USceneComponent::SetRelativeRotation(const FQuaternion& Rotation)
 {
-	RelativeRotation = Rotation;
-    RelativeRotation.Normalize();
+    FQuaternion NewRotation = Rotation;
+    NewRotation.Normalize();
+     if (IsSameRotation(RelativeRotation, NewRotation))
+    {
+        return;
+    }
+    const FRotator Extracted = FRotator::FromQuaternion(NewRotation);
+    // 기존 표시값에 가까운 각도로 보정함
+    RelativeRotator = Extracted.GetUnwoundNear(RelativeRotator);
+
+    RelativeRotation = NewRotation;
     UpdateWorldTransform();
 }
 
@@ -78,13 +117,13 @@ void USceneComponent::Serialize(FArchive& Archive)
     Archive.SetArray<float>("Location", Location);
 
     // Rotation
-    FVector EulerRotation = FQuaternion::ToEuler(RelativeRotation);
     TArray<float> Rotation
     {
-        EulerRotation.X,
-        EulerRotation.Y,
-        EulerRotation.Z,
+        RelativeRotator.Roll,
+        RelativeRotator.Pitch,
+        RelativeRotator.Yaw
     };
+
     Archive.SetArray<float>("Rotation", Rotation);
 
     // Scale
@@ -104,7 +143,16 @@ void USceneComponent::Deserialize(FArchive& Archive)
     const auto Rotation = Archive.GetVector3OrDefault("Rotation", 0.0f);
     const auto Scale = Archive.GetVector3OrDefault("Scale", 1.0f);
     RelativeLocation = FVector(Location[0], Location[1], Location[2]);
-    RelativeRotation = FQuaternion::FromEuler(FVector(Rotation[0], Rotation[1], Rotation[2]));
+    RelativeRotator = FRotator(Rotation[1], Rotation[2], Rotation[0]);
+    RelativeRotation = RelativeRotator.ToQuaternion();
     RelativeScale3D = FVector(Scale[0], Scale[1], Scale[2]);
+    UpdateWorldTransform();
+}
+
+void USceneComponent::SetRelativeRotation(const FRotator& Rotation)
+{
+    if (!Rotation.IsFinite()) return;
+    RelativeRotator = Rotation;
+    RelativeRotation = Rotation.ToQuaternion();
     UpdateWorldTransform();
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include "Editor/Window/UEditorWindow.h"
 #include "Core/Math/Matrix.h"
-#include "Core/Math/FQuaternion.h"
+#include "Core/Math/FRotator.h"
 #include "Core/Container/FString.h"
 
 class USceneComponent;
@@ -14,12 +14,8 @@ class UPropertyWindow : public UEditorWindow
 private:
 	USceneComponent* SelectedComponent = nullptr;
 	FVector Translation;
-	FVector RotationDegree;
+	FRotator RotationDegree;
 	FVector OScale;
-	FQuaternion RotationDragStart;
-	float RotationDragStartDegree = 0.0f;
-	float RotationDegreeAtDragStart = 0.0f;
-	int RotationDragAxis = -1;
 	bool bEditingRotation = false;
 	float SnapSize = 0.001f;
 	int SelectedSnapIndex = 0;

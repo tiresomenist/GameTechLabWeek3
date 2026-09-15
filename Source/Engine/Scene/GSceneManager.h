@@ -2,6 +2,8 @@
 
 #include "Core/Container/FString.h"
 
+#include <filesystem>
+
 struct FSceneType;
 class UScene;
 
@@ -17,6 +19,8 @@ public:
 	void Tick(float DeltaTime);
 
 	void LoadScene(FSceneType* SceneType, FStringView SerializedName = "");
+	// 파일 대화상자 등에서 얻은 전체 경로로 씬을 로드
+	void LoadSceneFromPath(FSceneType* SceneType, const std::filesystem::path& ScenePath);
 	void SaveScene(FStringView SerializedName);
 
 	UScene* GetScene() { return CurrentScene; };
@@ -24,10 +28,12 @@ public:
 private:
 
 	void InternalLoadScene();
+	void ClearNextScene();
 
 	UScene* CurrentScene = nullptr;
 	FSceneType* NextScene = nullptr;
 	FString NextSceneFile = "";
+	std::filesystem::path NextScenePath;
 
 	// 싱글톤
 	GSceneManager() = default;

@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "File.h"
 #include <Windows.h>
+#include <shobjidl.h>
 #include <filesystem>
+#include <optional>
 #include <system_error>
 
 #include <iostream>
@@ -10,6 +12,8 @@
 #include <stdexcept>
 #include <format>
 
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "shell32.lib")
 
 void File::WriteText(FStringView Path, FStringView Text)
 {
@@ -59,4 +63,80 @@ FString File::ReadText(FStringView Path)
 	In.close();
 
 	return Text;
+}
+
+FString File::ReadTextFromPath(const std::filesystem::path& Path)
+{
+	std::ifstream In{ Path, std::ios::binary };
+
+	if (!In.is_open())
+	{
+		throw std::runtime_error("파일을 불러올 수 없습니다: " + Path.string());
+	}
+
+	std::stringstream StringStream;
+	StringStream << In.rdbuf();
+
+	return StringStream.str();
+}
+
+std::optional<std::filesystem::path> File::OpenJsonFileDialog(HWND Owner, const std::filesystem::path& InitialDir)
+{
+	std::optional<std::filesystem::path> Result = std::nullopt;
+
+	// S_OK / S_FALSE 면 짝을 맞춰 Uninit, RPC_E_CHANGED_MODE 면 건드리지 않음
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	const bool bNeedUninit = SUCCEEDED(hr);
+
+	IFileOpenDialog* FileOpen = nullptr;
+	hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&FileOpen));
+
+	if (SUCCEEDED(hr))
+	{
+		COMDLG_FILTERSPEC Filters[] =
+		{
+			{ L"JSON Scene Files (*.json)", L"*.json" },
+			{ L"All Files (*.*)",           L"*.*" }
+		};
+		FileOpen->SetFileTypes(ARRAYSIZE(Filters), Filters);
+		FileOpen->SetFileTypeIndex(1);
+
+		if (!InitialDir.empty())
+		{
+			const std::filesystem::path AbsoluteDir = std::filesystem::absolute(InitialDir);
+			IShellItem* FolderItem = nullptr;
+			if (SUCCEEDED(SHCreateItemFromParsingName(AbsoluteDir.c_str(), nullptr, IID_PPV_ARGS(&FolderItem))))
+			{
+				FileOpen->SetFolder(FolderItem);
+				FolderItem->Release();
+			}
+		}
+
+		// 취소 시 hr == HRESULT_FROM_WIN32(ERROR_CANCELLED)
+		hr = FileOpen->Show(Owner);
+
+		if (SUCCEEDED(hr))
+		{
+			IShellItem* Item = nullptr;
+			if (SUCCEEDED(FileOpen->GetResult(&Item)))
+			{
+				PWSTR FilePath = nullptr;
+				if (SUCCEEDED(Item->GetDisplayName(SIGDN_FILESYSPATH, &FilePath)))
+				{
+					Result = std::filesystem::path(FilePath);
+					CoTaskMemFree(FilePath);
+				}
+				Item->Release();
+			}
+		}
+
+		FileOpen->Release();
+	}
+
+	if (bNeedUninit)
+	{
+		CoUninitialize();
+	}
+
+	return Result;
 }

@@ -70,6 +70,7 @@ public:
 
 	void NewScene();
 	void LoadScene(FStringView SceneName);
+	void LoadSceneFromPath(const std::filesystem::path& ScenePath);
 	void SaveScene(FStringView SceneName);
 
 	UScene* GetCurrentScene();
@@ -121,16 +122,12 @@ public:
 	void SetCameraLocation(FVector NewCameraLocation) { EditorCamera->SetRelativeLocation(NewCameraLocation); }
 	FVector GetCameraRotationDegree()
 	{
-		const FQuaternion& CameraRotation = GetEditorCamera()->GetRelativeRotation();
-		return FQuaternion::ToEuler(CameraRotation) * (180.0f / PI);
+		const FRotator& CameraRotation = GetEditorCamera()->GetRelativeRotator();
+		return CameraRotation.ToEulerDegrees();
 	}
 	void SetCameraRotationDegree(const FVector& NewRotationDegree)
 	{
-		const FVector EulerRadian = NewRotationDegree * (PI / 180.0f);
-
-		const FQuaternion CameraRotation = FQuaternion::FromEuler(EulerRadian);
-
-		EditorCamera->SetRelativeRotation(CameraRotation);
+		GetEditorCamera()->SetRelativeRotation(FRotator::FromEulerDegrees(NewRotationDegree));
 	}
 	float GetCameraFOV() { return GetEditorCamera()->GetFOV() * 180.0f / PI; }
 	void SetCameraFOV(float NewFOV) { EditorCamera->SetFOVByDegree(NewFOV); }

@@ -19,50 +19,52 @@ FQuaternion FQuaternion::FromEuler(const FVector& EulerRadians)
         || !std::isfinite(EulerRadians.Z))
         return {};
 
-    const FQuaternion QX = FromAxisAngle(FVector(1, 0, 0), EulerRadians.X);
-    const FQuaternion QY = FromAxisAngle(FVector(0, 1, 0), EulerRadians.Y);
+    const FQuaternion QX = FromAxisAngle(FVector(1, 0, 0), -EulerRadians.X);
+    const FQuaternion QY = FromAxisAngle(FVector(0, 1, 0), -EulerRadians.Y);
     const FQuaternion QZ = FromAxisAngle(FVector(0, 0, 1), EulerRadians.Z);
     // Hamilton multiplication reverses the order of the row-vector matrices.
-    FQuaternion Result = QX * QY * QZ;
+    FQuaternion Result = QZ * QY * QX;
     Result.Normalize();
     return Result;
 }
 
 FVector FQuaternion::ToEuler(const FQuaternion& InQuaternion)
 {
-    // FromEuler uses QX * QY * QZ, or Rz * Ry * Rx for row vectors.
-    // ToRotationMatrix normalizes the input and handles invalid quaternions.
-    // Compute only the needed matrix entries in double precision, including
-    // normalization, to avoid cancellation near +/-90 degrees.
-    FVector Result;
-    float X = InQuaternion.X, Y = InQuaternion.Y, Z = InQuaternion.Z, W = InQuaternion.W;
-    float LengthSquared = X * X + Y * Y + Z * Z + W * W;
+    // QZ*QY*QX로부터 오일러각을 복원하는 함수
+    // Pitch=90도일때 yaw,roll 값이 급격하게 튈 수 있음.
+    const double X = InQuaternion.X, Y = InQuaternion.Y, Z = InQuaternion.Z, W = InQuaternion.W;
+    const double LengthSquared = X * X + Y * Y + Z * Z + W * W;
     if (!std::isfinite(LengthSquared) || LengthSquared == 0.0) return FVector();
 
-    float S = 2 / LengthSquared;
-    float R00 = 1 - S * (Y * Y + Z * Z);
-    float R10 = S * (X * Y - Z * W);
-    float R20 = S * (X * Z + Y * W);
-    float R21 = S * (Y * Z - X * W);
-    float R22 = 1 - S * (X * X + Y * Y);
+    const double S = 2 / LengthSquared;
+    const double R00 = 1.0 - S * (Y * Y + Z * Z);
+    const double R01 = S * (X * Y + Z * W);
+    const double R02 = S * (X * Z - Y * W);
+    const double R10 = S * (X * Y - Z * W);
+    const double R11 = 1.0 - S * (X * X + Z * Z);
+    const double R12 = S * (Y * Z + X * W);
+    const double R22 = 1.0 - S * (X * X + Y * Y);
 
+    const double CosPitch = std::hypot(R00, R01);
+    const double Pitch = std::atan2(R02, CosPitch);
 
-    float CosPitch = std::hypot(R00, R10);
+    double Roll = 0.0;
+    double Yaw = 0.0;
 
-    Result.Y = std::atan2(R20, CosPitch);
-
-    if (CosPitch > 1.0e-6f)
+    if (CosPitch > EPSILON)
     {
-        Result.X = std::atan2(-R21, R22);
-        Result.Z = std::atan2(-R10, R00);
+        Roll = std::atan2(-R12, R22);
+        Yaw = std::atan2(R01, R00);
     }
     else
     {
-        float CoupledAngle = std::atan2(S * (Y * Z + X * W), 1.0 - S * (X * X + Z * Z));
-        Result.X = 0.0f;
-        Result.Z = (R20 >= 0.0 ? CoupledAngle : -CoupledAngle);
+        // Pitch가 ±90도 부근이면 Roll과 Yaw를 독립적으로 정할 수 없음
+        // Roll을 0으로 정하고 결합된 회전을 Yaw로 표현함
+        Roll = 0.0;
+        Yaw = std::atan2(-R10, R11);
     }
-    return Result;
+
+    return FVector(static_cast<float>(Roll),static_cast<float>(Pitch),static_cast<float>(Yaw));
 }
 
 FQuaternion FQuaternion::FromToRotation(const FVector& From, const FVector& To)

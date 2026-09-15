@@ -6,6 +6,7 @@
 #include "Core/Math/FQuaternion.h"
 #include "Engine/Object/FClassType.h"
 #include "Core/Math/Matrix.h"
+#include "Core/Math/FRotator.h"
 
 class USceneComponent : public UActorComponent
 {
@@ -17,10 +18,12 @@ public:
 
     FVector& GetRelativeLocation() { return RelativeLocation; };
 	const FVector& GetRelativeLocation() const { return RelativeLocation; }
+    const FRotator& GetRelativeRotator() const { return RelativeRotator;}
     const FQuaternion& GetRelativeRotation() const { return RelativeRotation; }
     FVector& GetRelativeScale3D() { return RelativeScale3D; };
 	const FVector& GetRelativeScale3D() const { return RelativeScale3D; }
 
+    void SetRelativeRotation(const FRotator& Rotation);
     void SetRelativeLocation(const FVector& Location);
     void SetRelativeRotation(const FQuaternion& Rotation);
     void AddLocalRotation(const FQuaternion& Delta);
@@ -40,7 +43,6 @@ public:
 protected:
     // 로컬 트랜스폼
     FVector RelativeLocation;
-    FQuaternion RelativeRotation;
     // Transform의 기본 스케일은 단위 스케일이어야 한다. FVector의 기본값은
     // (0, 0, 0)이므로 명시하지 않으면 메시 정점이 원점으로 붕괴한다.
     FVector RelativeScale3D{ 1.0f, 1.0f, 1.0f };
@@ -54,5 +56,11 @@ protected:
     mutable bool bWorldMatrixDirty = true;
 
     void UpdateWorldTransform() const;
+private:
+    // 행렬 회전 합성용 쿼터니언
+    FQuaternion RelativeRotation;
+
+    //편집, 저장용 각도
+    FRotator RelativeRotator;
 };
 
