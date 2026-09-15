@@ -46,7 +46,7 @@ void GResourceManager::Initialize(GDevice* InDevice)
     Device = InDevice;
 	if (!Device || !Device->GetDevice() || !DefaultFont.Build(Device->GetDevice(), "Assets/Fonts/Pretendard-Regular.ttf", 24.0f))
 		throw std::runtime_error("Default font atlas build failed");
-    if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
+    //if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
     //if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
@@ -71,8 +71,16 @@ void GResourceManager::Initialize(GDevice* InDevice)
     TArray<uint32> CubeIndices;
     FGeometryGenerator::CreateCube(2.0f, 2.0f, 2.0f, CubeVertices, CubeIndices);
 
-    // 3. CreateTexturedMesh로 한 번에 GPU 버퍼 등록 및 캐싱[cite: 18]
-    if (!CreateTexturedMesh("Cube", CubeVertices, CubeIndices)) //[cite: 18]
+    if (!CreateTexturedMesh("Cube", CubeVertices, CubeIndices))
+    {
+        throw std::runtime_error("TexturedCube mesh creation failed");
+    }
+
+    TArray<FVertexTexture> SphereVertices;
+    TArray<uint32> SphereIndices;
+    FGeometryGenerator::CreateSphere(1.0f, 32, 16, SphereVertices, SphereIndices);
+
+    if (!CreateTexturedMesh("Sphere", SphereVertices, SphereIndices))
     {
         throw std::runtime_error("TexturedCube mesh creation failed");
     }

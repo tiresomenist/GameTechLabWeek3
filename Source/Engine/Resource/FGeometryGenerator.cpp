@@ -112,5 +112,76 @@ void FGeometryGenerator::CreateSphere(
     TArray<uint32>& OutIndices
 )
 {
+    SliceCount = SliceCount < 3 ? 3 : SliceCount;
+    StackCount = StackCount < 3 ? 3 : StackCount;
 
+    OutVertices.Empty();
+    OutIndices.Empty();
+
+    FVertexTexture TopPole = { 0.0f, Radius, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.0f};
+    uint32 TopPoleIndex = OutVertices.Num();
+    OutVertices.Add(TopPole);
+
+    for (int i = 1;i <= StackCount - 1;++i)
+    {
+        float Phi = i * (PI / StackCount);
+        float Z = Radius * cos(Phi);
+        float R = Radius * sin(Phi);
+        float V = i / static_cast<float> (StackCount);
+        for (int j = 0;j <= SliceCount; ++j)
+        {
+            float theta = j * (PI * 2 / SliceCount);
+            float X = R * cos(theta);
+            float Y = R * sin(theta);
+            float U = j / static_cast<float> (SliceCount);
+
+            FVertexTexture Vertex;
+            Vertex.x = X; Vertex.y = Y; Vertex.z = Z;
+            Vertex.u = U; Vertex.v = V;
+
+            OutVertices.Add(Vertex);
+        }
+    }
+
+    FVertexTexture BottomPole = { 0.0f, -Radius, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f };
+    uint32 BottomPoleIndex = OutVertices.Num();
+    OutVertices.Add(BottomPole);
+
+    uint32 FirstRingStartIndex = 1;
+    uint32 RingVertexcount = SliceCount + 1;
+
+    // 북극점 근처 삼각형
+    for (uint32 i = 0;i < SliceCount; ++i)
+    {
+        OutIndices.Add(TopPoleIndex);
+        OutIndices.Add(FirstRingStartIndex + i + 1);
+        OutIndices.Add(FirstRingStartIndex + i);
+    }
+
+    // 중간 몸통 사각형
+    for (uint32 i = 0;i < StackCount - 2;++i)
+    {
+        uint32 RowA = 1 + i * RingVertexcount;
+        uint32 RowB = RowA + RingVertexcount;
+
+        for (uint32 j = 0; j < SliceCount; ++j)
+        {
+            uint32 A = RowA + j;
+            uint32 B = RowA + j + 1;
+            uint32 C = RowB + j;
+            uint32 D = RowB + j + 1;
+
+            OutIndices.Add(A);OutIndices.Add(B);OutIndices.Add(C);
+            OutIndices.Add(B);OutIndices.Add(D);OutIndices.Add(C);
+        }
+    }
+
+    uint32 LastRingStartIndex = 1 + (StackCount - 2) * RingVertexcount;
+    // 남극점 근처 삼각형
+    for (uint32 i = 0;i < SliceCount;++i)
+    {
+        OutIndices.Add(BottomPoleIndex);
+        OutIndices.Add(LastRingStartIndex + i);
+        OutIndices.Add(LastRingStartIndex + i + 1);
+    }
 }
