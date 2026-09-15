@@ -95,3 +95,50 @@ TArray<FWorldTextItem> RenderUtil::GetTextRenderList(UScene* Scene, const UCamer
 	);
 	return TextList;
 }
+
+TArray<FLineDrawRequest> RenderUtil::GetLineDrawRequests(FEditor* Editor,UScene* Scene)
+{
+	TArray<FLineDrawRequest> Requests;
+
+	if (!Editor || !Scene)
+	{
+		return Requests;
+	}
+
+	const UCameraComponent* Camera = Editor->GetEditorCamera();
+
+	if (!Camera)
+	{
+		return Requests;
+	}
+
+	FLineDrawContext Context;
+	Context.Camera = Camera;
+	Context.bShowBounds = Editor->IsShowingBoundingBoxes();
+	Context.bShowPrimitives = Editor->IsShowingPrimitives();
+
+	Scene->ForEachPrimitive([&](UPrimitiveComponent* Primitive)
+		{
+			Context.bSelected = Editor->GetSelectedSceneComponent() == Primitive;
+
+			Primitive->AppendLineDrawRequests(Context, Requests);
+		});
+
+	const FVector CameraPosition = Camera->GetWorldLocation();
+	const FGrid& GridSettings = Editor->GetGrid();
+
+	if (Editor->IsShowingGrid())
+	{
+		for (UGrid* Grid : Editor->GetGrids())
+		{
+			Requests.Add(Grid->BuildLineDrawRequest(GridSettings,CameraPosition));
+		}
+	}
+
+	for (UGizmo* Gizmo : Editor->GetGizmos())
+	{
+		Requests.Add(Gizmo->BuildLineDrawRequest(GridSettings,CameraPosition));
+	}
+
+	return Requests;
+}

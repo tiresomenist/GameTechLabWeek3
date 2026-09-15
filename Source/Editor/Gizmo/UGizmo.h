@@ -5,6 +5,8 @@
 #include "Engine/Object/UObject.h"
 #include "Engine/Resource/GResourceManager.h"
 #include "Editor/Gizmo/EGizmoMode.h"
+#include "Engine/Renderer/FGrid.h"
+#include "Engine/Renderer/Line/FLineDrawRequest.h"
 
 struct FGizmoHandle
 {
@@ -37,6 +39,11 @@ public:
 		GizmoArray.Add(handle.Mesh);
 	}
 		return GizmoArray;
+	}
+
+	virtual FLineDrawRequest BuildLineDrawRequest(const FGrid& Grid,const FVector& CameraPosition) const
+	{
+		return {};
 	}
 
 };

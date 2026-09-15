@@ -4,6 +4,8 @@
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/Renderer/FPrimitiveRenderData.h"
 #include "Engine/Resource/GResourceManager.h"
+#include "Engine/Renderer/Line/FLineDrawRequest.h"
+
 struct FMeshResource;
 class UCameraComponent;
 
@@ -31,5 +33,7 @@ public:
     virtual const FMatrix& GetRenderWorldMatrix(const UCameraComponent* Camera) const;
 
     virtual FMeshResource* GetMeshResource() const;
+
+    virtual void AppendLineDrawRequests(const FLineDrawContext& Context,TArray<FLineDrawRequest>& OutRequests) const;
 };
 

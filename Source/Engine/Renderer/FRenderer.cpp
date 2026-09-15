@@ -752,6 +752,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	if (!Device || !Device->IsRenderReady() || !Editor || !Scene) return;
 
 	BeginFrame();
+	LineBatcher.Clear();
 
 	UCameraComponent* Camera = Editor->GetEditorCamera();
 
@@ -787,10 +788,6 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 					OutlineRenderList.Add(&Item);
 				}
 			}
-		}
-		if (Editor->IsShowingBoundingBoxes() || Item.isSelected)
-		{
-			LineBatcher.AddBoundBox(Item.Min, Item.Max, *Item.WorldMatrix);
 		}
 	}
 
@@ -836,14 +833,17 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		RenderGrid(Item->GetMeshResource());
 	}
 #else
-	if (Editor->IsShowingGrid())
-	{
-		// 그리드가 표시되는 경우에만 배치에 선을 추가함
-		LineBatcher.AddGrid(Editor->GetGrid(),Camera->GetWorldLocation());
-	}
-	LineBatcher.AddWorldAxis(Editor->GetGrid(), Camera->GetWorldLocation());
 #endif
 	// BatchLine
+	const TArray<FLineDrawRequest> LineRequests = RenderUtil::GetLineDrawRequests(Editor, Scene);
+
+	for (const FLineDrawRequest& Request : LineRequests)
+	{
+		if (!LineBatcher.AddRequest(Request))
+		{
+			UE_LOG("[FRenderer] 잘못되었거나 용량을 초과한 라인 요청");
+		}
+	}
 	RenderBatchLine(ViewProjMatrix);
 
 	for (const FPrimitiveRenderData* Item : AdditiveRenderList)
