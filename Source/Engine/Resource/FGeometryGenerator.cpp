@@ -132,7 +132,7 @@ void FGeometryGenerator::CreateSphere(
 			float theta = j * (PI * 2 / SliceCount);
 			float X = R * cos(theta);
 			float Y = R * sin(theta);
-			float U = j / static_cast<float>(SliceCount);
+			float U = 1- j / static_cast<float>(SliceCount);
 
 			FVertexTexture Vertex;
 			Vertex.x = X; Vertex.y = Y; Vertex.z = Z;
