@@ -10,94 +10,67 @@
 #include <cmath>
 namespace
 {
-	bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right)
-	{
-		FQuaternion A = Left;
-		FQuaternion B = Right;
-
-		A.Normalize();
-		B.Normalize();
-
-		const auto Square = [](double Value){return Value * Value;};
-
-		// 같은 부호로 표현된 쿼터니언의 차이 계산함
-		const double SameSignDistance =
-			Square(static_cast<double>(A.X) - B.X) +
-			Square(static_cast<double>(A.Y) - B.Y) +
-			Square(static_cast<double>(A.Z) - B.Z) +
-			Square(static_cast<double>(A.W) - B.W);
-
-		// Q와 -Q가 같은 자세인 경우까지 비교함
-		const double OppositeSignDistance =
-			Square(static_cast<double>(A.X) + B.X) +
-			Square(static_cast<double>(A.Y) + B.Y) +
-			Square(static_cast<double>(A.Z) + B.Z) +
-			Square(static_cast<double>(A.W) + B.W);
-
-		// 정규화된 쿼터니언 성분 차이의 제곱 허용치
-		constexpr double ToleranceSquared = 1.0e-12;
-
-		return (std::min)(SameSignDistance,	OppositeSignDistance) <= ToleranceSquared;
-	}
+	//bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right)
+	//{
+	//	FQuaternion A = Left;
+	//	FQuaternion B = Right;
+	//
+	//	A.Normalize();
+	//	B.Normalize();
+	//
+	//	const auto Square = [](double Value){return Value * Value;};
+	//
+	//	// 같은 부호로 표현된 쿼터니언의 차이 계산함
+	//	const double SameSignDistance =
+	//		Square(static_cast<double>(A.X) - B.X) +
+	//		Square(static_cast<double>(A.Y) - B.Y) +
+	//		Square(static_cast<double>(A.Z) - B.Z) +
+	//		Square(static_cast<double>(A.W) - B.W);
+	//
+	//	// Q와 -Q가 같은 자세인 경우까지 비교함
+	//	const double OppositeSignDistance =
+	//		Square(static_cast<double>(A.X) + B.X) +
+	//		Square(static_cast<double>(A.Y) + B.Y) +
+	//		Square(static_cast<double>(A.Z) + B.Z) +
+	//		Square(static_cast<double>(A.W) + B.W);
+	//
+	//	// 정규화된 쿼터니언 성분 차이의 제곱 허용치
+	//	constexpr double ToleranceSquared = 1.0e-12;
+	//
+	//	return (std::min)(SameSignDistance,	OppositeSignDistance) <= ToleranceSquared;
+	//}
 }
 
 void UPropertyWindow::GetSelectedValue()
 {
 	USceneComponent* NewComponent = Editor->GetSelectedSceneComponent();
-
-
 	if (SelectedComponent != NewComponent)
 	{
 		SelectedComponent = NewComponent;
 		bEditingRotation = false;
-		bHasSyncedRotation = false;
 	}
 
 	if (!SelectedComponent)
 	{
 		bEditingRotation = false;
-		bHasSyncedRotation = false;
 		return;
 	}
 	Translation = SelectedComponent->GetRelativeLocation();
 	OScale = SelectedComponent->GetRelativeScale3D();
-
-	const FQuaternion CurrentRotation =	SelectedComponent->GetRelativeRotation();
-
-	// 최초 선택 시 현재 자세로 UI 초기화함
-	if (!bHasSyncedRotation)
+	// 입력 중에는 창의 임시 값을 유지함
+	if (!bEditingRotation)
 	{
-		RotationDegree =FQuaternion::ToEuler(CurrentRotation) * (180.0f / PI);
-		LastSyncedRotation = CurrentRotation;
-		bHasSyncedRotation = true;
-		return;
-	}
-
-	// 숫자 편집 중에는 입력 중인 Euler 값을 유지함
-	if (bEditingRotation) { return; }
-	// 기즈모·코드 등으로 실제 자세가 변경된 경우에만 동기화함
-	if (!IsSameRotation(CurrentRotation,LastSyncedRotation))
-	{
-		RotationDegree =FQuaternion::ToEuler(CurrentRotation) * (180.0f / PI);
-		LastSyncedRotation = CurrentRotation;
+		RotationDegree = SelectedComponent->GetRelativeRotator();
 	}
 }
 
 void UPropertyWindow::SetSelectedValue(bool bSetRotation)
 {
-	if (!SelectedComponent) { return; }
-
+	if (!SelectedComponent) return;
 	SelectedComponent->SetRelativeLocation(Translation);
-
 	if (bSetRotation)
 	{
-		const FVector EulerRadians = RotationDegree * (PI / 180.0f);
-		const FQuaternion NewRotation =	FQuaternion::FromEuler(EulerRadians);
-		SelectedComponent->SetRelativeRotation(NewRotation);
-
-		// 컴포넌트에서 정규화까지 적용된 실제 값을 기록함
-		LastSyncedRotation = SelectedComponent->GetRelativeRotation();
-		bHasSyncedRotation = true;
+		SelectedComponent->SetRelativeRotation(RotationDegree);
 	}
 	SelectedComponent->SetRelativeScale3D(OScale);
 }
@@ -121,9 +94,7 @@ void UPropertyWindow::DeleteSelected()
 {
 	Editor->DeleteSelectedSceneComponent();
 	SelectedComponent = nullptr;
-
 	bEditingRotation = false;
-	bHasSyncedRotation = false;
 }
 
 void UPropertyWindow::Render(float DeltaTime)
@@ -179,13 +150,13 @@ void UPropertyWindow::Render(float DeltaTime)
 			DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
 			ImGui::SameLine();
 			ImGui::Text("Translation");
-			bRotationChanged |= DrawRotationField("##rotationR", RotationDegree.X, bRotationActive);
+			bRotationChanged |= DrawRotationField("##rotationR", RotationDegree.Roll, bRotationActive);
 			DrawItemBottomLine(IM_COL32(255, 40, 40, 255), 2.0f);
 			ImGui::SameLine();
-			bRotationChanged |= DrawRotationField("##rotationP", RotationDegree.Y, bRotationActive);
+			bRotationChanged |= DrawRotationField("##rotationP", RotationDegree.Pitch, bRotationActive);
 			DrawItemBottomLine(IM_COL32(40, 255, 40, 255), 2.0f);
 			ImGui::SameLine();
-			bRotationChanged |= DrawRotationField("##rotationY", RotationDegree.Z, bRotationActive);
+			bRotationChanged |= DrawRotationField("##rotationY", RotationDegree.Yaw, bRotationActive);
 			DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
 			ImGui::SameLine();
 			ImGui::Text("Rotation");
@@ -289,7 +260,6 @@ void UPropertyWindow::Render(float DeltaTime)
 		}
 		ImGui::End();
 	}
-	bEditingRotation = bRotationActive;
 	SetSelectedValue(bRotationChanged);
 	bEditingRotation = SelectedComponent != nullptr && bRotationActive;
 }

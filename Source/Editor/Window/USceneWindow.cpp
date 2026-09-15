@@ -70,15 +70,7 @@ void USceneWindow::Render(float DeltaTime)
 	CameraLocation = Editor->GetCameraLocation();
 	if (!bEditingCameraRotation)
 	{
-		const FVector Forward = EditorCamera->GetForward();
-		const float HorizontalLength = std::hypot(Forward.X, Forward.Y);
-
-		// Editor camera는 항상 수평을 유지하므로 Roll은 사용하지 않는다.
-		// 일반 ToEuler() 대신 시선 방향에서 Pitch/Yaw를 직접 구해야
-		// CameraController의 월드 Yaw + 로컬 Pitch 회전 방식과 값이 일치한다.
-		CameraRotationDegree.X = 0.0f;
-		CameraRotationDegree.Y = std::atan2(Forward.Z, HorizontalLength) * (180.0f / PI);
-		CameraRotationDegree.Z = std::atan2(Forward.Y, Forward.X) * (180.0f / PI);
+		CameraRotationDegree = Editor->GetCameraRotationDegree();
 	}
 	FOV = Editor->GetCameraFOV();
 
@@ -283,7 +275,7 @@ void USceneWindow::Render(float DeltaTime)
 		bRotationFinished |= ImGui::IsItemDeactivatedAfterEdit();
 		DrawItemBottomLine(IM_COL32(40, 255, 40, 255), 2.0f);
 		ImGui::SameLine();
-		bRotationChanged |= ImGui::DragFloat("##cameraRZ", &CameraRotationDegree.Z, 0.1f, -180.0f, 180.0f, "%.3f", YawFlags);
+		bRotationChanged |= ImGui::DragFloat("##cameraRZ", &CameraRotationDegree.Z, 0.1f, 0.0f, 0.0f, "%.3f");
 		bRotationActive |= ImGui::IsItemActive();
 		bRotationFinished |= ImGui::IsItemDeactivatedAfterEdit();
 		DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
@@ -291,17 +283,13 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Text("Camera Rotation");
 		if (bRotationChanged || bRotationFinished)
 		{
-			const float PitchRadian = std::clamp(CameraRotationDegree.Y, -89.0f, 89.0f) * (PI / 180.0f);
-			const float YawRadian = CameraRotationDegree.Z * (PI / 180.0f);
+			CameraRotationDegree.X = 0.0f;
 
-			const FQuaternion YawRotation =
-				FQuaternion::FromAxisAngle(FVector(0.0f, 0.0f, 1.0f), YawRadian);
-			const FQuaternion PitchRotation =
-				FQuaternion::FromAxisAngle(FVector(0.0f, 1.0f, 0.0f), -PitchRadian);
+			// 카메라 Pitch를 도 단위로 제한함
+			CameraRotationDegree.Y = std::clamp(CameraRotationDegree.Y,	-89.0f,	89.0f);
 
-			// CameraController와 동일하게 월드 Z축 Yaw를 먼저 구성하고,
-			// 카메라의 로컬 Y축 Pitch가 되도록 오른쪽에 곱한다.
-			EditorCamera->SetRelativeRotation(YawRotation * PitchRotation);
+			// 도 단위 입력값을 FRotator Setter로 전달함
+			Editor->SetCameraRotationDegree(CameraRotationDegree);
 		}
 		bEditingCameraRotation = bRotationActive;
 		ImGui::PopItemWidth();
