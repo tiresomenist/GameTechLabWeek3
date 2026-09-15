@@ -13,7 +13,7 @@
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
 #include "Core/Math/FRotator.h"
-
+#include "Core/Util/File.h"
 
 namespace
 {
@@ -412,16 +412,27 @@ void UPropertyWindow::Render(float DeltaTime)
 					ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					auto* MeshComp = static_cast<UStaticMeshComponent*>(SelectedComponent);
-
-					ImGui::Text("Mesh Key: %s", MeshComp->GetStaticMeshKey().c_str());
-
 					std::string CurrentTexPath = MeshComp->GetMaterialPath().c_str();
 
 					if (ImGui::InputText("Texture Path", &CurrentTexPath, ImGuiInputTextFlags_EnterReturnsTrue))
 					{
 						MeshComp->SetMaterial(FString(CurrentTexPath.c_str()));
 					}
+					ImGui::SameLine();
+					if (ImGui::Button("Browse..."))
+					{
+						const HWND Owner = static_cast<HWND>(ImGui::GetMainViewport()->PlatformHandleRaw);
+						const auto TexturePath = File::OpenFileDialog(Owner, EFileDialogType::Image, "Assets/Textures");
 
+						if (TexturePath)
+						{
+							std::filesystem::path RelativePath = std::filesystem::relative(*TexturePath, std::filesystem::current_path());
+
+							std::string FormattedPath = RelativePath.generic_string();
+
+							MeshComp->SetMaterial(FString(FormattedPath.c_str()));
+						}
+					}
 					ImGui::TextDisabled("Type texture path and press Enter.");
 				}
 				if (ImGui::Button("Delete"))
