@@ -13,7 +13,7 @@
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
 #include "Core/Math/FRotator.h"
-
+#include "Core/Util/File.h"
 
 namespace
 {
@@ -170,6 +170,23 @@ void UPropertyWindow::Render(float DeltaTime)
 		{
 			const FString ActorName = SelectedActor->GetName().ToString();
 			ImGui::Text("Actor: %s", ActorName.c_str());
+			if (NameEditingActor != SelectedActor)
+			{
+				NameEditingActor = SelectedActor;
+				ActorNameBuffer.fill('\0');
+				const size_t CopyLength = std::min(ActorName.size(), ActorNameBuffer.size() - 1);
+				std::copy_n(ActorName.begin(), CopyLength, ActorNameBuffer.begin());
+			}
+
+			ImGui::SetNextItemWidth(-1.0f);
+			if (ImGui::InputText("Actor Name", ActorNameBuffer.data(), ActorNameBuffer.size(),
+				ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				if (ActorNameBuffer[0] != '\0')
+				{
+					SelectedActor->SetName(FName(ActorNameBuffer.data()));
+				}
+			}
 
 			if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
 			{
@@ -192,7 +209,7 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 			}
 
-			if (ImGui::CollapsingHeader("Add Component", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader("Add Component##Section", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				if (ImGui::BeginCombo("Component Type", SelectedAddComponentClass->Name.c_str()))
 				{
@@ -226,7 +243,7 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 
 				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
-					? "Apply Static Mesh" : "Add Component"))
+					? "Apply Static Mesh##Action" : "Add Component##Action"))
 				{
 					UActorComponent* AddedComponent = nullptr;
 					if (bAddingStaticMesh)
@@ -395,16 +412,27 @@ void UPropertyWindow::Render(float DeltaTime)
 					ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					auto* MeshComp = static_cast<UStaticMeshComponent*>(SelectedComponent);
-
-					ImGui::Text("Mesh Key: %s", MeshComp->GetStaticMeshKey().c_str());
-
 					std::string CurrentTexPath = MeshComp->GetMaterialPath().c_str();
 
 					if (ImGui::InputText("Texture Path", &CurrentTexPath, ImGuiInputTextFlags_EnterReturnsTrue))
 					{
 						MeshComp->SetMaterial(FString(CurrentTexPath.c_str()));
 					}
+					ImGui::SameLine();
+					if (ImGui::Button("Browse..."))
+					{
+						const HWND Owner = static_cast<HWND>(ImGui::GetMainViewport()->PlatformHandleRaw);
+						const auto TexturePath = File::OpenFileDialog(Owner, EFileDialogType::Image, "Assets/Textures");
 
+						if (TexturePath)
+						{
+							std::filesystem::path RelativePath = std::filesystem::relative(*TexturePath, std::filesystem::current_path());
+
+							std::string FormattedPath = RelativePath.generic_string();
+
+							MeshComp->SetMaterial(FString(FormattedPath.c_str()));
+						}
+					}
 					ImGui::TextDisabled("Type texture path and press Enter.");
 				}
 				if (ImGui::Button("Delete"))

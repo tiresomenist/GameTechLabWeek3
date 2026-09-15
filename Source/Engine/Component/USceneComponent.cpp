@@ -3,6 +3,7 @@
 #include "Engine/Object/UObject.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Object/FArchive.h"
+#include "Engine/Actor/AActor.h"
 #include "Core/Math/FQuaternion.h"
 namespace
 {
@@ -35,6 +36,66 @@ namespace
         return (std::min)(SameSignDistance, OppositeSignDistance) <= ToleranceSquared;
     }
 }
+
+USceneComponent::~USceneComponent()
+{
+    DetachFromParent();
+
+    // 부모가 먼저 제거되어도 자식이 해제된 부모를 참조하지 않게 한다.
+    const std::vector<USceneComponent*> Children = AttachChildren;
+    AttachChildren.clear();
+    for (USceneComponent* Child : Children)
+    {
+        if (Child != nullptr && Child->AttachParent == this)
+        {
+            Child->AttachParent = nullptr;
+            Child->UpdateWorldTransform();
+        }
+    }
+}
+
+bool USceneComponent::AttachTo(USceneComponent* Parent)
+{
+    if (Parent == nullptr || Parent == this || Parent == AttachParent)
+    {
+        return Parent == AttachParent;
+    }
+
+    // Component 계층은 Actor 경계를 넘지 않는다.
+    if (GetOwner() == nullptr || GetOwner() != Parent->GetOwner())
+    {
+        return false;
+    }
+
+    // Parent의 상위 체인에 this가 있으면 순환 참조가 된다.
+    for (USceneComponent* Ancestor = Parent; Ancestor != nullptr; Ancestor = Ancestor->AttachParent)
+    {
+        if (Ancestor == this)
+        {
+            return false;
+        }
+    }
+
+    DetachFromParent();
+    AttachParent = Parent;
+    AttachParent->AttachChildren.push_back(this);
+    UpdateWorldTransform();
+    return true;
+}
+
+void USceneComponent::DetachFromParent()
+{
+    if (AttachParent == nullptr)
+    {
+        return;
+    }
+
+    std::vector<USceneComponent*>& Siblings = AttachParent->AttachChildren;
+    Siblings.erase(std::remove(Siblings.begin(), Siblings.end(), this), Siblings.end());
+    AttachParent = nullptr;
+    UpdateWorldTransform();
+}
+
 void USceneComponent::SetRelativeLocation(const FVector& Location)
 {
     if (!std::isfinite(Location.X) || !std::isfinite(Location.Y) || !std::isfinite(Location.Z)) return;
@@ -88,19 +149,19 @@ void USceneComponent::UpdateWorldTransform() const
         * RelativeRotation.ToRotationMatrix()
         * FMatrix::MakeTranslationMatrix(RelativeLocation);
 
-    CachedWorldMatrix = LocalSRTMatrix;
+    // 이 프로젝트는 row vector 규약이므로 Local * Parent 순서로 합성한다.
+    CachedWorldMatrix = AttachParent
+        ? LocalSRTMatrix * AttachParent->GetWorldMatrix()
+        : LocalSRTMatrix;
 
-    // 부모가 있으면 부모의 월드 행렬과 곱함
-    //if (AttachParent)
-    //{
-    //    CachedWorldMatrix = LocalSRTMatrix * AttachParent->GetWorldMatrix();
-    //}
-    //else
-    //{
-    //    CachedWorldMatrix = LocalSRTMatrix;
-    //}
-
-    //bWorldMatrixDirty = false;
+    // 부모 Transform이 바뀌면 모든 자식의 캐시도 즉시 갱신한다.
+    for (USceneComponent* Child : AttachChildren)
+    {
+        if (Child != nullptr)
+        {
+            Child->UpdateWorldTransform();
+        }
+    }
 }
 
 void USceneComponent::Serialize(FArchive& Archive)

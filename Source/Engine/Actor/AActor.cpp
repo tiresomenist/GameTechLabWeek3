@@ -18,9 +18,18 @@ UActorComponent* AActor::CreateComponent(FClassType* Type, uint32 UUID)
     Component->SetOwner(this);
     Components.Add(Component);
 
-    if (RootComponent == nullptr && Component->IsA(USceneComponent::GetClass()) && static_cast<USceneComponent*>(Component)->CanBeRootComponent())
+    if (Component->IsA(USceneComponent::GetClass()))
     {
-        RootComponent = static_cast<USceneComponent*>(Component);
+        USceneComponent* SceneComponent = static_cast<USceneComponent*>(Component);
+        if (RootComponent == nullptr && SceneComponent->CanBeRootComponent())
+        {
+            RootComponent = SceneComponent;
+        }
+        else if (RootComponent != nullptr && SceneComponent != RootComponent)
+        {
+            // Root가 될 수 없는 보조 SceneComponent도 Transform 계층에는 포함한다.
+            SceneComponent->AttachTo(RootComponent);
+        }
     }
 
     Component->OnRegister();

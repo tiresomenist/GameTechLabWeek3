@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+
 #include "Editor/Window/UEditorWindow.h"
 #include "Core/Math/Matrix.h"
 #include "Core/Math/FRotator.h"
@@ -6,6 +8,7 @@
 
 
 class USceneComponent;
+class AActor;
 struct FClassType;
 
 class UPropertyWindow : public UEditorWindow
@@ -26,6 +29,8 @@ private:
 	FClassType* SelectedAddComponentClass = nullptr;
 	TArray<FString> SpawnableMeshKeys;
 	FString SelectedMeshKey;
+	AActor* NameEditingActor = nullptr;
+	std::array<char, 128> ActorNameBuffer {};
 public:
 	virtual void Initialize(FEditor* InEditor) override;
 

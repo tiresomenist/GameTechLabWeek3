@@ -22,6 +22,8 @@
 #include "Engine/Scene/GSceneManager.h"
 #include "Core/Util/File.h"
 
+#include "SolarSystem.h"
+
 void USceneWindow::SpawnStaticMesh()
 {
 	Editor->SpawnStaticMesh(SelectedMeshKey, NumberOfSpawn);
@@ -50,7 +52,7 @@ void USceneWindow::LoadScene()
 	// imgui_impl_win32가 메인 뷰포트에 HWND를 넣어두므로 그걸 대화상자 owner로 사용
 	const HWND Owner = static_cast<HWND>(ImGui::GetMainViewport()->PlatformHandleRaw);
 
-	const std::optional<std::filesystem::path> ScenePath = File::OpenJsonFileDialog(Owner, "Scenes");
+	const std::optional<std::filesystem::path> ScenePath = File::OpenFileDialog(Owner, EFileDialogType::Json, "Scenes");
 	if (!ScenePath)
 	{
 		return; // 취소
@@ -75,8 +77,6 @@ void USceneWindow::Initialize(FEditor* Editor)
 	SpawnableMeshKeys.Add(FString("Triangle"));
 	SpawnableMeshKeys.Add(FString("Pepe"));
 	SpawnableMeshKeys.Add(FString("Octopus"));
-	SpawnableMeshKeys.Add(FString("TexturedCube"));
-	SpawnableMeshKeys.Add(FString("TexturedSphere"));
 	SelectedMeshKey = *SpawnableMeshKeys.begin();
 
 	SceneName.reserve(128);
@@ -345,6 +345,11 @@ void USceneWindow::Render(float DeltaTime)
 		bEditingCameraRotation = bRotationActive;
 		ImGui::PopItemWidth();
 		//ImGui::PopStyleVar();
+
+		if (ImGui::Button("SpawnSolarSystem"))
+		{
+			SpawnSolarSystem(Editor->GetCurrentScene());
+		}
 	}
 	Editor->SetCameraLocation(CameraLocation);
 	ImGui::End();
