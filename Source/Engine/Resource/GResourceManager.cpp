@@ -27,6 +27,7 @@
 #include "Engine/Resource/MeshData/Grid.h"
 #include "Core/Math/FVector.h"
 #include "Engine/Resource/FTextureResource.h"
+#include "FGeometryGenerator.h"
 
 #include <memory>
 #include <limits>
@@ -46,7 +47,7 @@ void GResourceManager::Initialize(GDevice* InDevice)
 	if (!Device || !Device->GetDevice() || !DefaultFont.Build(Device->GetDevice(), "Assets/Fonts/Pretendard-Regular.ttf", 24.0f))
 		throw std::runtime_error("Default font atlas build failed");
     if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
+    //if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateTexturedMesh("Flame", flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
@@ -65,6 +66,16 @@ void GResourceManager::Initialize(GDevice* InDevice)
     if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
+
+    TArray<FVertexTexture> CubeVertices;
+    TArray<uint32> CubeIndices;
+    FGeometryGenerator::CreateCube(2.0f, 2.0f, 2.0f, CubeVertices, CubeIndices);
+
+    // 3. CreateTexturedMesh로 한 번에 GPU 버퍼 등록 및 캐싱[cite: 18]
+    if (!CreateTexturedMesh("Cube", CubeVertices, CubeIndices)) //[cite: 18]
+    {
+        throw std::runtime_error("TexturedCube mesh creation failed");
+    }
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
