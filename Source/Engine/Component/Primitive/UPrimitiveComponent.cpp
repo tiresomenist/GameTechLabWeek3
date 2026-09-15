@@ -11,7 +11,7 @@ void UPrimitiveComponent::Initialize()
 FPrimitiveRenderData UPrimitiveComponent::CreateRenderData(bool bSelected) const
 {
 	FClassType* ClassType = GetInstanceClass();
-	FMeshResource* MeshResource = GResourceManager::GetInstance()->GetPrimitive(FString{ ClassType->Name });
+	FMeshResource* MeshResource = GetMeshResource();
 
 	FPrimitiveRenderData OutData{};
 	if (MeshResource == nullptr) { return OutData; }
@@ -43,4 +43,9 @@ bool UPrimitiveComponent::GetLocalBounds(FVector& OutMin, FVector& OutMax) const
 const FMatrix& UPrimitiveComponent::GetRenderWorldMatrix(const UCameraComponent* Camera) const
 {
 	return GetWorldMatrix();
+}
+
+FMeshResource* UPrimitiveComponent::GetMeshResource() const
+{
+	return GResourceManager::GetInstance()->GetPrimitive(FString(GetInstanceClass()->Name));
 }
