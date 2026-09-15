@@ -18,9 +18,18 @@ UActorComponent* AActor::CreateComponent(FClassType* Type, uint32 UUID)
     Component->SetOwner(this);
     Components.Add(Component);
 
-    if (RootComponent == nullptr && Component->IsA(USceneComponent::GetClass()) && static_cast<USceneComponent*>(Component)->CanBeRootComponent())
+    if (Component->IsA(USceneComponent::GetClass()))
     {
-        RootComponent = static_cast<USceneComponent*>(Component);
+        USceneComponent* SceneComponent = static_cast<USceneComponent*>(Component);
+        if (RootComponent == nullptr && SceneComponent->CanBeRootComponent())
+        {
+            RootComponent = SceneComponent;
+        }
+        else if (RootComponent != nullptr && SceneComponent != RootComponent && SceneComponent->CanBeRootComponent())
+        {
+            // 두 번째부터의 편집 가능한 SceneComponent는 Root의 로컬 자식으로 생성한다.
+            SceneComponent->AttachTo(RootComponent);
+        }
     }
 
     Component->OnRegister();
