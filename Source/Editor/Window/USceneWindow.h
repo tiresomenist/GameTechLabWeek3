@@ -17,8 +17,8 @@ private:
 	uint32 Step = 1;
 	FString SceneName{"NewScene"};
 	bool bOrthogonal = false;
-	TArray<FClassType*> Spawnables;
-	FClassType* SelectedClass;
+	TArray<FString> SpawnableMeshKeys;
+	FString SelectedMeshKey;
 	/* Camera Info */
 	float FOV = 90.0f;
 	float MaxFOV = 175.0f;
@@ -26,15 +26,22 @@ private:
 	FVector CameraLocation = { 0.0f, 0.0f, 0.0f };
 	FVector CameraRotationDegree;
 	bool bEditingCameraRotation = false;
+
+	TArray<FClassType*> SpecialComponentClasses;
+	FClassType* SelectedSpecialComponentClass = nullptr;
 	/*             */
 	// ImGui 창 그리기 도중이 아니라 End() 뒤에 대화상자를 띄우기 위한 플래그
 	bool bRequestLoadDialog = false;
 public:
-	void SpawnPrimitive();
+	void SpawnStaticMesh();
+	void SpawnSpecialComponent();
+	void SpawnEmptyActor();
 	void NewScene();
 	void SaveScene();
 	void LoadScene();
 
 	virtual void Initialize(FEditor* InEditor) override;
 	void Render(float DeltaTime) override;
+
+
 };

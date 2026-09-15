@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Core/Container/FString.h"
 #include "Core/Container/TArray.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Renderer/RenderUtil.h"
@@ -17,6 +18,7 @@
 
 class USceneComponent;
 class UCameraComponent;
+class AActor;
 class UEditorWindow;
 class UGizmo;
 class UGrid;
@@ -34,6 +36,7 @@ private:
 	FGizmoController* GizmoController = nullptr;
 
 	USceneComponent* SelectedSceneComponent = nullptr;
+	AActor* SelectedActor = nullptr;
 	FViewSettings ViewSettings;
 	FGrid Grid;
 	TArray<UGizmo*> Gizmos;
@@ -61,7 +64,9 @@ public:
 
 	void Release();
 
-	void SpawnPrimitive(FClassType* PrimitiveType, int Count);
+	void SpawnStaticMesh(const FString& MeshKey, int Count);
+	void SpawnComponent(FClassType* ComponentClass, int Count);
+	void CreateEmptyActor();
 
 	void NewScene();
 	void LoadScene(FStringView SceneName);
@@ -72,6 +77,7 @@ public:
 	UCameraComponent* GetEditorCamera() { return EditorCamera; }
 
 	USceneComponent* GetSelectedSceneComponent() const { return SelectedSceneComponent; }
+	AActor* GetSelectedActor() const { return SelectedActor; }
 	
 	//내부적으로 비트마스킹으로 처리해줌.
 	bool IsShowingUUIDLabels() const { return ViewSettings.ShowFlags.IsEnabled(EEngineShowFlag::UUID); }
@@ -94,8 +100,10 @@ public:
 	}
 	int32 GetActiveGizmoAxis() const { return GizmoController ? GizmoController->GetActiveAxis() : -1; }
 	void SetSelectedSceneComponent(USceneComponent* Component);
+	void SetSelectedActor(AActor* Actor);
 
-	void DeleteSelectedSceneComponent();
+	void RemoveSelectedComponent();
+	void DeleteSelectedActor();
 
 	void RegisterGizmo(FClassType* Type);
 	void RegisterWindow(FClassType* Type);

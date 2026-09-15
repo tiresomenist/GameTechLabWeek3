@@ -9,7 +9,7 @@ class FArchive;
 // 문자열을 월드에 빌보드로 표시하고, 문자열 전체 AABB로 선택할 수 있는 Primitive다.
 class UTextComponent : public UPrimitiveComponent
 {
-	UCLASS(UTextComponent, "TextComponent", UPrimitiveComponent)
+	UCLASS(UTextComponent, "Text", UPrimitiveComponent)
 
 public:
 	const FString& GetText() const { return Text; }

@@ -30,9 +30,6 @@ public:
     // 렌더(RenderUtil)와 피킹(FObjectPicker)이 같은 함수를 써야 보이는 곳과 클릭되는 곳이 일치한다.
     virtual const FMatrix& GetRenderWorldMatrix(const UCameraComponent* Camera) const;
 
-    FMeshResource* GetMeshResource() const
-    {
-        return GResourceManager::GetInstance()->GetPrimitive(FString(GetInstanceClass()->Name));
-    }
+    virtual FMeshResource* GetMeshResource() const;
 };
 

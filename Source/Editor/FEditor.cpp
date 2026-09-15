@@ -2,7 +2,7 @@
 #include "FEditor.h"
 
 #include "Engine/Component/UCameraComponent.h"
-#include "Engine/Actor/UActor.h"
+#include "Engine/Actor/AActor.h"
 #include "Editor/Window/UEditorWindow.h"
 
 #include "Editor/Window/UConsoleWindow.h"
@@ -24,6 +24,8 @@
 #include "Editor/Picker/FObjectPicker.h"
 #include "Editor/Picker/FGizmoPicker.h"
 #include "Engine/Component/UWidgetComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/Primitive/UPrimitiveComponent.h"
 
 #include "Engine/Scene/GSceneManager.h"
 
@@ -398,18 +400,46 @@ void FEditor::ReleaseGrids()
 	Grids.Empty();
 }
 
-void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
+void FEditor::SpawnStaticMesh(const FString& MeshKey, int Count)
 {
 	UScene* CurrentScene = GetCurrentScene();
 
 	for (int i = 0; i < Count; ++i)
 	{
-		UActor* Actor = CurrentScene->SpawnActor<UActor*>(UActor::GetClass());
-		if (Actor->CreateComponent(PrimitiveType))
+		AActor* Actor = CurrentScene->SpawnActor<AActor*>(AActor::GetClass());
+		auto* StaticMesh = static_cast<UStaticMeshComponent*>(
+			Actor->CreateComponent(UStaticMeshComponent::GetClass()));
+
+		StaticMesh->SetStaticMesh(MeshKey);
+		Actor->CreateComponent(UWidgetComponent::GetClass());
+	}
+}
+
+void FEditor::SpawnComponent(FClassType* ComponentClass, int Count)
+{
+    if (ComponentClass == nullptr || !ComponentClass->IsA(UActorComponent::GetClass()))
+    {
+        return;
+    }
+
+	UScene* CurrentScene = GetCurrentScene();
+
+	for (int i = 0; i < Count; ++i)
+	{
+		AActor* Actor = CurrentScene->SpawnActor<AActor*>(AActor::GetClass());
+		UActorComponent* Component = Actor->CreateComponent(ComponentClass);
+
+		if (Component != nullptr && Component->IsA(UPrimitiveComponent::GetClass()))
 		{
 			Actor->CreateComponent(UWidgetComponent::GetClass());
 		}
 	}
+}
+
+void FEditor::CreateEmptyActor()
+{
+	AActor* Actor = GetCurrentScene()->SpawnActor<AActor*>(AActor::GetClass());
+	SetSelectedActor(Actor);
 }
 
 void FEditor::NewScene()
@@ -420,7 +450,7 @@ void FEditor::NewScene()
 
 void FEditor::LoadScene(FStringView SceneName)
 {
-	SetSelectedSceneComponent(nullptr);
+	SetSelectedActor(nullptr);
 	GSceneManager* SceneManager = GSceneManager::GetInstance();
 	FSceneType* SceneType = GetCurrentScene()->GetSceneType();
 
@@ -451,17 +481,39 @@ UScene* FEditor::GetCurrentScene()
 void FEditor::SetSelectedSceneComponent(USceneComponent* Component)
 {
 	SelectedSceneComponent = Component;
+	SelectedActor = Component ? Component->GetOwner() : nullptr;
 	if (GizmoController != nullptr)GizmoController->SetSelectedObject(Component);
 }
 
-void FEditor::DeleteSelectedSceneComponent()
+void FEditor::SetSelectedActor(AActor* Actor)
 {
-	if (SelectedSceneComponent == nullptr) { return; }
+	SelectedActor = Actor;
+	SelectedSceneComponent = nullptr;
+	if (GizmoController != nullptr) GizmoController->SetSelectedObject(nullptr);
+}
+
+void FEditor::RemoveSelectedComponent()
+{
+	if (SelectedActor == nullptr || SelectedSceneComponent == nullptr)
+	{
+		return;
+	}
+
+	AActor* Actor = SelectedActor;
+	if (Actor->RemoveComponent(SelectedSceneComponent))
+	{
+		SetSelectedActor(Actor);
+	}
+}
+
+void FEditor::DeleteSelectedActor()
+{
+	if (SelectedActor == nullptr) { return; }
 
 	UScene* CurrentScene = GetCurrentScene();
-	CurrentScene->Destroy(SelectedSceneComponent);
+	CurrentScene->DestroyActor(SelectedActor);
 
-	SetSelectedSceneComponent(nullptr);
+	SetSelectedActor(nullptr);
 }
 
 void FEditor::RegisterGizmo(FClassType* Type)

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "UFlameComponent.h"
+#include "UFlipbookComponent.h"
 #include "Engine/Resource/GResourceManager.h"
 #include "Engine/Resource/FTextureResource.h"
 #include "Engine/Object/FArchive.h"
@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cmath>
 
-void UFlameComponent::Initialize()
+void UFlipbookComponent::Initialize()
 {
 	Super::Initialize();
 	Texture = GResourceManager::GetInstance()->GetOrLoadTexture("Assets/Textures/FlameTexture.png");
@@ -16,7 +16,7 @@ void UFlameComponent::Initialize()
     Restart();
 }
 
-void UFlameComponent::Tick(float DeltaTime)
+void UFlipbookComponent::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
     if (!bPlaying || !std::isfinite(DeltaTime) || DeltaTime <= 0.0f) return;
@@ -40,7 +40,7 @@ void UFlameComponent::Tick(float DeltaTime)
     }
 }
 
-const FMatrix& UFlameComponent::GetRenderWorldMatrix(const UCameraComponent* Camera) const
+const FMatrix& UFlipbookComponent::GetRenderWorldMatrix(const UCameraComponent* Camera) const
 {
     // 카메라가 없으면 기존 월드 행렬 사용함
     if (!Camera)
@@ -74,7 +74,7 @@ const FMatrix& UFlameComponent::GetRenderWorldMatrix(const UCameraComponent* Cam
     return BillboardWorldMatrix;
 }
 
-void UFlameComponent::SetAtlasGrid(int32 InColumns, int32 InRows, int32 InFrameCount)
+void UFlipbookComponent::SetAtlasGrid(int32 InColumns, int32 InRows, int32 InFrameCount)
 {
     // 과도한 격자와 픽셀보다 작은 칸을 방지함
     const int32 MaxColumns = Texture ? static_cast<int32>(Texture->GetWidth()) : 16384;
@@ -86,28 +86,28 @@ void UFlameComponent::SetAtlasGrid(int32 InColumns, int32 InRows, int32 InFrameC
     SetCurrentFrame(GetCurrentFrame());
 }
 
-void UFlameComponent::SetFramesPerSecond(float Value)
+void UFlipbookComponent::SetFramesPerSecond(float Value)
 {
     if (std::isfinite(Value)) FramesPerSecond = (std::max)(Value, 0.0f);
 }
 
-void UFlameComponent::SetPlayRate(float Value)
+void UFlipbookComponent::SetPlayRate(float Value)
 {
     if (std::isfinite(Value)) PlayRate = (std::max)(Value, 0.0f);
 }
 
-void UFlameComponent::SetCurrentFrame(int32 Value)
+void UFlipbookComponent::SetCurrentFrame(int32 Value)
 {
     FramePosition = std::clamp(Value, 0, FrameCount - 1);
 }
 
-void UFlameComponent::Restart()
+void UFlipbookComponent::Restart()
 {
     FramePosition = 0.0;
     bPlaying = true;
 }
 
-FTextureUVTransform UFlameComponent::GetUVTransform() const
+FTextureUVTransform UFlipbookComponent::GetUVTransform() const
 {
     const int32 Frame = GetCurrentFrame();
     // 선형 필터가 인접 프레임을 섞지 않도록 양쪽 경계를 반 텍셀씩 줄임
@@ -121,7 +121,7 @@ FTextureUVTransform UFlameComponent::GetUVTransform() const
     };
 }
 
-FPrimitiveRenderData UFlameComponent::CreateRenderData(bool bSelected) const
+FPrimitiveRenderData UFlipbookComponent::CreateRenderData(bool bSelected) const
 {
     if (!Texture || !Texture->GetSRV())
     {
@@ -137,7 +137,7 @@ FPrimitiveRenderData UFlameComponent::CreateRenderData(bool bSelected) const
     return Data;
 }
 
-void UFlameComponent::Serialize(FArchive& Archive)
+void UFlipbookComponent::Serialize(FArchive& Archive)
 {
     Super::Serialize(Archive);
     Archive.SetInt32("SubUVColumns", Columns);
@@ -148,7 +148,7 @@ void UFlameComponent::Serialize(FArchive& Archive)
     Archive.SetBool("SubUVLoop", bLoop);
 }
 
-void UFlameComponent::Deserialize(FArchive& Archive)
+void UFlipbookComponent::Deserialize(FArchive& Archive)
 {
     Super::Deserialize(Archive);
     // 기존 씬은 기본 설정을 사용하고 저장된 재생 설정이 있으면 복원함

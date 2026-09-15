@@ -8,16 +8,9 @@
 #include "Engine/FConsole.h"
 #include "Engine/GEngine.h"
 #include "Core/Container/TArray.h"
-#include "Engine/Object/FClassType.h"
-#include "Engine/Component/Primitive/USphereComponent.h"
-#include "Engine/Component/Primitive/UCubeComponent.h"
-#include "Engine/Component/Primitive/UTriangleComponent.h"
-#include "Engine/Component/Primitive/UPlaneComponent.h"
-#include "Engine/Component/Primitive/UPepeComponent.h"
-#include "Engine/Component/Primitive/UOctopusComponent.h"
-#include "Engine/Component/Primitive/UTextComponent.h"
-#include "Engine/Component/Primitive/UFlameComponent.h"
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/Component/Primitive/UFlipbookComponent.h"
+#include "Engine/Component/Primitive/UTextComponent.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -29,9 +22,19 @@
 #include "Engine/Scene/GSceneManager.h"
 #include "Core/Util/File.h"
 
-void USceneWindow::SpawnPrimitive() 
+void USceneWindow::SpawnStaticMesh()
 {
-	Editor->SpawnPrimitive(SelectedClass, NumberOfSpawn);
+	Editor->SpawnStaticMesh(SelectedMeshKey, NumberOfSpawn);
+}
+
+void USceneWindow::SpawnSpecialComponent()
+{
+	Editor->SpawnComponent(SelectedSpecialComponentClass, NumberOfSpawn);
+}
+
+void USceneWindow::SpawnEmptyActor()
+{
+	Editor->CreateEmptyActor();
 }
 
 void USceneWindow::NewScene()
@@ -61,15 +64,18 @@ void USceneWindow::Initialize(FEditor* Editor)
 {
 	UEditorWindow::Initialize(Editor);
 
-	Spawnables.Add(USphereComponent::GetClass());
-	Spawnables.Add(UCubeComponent::GetClass());
-	Spawnables.Add(UPlaneComponent::GetClass());
-	Spawnables.Add(UTriangleComponent::GetClass());
-	Spawnables.Add(UPepeComponent::GetClass());
-	Spawnables.Add(UOctopusComponent::GetClass());
-	Spawnables.Add(UTextComponent::GetClass());
-	Spawnables.Add(UFlameComponent::GetClass());
-	SelectedClass = *Spawnables.begin();
+	SpecialComponentClasses.Add(UTextComponent::GetClass());
+	SpecialComponentClasses.Add(UFlipbookComponent::GetClass());
+
+	SelectedSpecialComponentClass = *SpecialComponentClasses.begin();
+
+	SpawnableMeshKeys.Add(FString("Sphere"));
+	SpawnableMeshKeys.Add(FString("Cube"));
+	SpawnableMeshKeys.Add(FString("Plane"));
+	SpawnableMeshKeys.Add(FString("Triangle"));
+	SpawnableMeshKeys.Add(FString("Pepe"));
+	SpawnableMeshKeys.Add(FString("Octopus"));
+	SelectedMeshKey = *SpawnableMeshKeys.begin();
 
 	SceneName.reserve(128);
 }
@@ -130,15 +136,15 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Separator();
 
 		ImGui::PushItemWidth(WideItemWidth);
-		if (ImGui::BeginCombo("Primitive", SelectedClass->Name.c_str(), ImGuiComboFlags_HeightSmall))
+		if (ImGui::BeginCombo("Static Mesh", SelectedMeshKey.c_str(), ImGuiComboFlags_HeightSmall))
 		{
-			for (FClassType* ClassType : Spawnables)
+			for (const FString& MeshKey : SpawnableMeshKeys)
 			{
-				bool bSelected = (SelectedClass == ClassType);
+				bool bSelected = (SelectedMeshKey == MeshKey);
 
-				if (ImGui::Selectable(ClassType->Name.c_str(), bSelected))
+				if (ImGui::Selectable(MeshKey.c_str(), bSelected))
 				{
-					SelectedClass = ClassType;
+					SelectedMeshKey = MeshKey;
 				}
 
 				if (bSelected)
@@ -149,9 +155,9 @@ void USceneWindow::Render(float DeltaTime)
 			ImGui::EndCombo();
 		}
 		ImGui::PopItemWidth();
-		if (ImGui::Button("Spawn"))
+		if (ImGui::Button("Spawn Static Mesh"))
 		{
-			SpawnPrimitive();
+			SpawnStaticMesh();
 		}
 		ImGui::SameLine();
 		ImGui::PushItemWidth(200);
@@ -164,6 +170,37 @@ void USceneWindow::Render(float DeltaTime)
 			NumberOfSpawn = std::clamp(NumberOfSpawn, 1u, 20u);
 		}
 		ImGui::PopItemWidth();
+
+		ImGui::PushItemWidth(WideItemWidth);
+		if (ImGui::BeginCombo(
+			"Special Component",
+			SelectedSpecialComponentClass->Name.c_str(),
+			ImGuiComboFlags_HeightSmall))
+		{
+			for (FClassType* ComponentClass : SpecialComponentClasses)
+			{
+				const bool bSelected = SelectedSpecialComponentClass == ComponentClass;
+				if (ImGui::Selectable(ComponentClass->Name.c_str(), bSelected))
+				{
+					SelectedSpecialComponentClass = ComponentClass;
+				}
+				if (bSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
+		if (ImGui::Button("Spawn Special Component"))
+		{
+			SpawnSpecialComponent();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Create Empty Actor"))
+		{
+			SpawnEmptyActor();
+		}
 		ImGui::Separator();
 		ImGui::PushItemWidth(WideItemWidth);
 

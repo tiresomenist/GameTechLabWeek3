@@ -5,40 +5,59 @@
 #include "ImGui/imgui.h"
 #include "Editor/FEditor.h"
 #include "Core/Math/FQuaternion.h"
-#include "Engine/Component/Primitive/UFlameComponent.h"
-#include <algorithm>
-#include <cmath>
+#include "Engine/Actor/AActor.h"
+#include "Engine/Component/Primitive/UPrimitiveComponent.h"
+#include "Engine/Component/Primitive/UFlipbookComponent.h"
+#include "Engine/Component/Primitive/UTextComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/UWidgetComponent.h"
+#include "Core/Math/FRotator.h"
+
+
 namespace
 {
-	//bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right)
-	//{
-	//	FQuaternion A = Left;
-	//	FQuaternion B = Right;
-	//
-	//	A.Normalize();
-	//	B.Normalize();
-	//
-	//	const auto Square = [](double Value){return Value * Value;};
-	//
-	//	// 같은 부호로 표현된 쿼터니언의 차이 계산함
-	//	const double SameSignDistance =
-	//		Square(static_cast<double>(A.X) - B.X) +
-	//		Square(static_cast<double>(A.Y) - B.Y) +
-	//		Square(static_cast<double>(A.Z) - B.Z) +
-	//		Square(static_cast<double>(A.W) - B.W);
-	//
-	//	// Q와 -Q가 같은 자세인 경우까지 비교함
-	//	const double OppositeSignDistance =
-	//		Square(static_cast<double>(A.X) + B.X) +
-	//		Square(static_cast<double>(A.Y) + B.Y) +
-	//		Square(static_cast<double>(A.Z) + B.Z) +
-	//		Square(static_cast<double>(A.W) + B.W);
-	//
-	//	// 정규화된 쿼터니언 성분 차이의 제곱 허용치
-	//	constexpr double ToleranceSquared = 1.0e-12;
-	//
-	//	return (std::min)(SameSignDistance,	OppositeSignDistance) <= ToleranceSquared;
-	//}
+	UStaticMeshComponent* FindStaticMeshComponent(AActor* Actor)
+	{
+		if (Actor == nullptr) return nullptr;
+
+		for (UActorComponent* Component : Actor->GetComponents())
+		{
+			if (Component->IsA(UStaticMeshComponent::GetClass()))
+			{
+				return static_cast<UStaticMeshComponent*>(Component);
+			}
+		}
+
+		return nullptr;
+	}
+
+	void EnsurePrimitiveWidget(AActor* Actor)
+	{
+		for (UActorComponent* Component : Actor->GetComponents())
+		{
+			if (Component->IsA(UWidgetComponent::GetClass())) return;
+		}
+
+		Actor->CreateComponent(UWidgetComponent::GetClass());
+	}
+}
+
+void UPropertyWindow::Initialize(FEditor* InEditor)
+{
+	UEditorWindow::Initialize(InEditor);
+
+	AddableComponentClasses.Add(UStaticMeshComponent::GetClass());
+	AddableComponentClasses.Add(UTextComponent::GetClass());
+	AddableComponentClasses.Add(UFlipbookComponent::GetClass());
+	SelectedAddComponentClass = *AddableComponentClasses.begin();
+
+	SpawnableMeshKeys.Add(FString("Sphere"));
+	SpawnableMeshKeys.Add(FString("Cube"));
+	SpawnableMeshKeys.Add(FString("Plane"));
+	SpawnableMeshKeys.Add(FString("Triangle"));
+	SpawnableMeshKeys.Add(FString("Pepe"));
+	SpawnableMeshKeys.Add(FString("Octopus"));
+	SelectedMeshKey = *SpawnableMeshKeys.begin();
 }
 
 void UPropertyWindow::GetSelectedValue()
@@ -90,9 +109,15 @@ bool UPropertyWindow::DrawRotationField(const char* ID, float& Degree, bool& bRo
 }
 
 
-void UPropertyWindow::DeleteSelected()
+void UPropertyWindow::RemoveSelectedComponent()
 {
-	Editor->DeleteSelectedSceneComponent();
+	Editor->RemoveSelectedComponent();
+	SelectedComponent = nullptr;
+}
+
+void UPropertyWindow::DeleteSelectedActor()
+{
+	Editor->DeleteSelectedActor();
 	SelectedComponent = nullptr;
 	bEditingRotation = false;
 }
@@ -134,11 +159,123 @@ void UPropertyWindow::Render(float DeltaTime)
 	GetSelectedValue();
 	bool bRotationChanged = false;
 	bool bRotationActive = false;
-	
-	if (SelectedComponent != nullptr)
+	bool bRotationFinished = false;
+	float PreviousDegree = RotationDegree.Roll;
+
+	AActor* SelectedActor = Editor->GetSelectedActor();
+	if (SelectedActor != nullptr)
 	{
 		ImGui::Begin("Property Window");
 		{
+			const FString ActorName = SelectedActor->GetName().ToString();
+			ImGui::Text("Actor: %s", ActorName.c_str());
+
+			if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				for (UActorComponent* Component : SelectedActor->GetComponents())
+				{
+					const FString ComponentLabel = std::format(
+						"{}##{}", Component->GetName().ToString(), Component->GetUUID());
+					if (!Component->IsA(USceneComponent::GetClass()))
+					{
+						ImGui::TextDisabled("%s", ComponentLabel.c_str());
+						continue;
+					}
+
+					USceneComponent* SceneComponent = static_cast<USceneComponent*>(Component);
+					if (ImGui::Selectable(ComponentLabel.c_str(), SelectedComponent == SceneComponent))
+					{
+						Editor->SetSelectedSceneComponent(SceneComponent);
+						GetSelectedValue();
+					}
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Add Component", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				if (ImGui::BeginCombo("Component Type", SelectedAddComponentClass->Name.c_str()))
+				{
+					for (FClassType* ComponentClass : AddableComponentClasses)
+					{
+						const bool bSelected = SelectedAddComponentClass == ComponentClass;
+						if (ImGui::Selectable(ComponentClass->Name.c_str(), bSelected))
+						{
+							SelectedAddComponentClass = ComponentClass;
+						}
+						if (bSelected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				const bool bAddingStaticMesh =
+					SelectedAddComponentClass == UStaticMeshComponent::GetClass();
+				if (bAddingStaticMesh &&
+					ImGui::BeginCombo("Mesh", SelectedMeshKey.c_str()))
+				{
+					for (const FString& MeshKey : SpawnableMeshKeys)
+					{
+						const bool bSelected = SelectedMeshKey == MeshKey;
+						if (ImGui::Selectable(MeshKey.c_str(), bSelected))
+						{
+							SelectedMeshKey = MeshKey;
+						}
+						if (bSelected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
+					? "Apply Static Mesh" : "Add Component"))
+				{
+					UActorComponent* AddedComponent = nullptr;
+					if (bAddingStaticMesh)
+					{
+						if (UStaticMeshComponent* StaticMesh = FindStaticMeshComponent(SelectedActor))
+						{
+							StaticMesh->SetStaticMesh(SelectedMeshKey);
+							AddedComponent = StaticMesh;
+						}
+						else
+						{
+							AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
+							if (AddedComponent != nullptr)
+							{
+								static_cast<UStaticMeshComponent*>(AddedComponent)->SetStaticMesh(SelectedMeshKey);
+							}
+						}
+					}
+					else
+					{
+						AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
+					}
+
+					if (AddedComponent != nullptr && AddedComponent->IsA(UPrimitiveComponent::GetClass()))
+					{
+						EnsurePrimitiveWidget(SelectedActor);
+					}
+					if (AddedComponent != nullptr && AddedComponent->IsA(USceneComponent::GetClass()))
+					{
+						Editor->SetSelectedSceneComponent(static_cast<USceneComponent*>(AddedComponent));
+					}
+				}
+			}
+
+			if (SelectedComponent != nullptr && SelectedComponent->GetOwner() == SelectedActor)
+			{
+				if (ImGui::Button("Remove Selected Component"))
+				{
+					RemoveSelectedComponent();
+				}
+				ImGui::SameLine();
+			}
+			if (ImGui::Button("Delete Actor"))
+			{
+				DeleteSelectedActor();
+			}
+			ImGui::Separator();
+
+			if (SelectedComponent != nullptr)
+			{
 			ImGui::PushItemWidth(ButtonWidth);
 			ImGui::DragFloat("##translationX", &Translation.X, SnapSize);
 			DrawItemBottomLine(IM_COL32(255, 40, 40, 255), 2.0f);
@@ -218,10 +355,10 @@ void UPropertyWindow::Render(float DeltaTime)
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
 			ImGui::Checkbox("Scale Lock", &bScaleLock);
-            if (SelectedComponent->IsA(UFlameComponent::GetClass()) &&
+            if (SelectedComponent->IsA(UFlipbookComponent::GetClass()) &&
                 ImGui::CollapsingHeader("SubUV", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                auto* Flame = static_cast<UFlameComponent*>(SelectedComponent);
+                auto* Flame = static_cast<UFlipbookComponent*>(SelectedComponent);
                 int Grid[2] = { Flame->GetColumns(), Flame->GetRows() };
                 if (ImGui::InputInt2("Columns / Rows", Grid))
                     Flame->SetAtlasGrid(Grid[0], Grid[1]);
@@ -253,9 +390,6 @@ void UPropertyWindow::Render(float DeltaTime)
                     Flame->SetPlaying(false);
                 }
             }
-			if (ImGui::Button("Delete"))
-			{
-				DeleteSelected();
 			}
 		}
 		ImGui::End();

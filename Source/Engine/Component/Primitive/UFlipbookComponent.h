@@ -6,10 +6,10 @@
 
 class UCameraComponent;
 
-class UFlameComponent : public UPrimitiveComponent
+class UFlipbookComponent : public UPrimitiveComponent
 {
 
-	UCLASS(UFlameComponent, "Flame", UPrimitiveComponent)
+	UCLASS(UFlipbookComponent, "Flame", UPrimitiveComponent)
 
 public:
     virtual void Initialize() override;
