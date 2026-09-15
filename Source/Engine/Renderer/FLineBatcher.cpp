@@ -152,8 +152,6 @@ void FLineBatcher::AddGrid(FGrid Grid, FVector CameraPos)
 				{ MaxX, Y, 0.0f, GridColor.X, GridColor.Y, GridColor.Z, Alpha });
 		}
 	}
-
-
 }
 
 bool FLineBatcher::Build()
