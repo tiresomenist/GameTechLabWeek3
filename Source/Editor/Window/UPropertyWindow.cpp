@@ -17,21 +17,6 @@
 
 namespace
 {
-	UStaticMeshComponent* FindStaticMeshComponent(AActor* Actor)
-	{
-		if (Actor == nullptr) return nullptr;
-
-		for (UActorComponent* Component : Actor->GetComponents())
-		{
-			if (Component->IsA(UStaticMeshComponent::GetClass()))
-			{
-				return static_cast<UStaticMeshComponent*>(Component);
-			}
-		}
-
-		return nullptr;
-	}
-
 	void EnsurePrimitiveWidget(AActor* Actor)
 	{
 		for (UActorComponent* Component : Actor->GetComponents())
@@ -242,29 +227,12 @@ void UPropertyWindow::Render(float DeltaTime)
 					ImGui::EndCombo();
 				}
 
-				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
-					? "Apply Static Mesh##Action" : "Add Component##Action"))
+				if (ImGui::Button("Add Component##Action"))
 				{
-					UActorComponent* AddedComponent = nullptr;
-					if (bAddingStaticMesh)
+					UActorComponent* AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
+					if (bAddingStaticMesh && AddedComponent != nullptr)
 					{
-						if (UStaticMeshComponent* StaticMesh = FindStaticMeshComponent(SelectedActor))
-						{
-							StaticMesh->SetStaticMesh(SelectedMeshKey);
-							AddedComponent = StaticMesh;
-						}
-						else
-						{
-							AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
-							if (AddedComponent != nullptr)
-							{
-								static_cast<UStaticMeshComponent*>(AddedComponent)->SetStaticMesh(SelectedMeshKey);
-							}
-						}
-					}
-					else
-					{
-						AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
+						static_cast<UStaticMeshComponent*>(AddedComponent)->SetStaticMesh(SelectedMeshKey);
 					}
 
 					if (AddedComponent != nullptr && AddedComponent->IsA(UPrimitiveComponent::GetClass()))
@@ -412,6 +380,20 @@ void UPropertyWindow::Render(float DeltaTime)
 					ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					auto* MeshComp = static_cast<UStaticMeshComponent*>(SelectedComponent);
+					if (ImGui::BeginCombo("Mesh Key", MeshComp->GetStaticMeshKey().c_str()))
+					{
+						for (const FString& MeshKey : SpawnableMeshKeys)
+						{
+							const bool bSelected = MeshComp->GetStaticMeshKey() == MeshKey;
+							if (ImGui::Selectable(MeshKey.c_str(), bSelected))
+							{
+								MeshComp->SetStaticMesh(MeshKey);
+							}
+							if (bSelected) ImGui::SetItemDefaultFocus();
+						}
+						ImGui::EndCombo();
+					}
+
 					std::string CurrentTexPath = MeshComp->GetMaterialPath().c_str();
 
 					if (ImGui::InputText("Texture Path", &CurrentTexPath, ImGuiInputTextFlags_EnterReturnsTrue))
