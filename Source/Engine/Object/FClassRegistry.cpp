@@ -18,7 +18,7 @@
 
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
 #include "Engine/Component/Primitive/UTextComponent.h"
-#include "Engine/Component/Primitive/UFlameComponent.h"
+#include "Engine/Component/Primitive/UFlipbookComponent.h"
 
 #include <cassert>
 #include <format>

@@ -24,7 +24,7 @@
 #include "Editor/Picker/FGizmoPicker.h"
 #include "Engine/Component/UWidgetComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
-#include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/Primitive/UPrimitiveComponent.h"
 
 #include "Engine/Scene/GSceneManager.h"
 
@@ -398,7 +398,7 @@ void FEditor::ReleaseGrids()
 	Grids.Empty();
 }
 
-void FEditor::SpawnPrimitive(const FString& MeshKey, int Count)
+void FEditor::SpawnStaticMesh(const FString& MeshKey, int Count)
 {
 	UScene* CurrentScene = GetCurrentScene();
 
@@ -410,6 +410,27 @@ void FEditor::SpawnPrimitive(const FString& MeshKey, int Count)
 
 		StaticMesh->SetStaticMesh(MeshKey);
 		Actor->CreateComponent(UWidgetComponent::GetClass());
+	}
+}
+
+void FEditor::SpawnComponent(FClassType* ComponentClass, int Count)
+{
+    if (ComponentClass == nullptr || !ComponentClass->IsA(UActorComponent::GetClass()))
+    {
+        return;
+    }
+
+	UScene* CurrentScene = GetCurrentScene();
+
+	for (int i = 0; i < Count; ++i)
+	{
+		AActor* Actor = CurrentScene->SpawnActor<AActor*>(AActor::GetClass());
+		UActorComponent* Component = Actor->CreateComponent(ComponentClass);
+
+		if (Component != nullptr && Component->IsA(UPrimitiveComponent::GetClass()))
+		{
+			Actor->CreateComponent(UWidgetComponent::GetClass());
+		}
 	}
 }
 

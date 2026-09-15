@@ -11,6 +11,7 @@
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/Primitive/UFlipbookComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
 
@@ -97,9 +98,12 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
             TypeName == "Pepe" || TypeName == "Octopus" ||
             TypeName == "ArrowRed" || TypeName == "ArrowGreen" ||
             TypeName == "ArrowBlue";
+        const bool bLegacyFlipbook = TypeName == "Flame";
         FClassType* Type = bLegacyStaticMesh
             ? UStaticMeshComponent::GetClass()
-            : FClassRegistry::FindClassType(TypeName);
+            : bLegacyFlipbook
+                ? UFlipbookComponent::GetClass()
+                : FClassRegistry::FindClassType(TypeName);
 
         uint32 UUID = Item.GetUInt32("UUID");
         AActor* Actor = nullptr;

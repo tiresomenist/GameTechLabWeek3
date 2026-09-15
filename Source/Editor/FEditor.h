@@ -62,7 +62,8 @@ public:
 
 	void Release();
 
-	void SpawnPrimitive(const FString& MeshKey, int Count);
+	void SpawnStaticMesh(const FString& MeshKey, int Count);
+	void SpawnComponent(FClassType* ComponentClass, int Count);
 
 	void NewScene();
 	void LoadScene(FStringView SceneName);

@@ -9,6 +9,8 @@
 #include "Engine/GEngine.h"
 #include "Core/Container/TArray.h"
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/Component/Primitive/UFlipbookComponent.h"
+#include "Engine/Component/Primitive/UTextComponent.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -19,9 +21,14 @@
 #include "Engine/Renderer/FViewSettings.h"
 #include "Engine/Scene/GSceneManager.h"
 
-void USceneWindow::SpawnPrimitive() 
+void USceneWindow::SpawnStaticMesh()
 {
-	Editor->SpawnPrimitive(SelectedMeshKey, NumberOfSpawn);
+	Editor->SpawnStaticMesh(SelectedMeshKey, NumberOfSpawn);
+}
+
+void USceneWindow::SpawnSpecialComponent()
+{
+	Editor->SpawnComponent(SelectedSpecialComponentClass, NumberOfSpawn);
 }
 
 void USceneWindow::NewScene()
@@ -39,6 +46,11 @@ void USceneWindow::LoadScene()
 void USceneWindow::Initialize(FEditor* Editor)
 {
 	UEditorWindow::Initialize(Editor);
+
+	SpecialComponentClasses.Add(UTextComponent::GetClass());
+	SpecialComponentClasses.Add(UFlipbookComponent::GetClass());
+
+	SelectedSpecialComponentClass = *SpecialComponentClasses.begin();
 
 	SpawnableMeshKeys.Add(FString("Sphere"));
 	SpawnableMeshKeys.Add(FString("Cube"));
@@ -115,7 +127,7 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Separator();
 
 		ImGui::PushItemWidth(WideItemWidth);
-		if (ImGui::BeginCombo("Primitive", SelectedMeshKey.c_str(), ImGuiComboFlags_HeightSmall))
+		if (ImGui::BeginCombo("Static Mesh", SelectedMeshKey.c_str(), ImGuiComboFlags_HeightSmall))
 		{
 			for (const FString& MeshKey : SpawnableMeshKeys)
 			{
@@ -134,9 +146,9 @@ void USceneWindow::Render(float DeltaTime)
 			ImGui::EndCombo();
 		}
 		ImGui::PopItemWidth();
-		if (ImGui::Button("Spawn"))
+		if (ImGui::Button("Spawn Static Mesh"))
 		{
-			SpawnPrimitive();
+			SpawnStaticMesh();
 		}
 		ImGui::SameLine();
 		ImGui::PushItemWidth(200);
@@ -149,6 +161,32 @@ void USceneWindow::Render(float DeltaTime)
 			NumberOfSpawn = std::clamp(NumberOfSpawn, 1u, 20u);
 		}
 		ImGui::PopItemWidth();
+
+		ImGui::PushItemWidth(WideItemWidth);
+		if (ImGui::BeginCombo(
+			"Special Component",
+			SelectedSpecialComponentClass->Name.c_str(),
+			ImGuiComboFlags_HeightSmall))
+		{
+			for (FClassType* ComponentClass : SpecialComponentClasses)
+			{
+				const bool bSelected = SelectedSpecialComponentClass == ComponentClass;
+				if (ImGui::Selectable(ComponentClass->Name.c_str(), bSelected))
+				{
+					SelectedSpecialComponentClass = ComponentClass;
+				}
+				if (bSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
+		if (ImGui::Button("Spawn Special Component"))
+		{
+			SpawnSpecialComponent();
+		}
 		ImGui::Separator();
 		ImGui::PushItemWidth(WideItemWidth);
 
