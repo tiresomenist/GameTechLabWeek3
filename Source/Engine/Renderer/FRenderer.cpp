@@ -55,6 +55,7 @@ void FRenderer::Create(HWND HWnd, GDevice* InDevice)
 	if (!ImGui::CreateContext()) throw std::runtime_error("ImGui context failed");
 	bImGuiContextCreated = true;
 	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.Fonts->AddFontFromFileTTF("Assets/Fonts/Pretendard-Regular.ttf", 16.0f);
 
 	// Setup Platform/Renderer backends
