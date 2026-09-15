@@ -45,7 +45,8 @@ public:
 		const D3D11_INPUT_ELEMENT_DESC* Layout,
 		UINT LayoutCount
 	);
-
+	void RegisterDefaultPrimitives(GDevice* InDevice);
+	void RegisterTexturePrimitives(GDevice* InDevice);
 private:
 	GResourceManager() = default;
 	~GResourceManager() = default;

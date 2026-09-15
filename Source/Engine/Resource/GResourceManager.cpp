@@ -46,44 +46,8 @@ void GResourceManager::Initialize(GDevice* InDevice)
     Device = InDevice;
 	if (!Device || !Device->GetDevice() || !DefaultFont.Build(Device->GetDevice(), "Assets/Fonts/Pretendard-Regular.ttf", 24.0f))
 		throw std::runtime_error("Default font atlas build failed");
-    if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateTexturedMesh("Flame", flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
-    if (!CreateMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowBlue", arrow_blue_vertices, arrow_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveRed", move_red_vertices, move_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveGreen", move_green_vertices, move_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveBlue", move_blue_vertices, move_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleRed", scale_red_vertices, scale_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleGreen", scale_green_vertices, scale_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleBlue", scale_blue_vertices, scale_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
-
-    TArray<FVertexTexture> CubeVertices;
-    TArray<uint32> CubeIndices;
-    FGeometryGenerator::CreateCube(2.0f, 2.0f, 2.0f, CubeVertices, CubeIndices);
-
-    if (!CreateTexturedMesh("TexturedCube", CubeVertices, CubeIndices))
-    {
-        throw std::runtime_error("TexturedCube mesh creation failed");
-    }
-
-    TArray<FVertexTexture> SphereVertices;
-    TArray<uint32> SphereIndices;
-    FGeometryGenerator::CreateSphere(1.0f, 64, 32, SphereVertices, SphereIndices);
-
-    if (!CreateTexturedMesh("TexturedSphere", SphereVertices, SphereIndices))
-    {
-        throw std::runtime_error("TexturedCube mesh creation failed");
-    }
+    RegisterDefaultPrimitives(InDevice);
+    RegisterTexturePrimitives(InDevice);
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
@@ -286,4 +250,51 @@ FTextureResource* GResourceManager::GetOrLoadTexture(const FString& FilePath)
 FShaderResource* GResourceManager::GetShader(const std::wstring& FilePath, const std::string& VSEntry, const std::string& PSEntry, const D3D11_INPUT_ELEMENT_DESC* Layout, UINT LayoutCount)
 {
 	return nullptr;
+}
+
+void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
+{
+    //if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
+    //if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateTexturedMesh("Flame", flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
+    if (!CreateMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ArrowBlue", arrow_blue_vertices, arrow_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("MoveRed", move_red_vertices, move_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("MoveGreen", move_green_vertices, move_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("MoveBlue", move_blue_vertices, move_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ScaleRed", scale_red_vertices, scale_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ScaleGreen", scale_green_vertices, scale_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("ScaleBlue", scale_blue_vertices, scale_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
+}
+
+
+void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
+{
+    TArray<FVertexTexture> CubeVertices;
+    TArray<uint32> CubeIndices;
+    FGeometryGenerator::CreateCube(2.0f, 2.0f, 2.0f, CubeVertices, CubeIndices);
+
+    if (!CreateTexturedMesh("Cube", CubeVertices, CubeIndices))
+    {
+        throw std::runtime_error("TexturedCube mesh creation failed");
+    }
+
+    TArray<FVertexTexture> SphereVertices;
+    TArray<uint32> SphereIndices;
+    // 반지름, 세로로 자르는 개수, 가로로 자르는 개수
+    FGeometryGenerator::CreateSphere(1.0f, 64, 32, SphereVertices, SphereIndices);
+
+    if (!CreateTexturedMesh("Sphere", SphereVertices, SphereIndices))
+    {
+        throw std::runtime_error("TexturedCube mesh creation failed");
+    }
 }

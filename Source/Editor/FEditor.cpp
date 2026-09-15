@@ -411,7 +411,7 @@ void FEditor::SpawnStaticMesh(const FString& MeshKey, int Count)
 			Actor->CreateComponent(UStaticMeshComponent::GetClass()));
 
 		StaticMesh->SetStaticMesh(MeshKey);
-		if (MeshKey == "TexturedCube" || MeshKey == "TexturedSphere")
+		if (MeshKey == "Cube" || MeshKey == "Sphere")
 		{
 			StaticMesh->SetMaterial("Assets/Textures/DefaultMaterial.png");
 		}
