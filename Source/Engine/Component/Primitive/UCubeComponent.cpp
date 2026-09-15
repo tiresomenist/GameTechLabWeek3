@@ -6,7 +6,7 @@
 void UCubeComponent::Initialize()
 {
 	Super::Initialize();
-	Texture = GResourceManager::GetInstance()->GetOrLoadTexture("Assets/Textures/FlameTexture.png");
+	Texture = GResourceManager::GetInstance()->GetOrLoadTexture("Assets/Textures/Earth.png");
 }
 
 void UCubeComponent::SetTexture(const FString& FilePath)

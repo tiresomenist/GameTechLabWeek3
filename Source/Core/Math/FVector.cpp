@@ -122,6 +122,21 @@ FVector::FVector(const FVector4& InVector4):X(InVector4.X), Y(InVector4.Y), Z(In
 {
 }
 
+float& FVector::operator[](int32 Index)
+{
+	if (Index == 0) return X;
+	if (Index == 1) return Y;
+	if (Index == 2) return Z;
+	return X;
+}
+const float& FVector::operator[](int32 Index) const
+{
+	if (Index == 0) return X;
+	if (Index == 1) return Y;
+	if (Index == 2) return Z;
+	return X;
+}
+
 float FVector4::Dot(const FVector4& Other)const
 {
 	return X * Other.X + Y * Other.Y + Z * Other.Z + W * Other.W;
