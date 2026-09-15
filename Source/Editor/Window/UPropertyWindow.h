@@ -15,15 +15,16 @@ private:
 	FVector Translation;
 	FVector RotationDegree;
 	FVector OScale;
-	FQuaternion RotationDragStart;
-	float RotationDragStartDegree = 0.0f;
-	float RotationDegreeAtDragStart = 0.0f;
-	int RotationDragAxis = -1;
+
+	FQuaternion LastSyncedRotation;
 	bool bEditingRotation = false;
 	float SnapSize = 0.001f;
 	int SelectedSnapIndex = 0;
 	TArray<float> SnapSizeList = {0.001f, 0.01f, 0.1f, 1.0f, 5.0f};
 	bool bScaleLock = false;
+
+	bool bHasSyncedRotation = false;
+
 public:
 
 	void GetSelectedValue();

@@ -77,7 +77,7 @@ void USceneWindow::Render(float DeltaTime)
 		// 일반 ToEuler() 대신 시선 방향에서 Pitch/Yaw를 직접 구해야
 		// CameraController의 월드 Yaw + 로컬 Pitch 회전 방식과 값이 일치한다.
 		CameraRotationDegree.X = 0.0f;
-		CameraRotationDegree.Y = std::atan2(-Forward.Z, HorizontalLength) * (180.0f / PI);
+		CameraRotationDegree.Y = std::atan2(Forward.Z, HorizontalLength) * (180.0f / PI);
 		CameraRotationDegree.Z = std::atan2(Forward.Y, Forward.X) * (180.0f / PI);
 	}
 	FOV = Editor->GetCameraFOV();
@@ -297,7 +297,7 @@ void USceneWindow::Render(float DeltaTime)
 			const FQuaternion YawRotation =
 				FQuaternion::FromAxisAngle(FVector(0.0f, 0.0f, 1.0f), YawRadian);
 			const FQuaternion PitchRotation =
-				FQuaternion::FromAxisAngle(FVector(0.0f, 1.0f, 0.0f), PitchRadian);
+				FQuaternion::FromAxisAngle(FVector(0.0f, 1.0f, 0.0f), -PitchRadian);
 
 			// CameraController와 동일하게 월드 Z축 Yaw를 먼저 구성하고,
 			// 카메라의 로컬 Y축 Pitch가 되도록 오른쪽에 곱한다.
