@@ -26,20 +26,17 @@ void UOutlinerWindow::Render(float DeltaTime)
 
 			if (ImGui::Selectable(Label.c_str(), SelectedActor == Actor))
 			{
-				Editor->SetSelectedActor(Actor);
+				if (USceneComponent* Root = Actor->GetRootComponent())
+				{
+					Editor->SetSelectedSceneComponent(Root);
+				}
+				else
+				{
+					// 빈 Actor: 선택은 되지만 움직일 Transform이 없으므로 기즈모 없음
+					Editor->SetSelectedActor(Actor);
+				}
 			}
 		});
 
-	Scene->ForEachPrimitive([&](UPrimitiveComponent* Component) -> void
-		{
-			USceneComponent* SC = static_cast<USceneComponent*>(Component);
-			const FString& Name = SC->GetName().ToString();
-			bool bSelected = SelectedComponent == SC;
-			if (ImGui::Selectable(Name.c_str(), bSelected))
-			{
-				SelectedComponent = SC;
-				Editor->SetSelectedSceneComponent(SelectedComponent);
-			}
-		});
 	ImGui::End();
 }
