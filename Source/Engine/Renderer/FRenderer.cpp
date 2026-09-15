@@ -984,7 +984,7 @@ void FRenderer::RenderOutline(const FPrimitiveRenderData& Data)
 {
 	UINT Offset = 0;
 	// 두 레이아웃 모두 POSITION(0), COLOR(12) 배치라 VS_Highlight와 호환됨
-	DeviceContext->IASetInputLayout(Data.Pipeline == EPrimitivePipeline::Texture ? TextureInputLayout : SimpleInputLayout);
+	DeviceContext->IASetInputLayout(SimpleInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
 	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	DeviceContext->IASetPrimitiveTopology(Data.Topology);

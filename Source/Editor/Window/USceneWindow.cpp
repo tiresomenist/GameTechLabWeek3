@@ -22,6 +22,8 @@
 #include "Engine/Scene/GSceneManager.h"
 #include "Core/Util/File.h"
 
+#include "SolarSystem.h"
+
 void USceneWindow::SpawnStaticMesh()
 {
 	Editor->SpawnStaticMesh(SelectedMeshKey, NumberOfSpawn);
@@ -343,6 +345,11 @@ void USceneWindow::Render(float DeltaTime)
 		bEditingCameraRotation = bRotationActive;
 		ImGui::PopItemWidth();
 		//ImGui::PopStyleVar();
+
+		if (ImGui::Button("SpawnSolarSystem"))
+		{
+			SpawnSolarSystem(Editor->GetCurrentScene());
+		}
 	}
 	Editor->SetCameraLocation(CameraLocation);
 	ImGui::End();
