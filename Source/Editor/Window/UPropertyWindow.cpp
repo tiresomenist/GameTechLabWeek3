@@ -209,7 +209,7 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 			}
 
-			if (ImGui::CollapsingHeader("Add Component", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader("Add Component##Section", ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				if (ImGui::BeginCombo("Component Type", SelectedAddComponentClass->Name.c_str()))
 				{
@@ -243,7 +243,7 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 
 				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
-					? "Apply Static Mesh" : "Add Component"))
+					? "Apply Static Mesh##Action" : "Add Component##Action"))
 				{
 					UActorComponent* AddedComponent = nullptr;
 					if (bAddingStaticMesh)
