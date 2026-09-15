@@ -27,6 +27,7 @@
 #include "Engine/Resource/MeshData/Grid.h"
 #include "Core/Math/FVector.h"
 #include "Engine/Resource/FTextureResource.h"
+#include "FGeometryGenerator.h"
 
 #include <memory>
 #include <limits>
@@ -65,6 +66,24 @@ void GResourceManager::Initialize(GDevice* InDevice)
     if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
+
+    TArray<FVertexTexture> CubeVertices;
+    TArray<uint32> CubeIndices;
+    FGeometryGenerator::CreateCube(2.0f, 2.0f, 2.0f, CubeVertices, CubeIndices);
+
+    if (!CreateTexturedMesh("TexturedCube", CubeVertices, CubeIndices))
+    {
+        throw std::runtime_error("TexturedCube mesh creation failed");
+    }
+
+    TArray<FVertexTexture> SphereVertices;
+    TArray<uint32> SphereIndices;
+    FGeometryGenerator::CreateSphere(1.0f, 64, 32, SphereVertices, SphereIndices);
+
+    if (!CreateTexturedMesh("TexturedSphere", SphereVertices, SphereIndices))
+    {
+        throw std::runtime_error("TexturedCube mesh creation failed");
+    }
 }
 
 FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
