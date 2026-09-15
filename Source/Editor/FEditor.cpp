@@ -8,6 +8,7 @@
 #include "Editor/Window/UConsoleWindow.h"
 #include "Editor/Window/UPropertyWindow.h"
 #include "Editor/Window/USceneWindow.h"
+#include "Editor/Window/UOutlinerWindow.h"
 
 #include "Editor/Gizmo/UObjectAxisGizmo.h"
 #include "Editor/Gizmo/UWorldAxisGizmo.h"
@@ -269,6 +270,7 @@ void FEditor::InitializeWindows()
 	RegisterWindow(UConsoleWindow::GetClass());
 	RegisterWindow(UPropertyWindow::GetClass());
 	RegisterWindow(USceneWindow::GetClass());
+	RegisterWindow(UOutlinerWindow::GetClass());
 }
 
 void FEditor::InitializeGrids()
