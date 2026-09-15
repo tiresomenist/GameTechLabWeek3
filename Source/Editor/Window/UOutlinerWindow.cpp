@@ -10,7 +10,7 @@ void UOutlinerWindow::Initialize(FEditor* InEditor)
 
 void UOutlinerWindow::Render(float DeltaTime)
 {
-	SelectedComponent = Editor->GetSelectedSceneComponent();
+	AActor* SelectedActor = Editor->GetSelectedActor();
 	ImGui::Begin("Outliner");
 
 	UScene* Scene = Editor->GetCurrentScene();
@@ -19,6 +19,16 @@ void UOutlinerWindow::Render(float DeltaTime)
 		ImGui::End();
 		return;
 	}
+
+	Scene->ForEachActor([&](AActor* Actor)
+		{
+			const FString Label = std::format("{}##{}", Actor->GetName().ToString(), Actor->GetUUID());
+
+			if (ImGui::Selectable(Label.c_str(), SelectedActor == Actor))
+			{
+				Editor->SetSelectedActor(Actor);
+			}
+		});
 
 	Scene->ForEachPrimitive([&](UPrimitiveComponent* Component) -> void
 		{
