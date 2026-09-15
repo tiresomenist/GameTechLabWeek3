@@ -47,12 +47,12 @@ FVector UCameraComponent::GetUp() const
 
 void UCameraComponent::RemoveRoll()
 {
-    SetRelativeRotation(RelativeRotation.GetWithoutRoll());
+    SetRelativeRotation(GetRelativeRotation().GetWithoutRoll());
 }
 
 void UCameraComponent::ConstrainEditorRotation()
 {
-    SetRelativeRotation(RelativeRotation.GetUprightCameraRotation());
+    SetRelativeRotation(GetRelativeRotation().GetUprightCameraRotation());
 }
 
 FMatrix UCameraComponent::GetViewMatrix() const
@@ -235,5 +235,5 @@ void UCameraComponent::MoveCamera(const float& InForward, const float& InRight, 
 
 FMatrix UCameraComponent::GetCameraRotationMatrix() const
 {
-    return RelativeRotation.ToRotationMatrix();
+    return  GetRelativeRotation().ToRotationMatrix();
 }

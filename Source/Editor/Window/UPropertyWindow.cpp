@@ -6,54 +6,86 @@
 #include "Editor/FEditor.h"
 #include "Core/Math/FQuaternion.h"
 #include "Engine/Component/Primitive/UFlameComponent.h"
+#include <algorithm>
+#include <cmath>
+namespace
+{
+	//bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right)
+	//{
+	//	FQuaternion A = Left;
+	//	FQuaternion B = Right;
+	//
+	//	A.Normalize();
+	//	B.Normalize();
+	//
+	//	const auto Square = [](double Value){return Value * Value;};
+	//
+	//	// 같은 부호로 표현된 쿼터니언의 차이 계산함
+	//	const double SameSignDistance =
+	//		Square(static_cast<double>(A.X) - B.X) +
+	//		Square(static_cast<double>(A.Y) - B.Y) +
+	//		Square(static_cast<double>(A.Z) - B.Z) +
+	//		Square(static_cast<double>(A.W) - B.W);
+	//
+	//	// Q와 -Q가 같은 자세인 경우까지 비교함
+	//	const double OppositeSignDistance =
+	//		Square(static_cast<double>(A.X) + B.X) +
+	//		Square(static_cast<double>(A.Y) + B.Y) +
+	//		Square(static_cast<double>(A.Z) + B.Z) +
+	//		Square(static_cast<double>(A.W) + B.W);
+	//
+	//	// 정규화된 쿼터니언 성분 차이의 제곱 허용치
+	//	constexpr double ToleranceSquared = 1.0e-12;
+	//
+	//	return (std::min)(SameSignDistance,	OppositeSignDistance) <= ToleranceSquared;
+	//}
+}
 
 void UPropertyWindow::GetSelectedValue()
 {
 	USceneComponent* NewComponent = Editor->GetSelectedSceneComponent();
-
-
 	if (SelectedComponent != NewComponent)
 	{
 		SelectedComponent = NewComponent;
 		bEditingRotation = false;
 	}
 
-	if (SelectedComponent != nullptr)
+	if (!SelectedComponent)
 	{
-		Translation = SelectedComponent->GetRelativeLocation();
-		if (!bEditingRotation)
-		{
-			const FQuaternion& Quaternion = SelectedComponent->GetRelativeRotation();
-			RotationDegree = FQuaternion::ToEuler(Quaternion) * (180.0f / PI);
-		}
-		OScale = SelectedComponent->GetRelativeScale3D();
+		bEditingRotation = false;
+		return;
+	}
+	Translation = SelectedComponent->GetRelativeLocation();
+	OScale = SelectedComponent->GetRelativeScale3D();
+	// 입력 중에는 창의 임시 값을 유지함
+	if (!bEditingRotation)
+	{
+		RotationDegree = SelectedComponent->GetRelativeRotator();
 	}
 }
 
 void UPropertyWindow::SetSelectedValue(bool bSetRotation)
 {
-	if (SelectedComponent != nullptr)
+	if (!SelectedComponent) return;
+	SelectedComponent->SetRelativeLocation(Translation);
+	if (bSetRotation)
 	{
-		SelectedComponent->SetRelativeLocation(Translation);
-
-		if (bSetRotation)
-		{
-			const FVector EulerRadians = RotationDegree * (PI / 180.0f);
-
-			SelectedComponent->SetRelativeRotation(
-				FQuaternion::FromEuler(EulerRadians)
-			);
-		}
-
-		SelectedComponent->SetRelativeScale3D(OScale);
+		SelectedComponent->SetRelativeRotation(RotationDegree);
 	}
+	SelectedComponent->SetRelativeScale3D(OScale);
 }
 
 bool UPropertyWindow::DrawRotationField(const char* ID, float& Degree, bool& bRotationActive)
 {
+	const float PreviousDegree = Degree;
 	const bool bChanged = ImGui::DragFloat(ID,&Degree,0.1f,0.0f,0.0f,"%.3f");
 
 	bRotationActive |= ImGui::IsItemActive();
+	if (bChanged && !std::isfinite(Degree))
+	{
+		Degree = PreviousDegree;
+		return false;
+	}
 	return bChanged;
 }
 
@@ -62,6 +94,7 @@ void UPropertyWindow::DeleteSelected()
 {
 	Editor->DeleteSelectedSceneComponent();
 	SelectedComponent = nullptr;
+	bEditingRotation = false;
 }
 
 void UPropertyWindow::Render(float DeltaTime)
@@ -101,9 +134,7 @@ void UPropertyWindow::Render(float DeltaTime)
 	GetSelectedValue();
 	bool bRotationChanged = false;
 	bool bRotationActive = false;
-	bool bRotationFinished = false;
-	float PreviousDegree = RotationDegree.X;
-
+	
 	if (SelectedComponent != nullptr)
 	{
 		ImGui::Begin("Property Window");
@@ -119,14 +150,13 @@ void UPropertyWindow::Render(float DeltaTime)
 			DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
 			ImGui::SameLine();
 			ImGui::Text("Translation");
-			constexpr ImGuiSliderFlags RotationFlags = ImGuiSliderFlags_WrapAround | ImGuiSliderFlags_AlwaysClamp;
-			bRotationChanged |= DrawRotationField("##rotationR", RotationDegree.X, bRotationActive);
+			bRotationChanged |= DrawRotationField("##rotationR", RotationDegree.Roll, bRotationActive);
 			DrawItemBottomLine(IM_COL32(255, 40, 40, 255), 2.0f);
 			ImGui::SameLine();
-			bRotationChanged |= DrawRotationField("##rotationP", RotationDegree.Y, bRotationActive);
+			bRotationChanged |= DrawRotationField("##rotationP", RotationDegree.Pitch, bRotationActive);
 			DrawItemBottomLine(IM_COL32(40, 255, 40, 255), 2.0f);
 			ImGui::SameLine();
-			bRotationChanged |= DrawRotationField("##rotationY", RotationDegree.Z, bRotationActive);
+			bRotationChanged |= DrawRotationField("##rotationY", RotationDegree.Yaw, bRotationActive);
 			DrawItemBottomLine(IM_COL32(20, 30, 255, 255), 2.0f);
 			ImGui::SameLine();
 			ImGui::Text("Rotation");
@@ -230,6 +260,6 @@ void UPropertyWindow::Render(float DeltaTime)
 		}
 		ImGui::End();
 	}
-	bEditingRotation = bRotationActive;
-	SetSelectedValue(bRotationChanged || bRotationFinished);
+	SetSelectedValue(bRotationChanged);
+	bEditingRotation = SelectedComponent != nullptr && bRotationActive;
 }
