@@ -97,8 +97,7 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
             TypeName == "Sphere" || TypeName == "Triangle" ||
             TypeName == "Pepe" || TypeName == "Octopus" ||
             TypeName == "ArrowRed" || TypeName == "ArrowGreen" ||
-            TypeName == "ArrowBlue" || TypeName == "TexturedCube" || 
-            TypeName == "TexturedSphere";
+            TypeName == "ArrowBlue";
         const bool bLegacyFlipbook = TypeName == "Flame";
         FClassType* Type = bLegacyStaticMesh
             ? UStaticMeshComponent::GetClass()
