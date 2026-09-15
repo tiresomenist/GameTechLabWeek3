@@ -5,7 +5,7 @@
 #include "ImGui/imgui.h"
 #include "Editor/FEditor.h"
 #include "Core/Math/FQuaternion.h"
-#include "Engine/Component/Primitive/UFlameComponent.h"
+#include "Engine/Component/Primitive/UFlipbookComponent.h"
 
 void UPropertyWindow::GetSelectedValue()
 {
@@ -188,10 +188,10 @@ void UPropertyWindow::Render(float DeltaTime)
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
 			ImGui::Checkbox("Scale Lock", &bScaleLock);
-            if (SelectedComponent->IsA(UFlameComponent::GetClass()) &&
+            if (SelectedComponent->IsA(UFlipbookComponent::GetClass()) &&
                 ImGui::CollapsingHeader("SubUV", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                auto* Flame = static_cast<UFlameComponent*>(SelectedComponent);
+                auto* Flame = static_cast<UFlipbookComponent*>(SelectedComponent);
                 int Grid[2] = { Flame->GetColumns(), Flame->GetRows() };
                 if (ImGui::InputInt2("Columns / Rows", Grid))
                     Flame->SetAtlasGrid(Grid[0], Grid[1]);

@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "UActor.h"
+#include "AActor.h"
 
 #include "Engine/Object/FClassType.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Component/USceneComponent.h"
 
-UActorComponent* UActor::CreateComponent(FClassType* Type, uint32 UUID)
+UActorComponent* AActor::CreateComponent(FClassType* Type, uint32 UUID)
 {
     if (Type == nullptr || !Type->IsA(UActorComponent::GetClass()))
     {
@@ -32,7 +32,7 @@ UActorComponent* UActor::CreateComponent(FClassType* Type, uint32 UUID)
     return Component;
 }
 
-bool UActor::RemoveComponent(UActorComponent* Component, bool bDestroy)
+bool AActor::RemoveComponent(UActorComponent* Component, bool bDestroy)
 {
     if (Component == nullptr || Component->GetOwner() != this)
     {
@@ -68,7 +68,7 @@ bool UActor::RemoveComponent(UActorComponent* Component, bool bDestroy)
     return true;
 }
 
-void UActor::SetRootComponent(USceneComponent* Component)
+void AActor::SetRootComponent(USceneComponent* Component)
 {
     if (Component == nullptr || Component->GetOwner() != this)
     {
@@ -78,7 +78,7 @@ void UActor::SetRootComponent(USceneComponent* Component)
     RootComponent = Component;
 }
 
-void UActor::BeginPlay()
+void AActor::BeginPlay()
 {
     if (bHasBegunPlay)
     {
@@ -92,7 +92,7 @@ void UActor::BeginPlay()
     }
 }
 
-void UActor::Tick(float DeltaTime)
+void AActor::Tick(float DeltaTime)
 {
     for (UActorComponent* Component : Components)
     {
@@ -100,7 +100,7 @@ void UActor::Tick(float DeltaTime)
     }
 }
 
-void UActor::EndPlay()
+void AActor::EndPlay()
 {
     if (!bHasBegunPlay)
     {
@@ -114,7 +114,7 @@ void UActor::EndPlay()
     bHasBegunPlay = false;
 }
 
-void UActor::ReleaseComponents()
+void AActor::ReleaseComponents()
 {
     for (UActorComponent* Component : Components)
     {
@@ -127,7 +127,7 @@ void UActor::ReleaseComponents()
     RootComponent = nullptr;
 }
 
-UActor::~UActor()
+AActor::~AActor()
 {
     EndPlay();
     ReleaseComponents();

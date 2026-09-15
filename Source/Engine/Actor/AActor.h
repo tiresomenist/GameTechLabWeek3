@@ -7,9 +7,9 @@ class USceneComponent;
 struct FClassType;
 
 // Scene에 배치되는 게임 오브젝트 단위입니다. Component의 생성과 파괴를 소유합니다.
-class UActor : public UObject
+class AActor : public UObject
 {
-    UCLASS(UActor, "Actor", UObject)
+   UCLASS(AActor, "Actor", UObject)
 
 public:
     UActorComponent* CreateComponent(FClassType* Type, uint32 UUID = -1);
@@ -24,7 +24,7 @@ public:
     virtual void Tick(float DeltaTime);
     virtual void EndPlay();
 
-    ~UActor() override;
+    ~AActor() override;
 
 private:
     void ReleaseComponents();

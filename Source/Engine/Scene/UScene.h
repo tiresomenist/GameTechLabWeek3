@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include "Core/Container/TArray.h"
-#include "Engine/Actor/UActor.h"
+#include "Engine/Actor/AActor.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Renderer/RenderUtil.h"
 #include "Engine/Scene/FSceneType.h"
@@ -40,24 +40,24 @@ public:
 	template <typename T>
 	T SpawnActor(FClassType* Type, uint32 UUID = -1)
 	{
-		if (Type == nullptr || !Type->IsA(UActor::GetClass()))
+		if (Type == nullptr || !Type->IsA(AActor::GetClass()))
 		{
 			return nullptr;
 		}
 
-		UActor* Actor = static_cast<UActor*>(FObjectFactory::ConstructSceneObject(Type, UUID));
+		AActor* Actor = static_cast<AActor*>(FObjectFactory::ConstructSceneObject(Type, UUID));
 		Actors.Add(Actor);
 		return static_cast<T>(Actor);
 	}
 
 	void Destroy(UObject* Object);
-	void DestroyActor(UActor* Actor);
+	void DestroyActor(AActor* Actor);
 
 	//외부에서 Primitive 접근 제공
 	template <typename Func>
 	void ForEachPrimitive(Func&& Function) const
 	{
-		for (UActor* Actor : Actors)
+		for (AActor* Actor : Actors)
 		{
 			for (UActorComponent* Component : Actor->GetComponents())
 			{
@@ -72,7 +72,7 @@ public:
 	template <typename Func>
 	void ForEachWidget(Func&& Function) const
 	{
-		for (UActor* Actor : Actors)
+		for (AActor* Actor : Actors)
 		{
 			for (UActorComponent* Component : Actor->GetComponents())
 			{
@@ -92,7 +92,7 @@ protected:
 	/// <summary>
 	/// Scene에 종속된 모든 Actor를 담는 멤버 변수. Component는 Actor가 소유합니다.
 	/// </summary>
-	TArray<UActor*> Actors {};
+	TArray<AActor*> Actors {};
 	
 	/// <summary>
 	/// Scene의 렌더링을 담당할 MainCamera를 담는 멤버 변수
