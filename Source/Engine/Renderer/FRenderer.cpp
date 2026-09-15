@@ -395,6 +395,34 @@ void FRenderer::CreateDepthStencilStates()
 
 	CheckHR(D3DDevice->CreateDepthStencilState(&HighlightDesc, &HighlightDepthStencilState));
 
+	// 선택 오브젝트 본체용: 깊이는 Default와 같고, 덮은 픽셀의 스텐실을 1로 기록
+	D3D11_DEPTH_STENCIL_DESC StencilWriteDesc = DSDesc;
+	StencilWriteDesc.StencilEnable = TRUE;
+	StencilWriteDesc.StencilReadMask = 0xFF;
+	StencilWriteDesc.StencilWriteMask = 0xFF;
+	StencilWriteDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	StencilWriteDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	// 가려진 부분도 마스크에 포함해야 외곽선 패스가 가려진 영역을 통째로 칠하지 않음
+	StencilWriteDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_REPLACE;
+	StencilWriteDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	StencilWriteDesc.BackFace = StencilWriteDesc.FrontFace;
+	CheckHR(D3DDevice->CreateDepthStencilState(&StencilWriteDesc, &StencilWriteDepthStencilState));
+
+	// 외곽선용: 깊이 무시(가려져도 보임), 스텐실이 1이 아닌 곳에만 그림
+	D3D11_DEPTH_STENCIL_DESC OutlineDesc = {};
+	OutlineDesc.DepthEnable = FALSE;
+	OutlineDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	OutlineDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	OutlineDesc.StencilEnable = TRUE;
+	OutlineDesc.StencilReadMask = 0xFF;
+	OutlineDesc.StencilWriteMask = 0x00;
+	OutlineDesc.FrontFace.StencilFunc = D3D11_COMPARISON_NOT_EQUAL;
+	OutlineDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	OutlineDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	OutlineDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	OutlineDesc.BackFace = OutlineDesc.FrontFace;
+	CheckHR(D3DDevice->CreateDepthStencilState(&OutlineDesc, &OutlineDepthStencilState));
+
 	D3D11_DEPTH_STENCIL_DESC Desc{};
 	Desc.DepthEnable = TRUE;
 	Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
@@ -419,6 +447,16 @@ void FRenderer::ReleaseDepthStencilStates()
 	{
 		HighlightDepthStencilState->Release();
 		HighlightDepthStencilState = nullptr;
+	}
+	if (StencilWriteDepthStencilState)
+	{
+		StencilWriteDepthStencilState->Release();
+		StencilWriteDepthStencilState = nullptr;
+	}
+	if (OutlineDepthStencilState)
+	{
+		OutlineDepthStencilState->Release();
+		OutlineDepthStencilState = nullptr;
 	}
 	if (TranslucentDepthStencilState)
 	{
@@ -629,7 +667,7 @@ void FRenderer::ReleaseTextureResources()
 	}
 }
 
-void FRenderer::RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewModeIndex InViewMode)
+void FRenderer::RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewModeIndex InViewMode, bool bWriteStencil)
 {
 	if (!Data.VertexBuffer||!Data.IndexBuffer||!Data.Material||Data.IndexCount == 0){return;}
 
@@ -667,7 +705,18 @@ void FRenderer::RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewMo
 	const bool bAdditive = Data.BlendMode == EPrimitiveBlendMode::Additive;
 	DeviceContext->OMSetBlendState(bAdditive ? AdditiveBlendState : nullptr,nullptr,0xffffffff);
 
-	DeviceContext->OMSetDepthStencilState(bAdditive ? TranslucentDepthStencilState : DefaultDepthStencilState, 0);
+	if (bAdditive)
+	{
+		DeviceContext->OMSetDepthStencilState(TranslucentDepthStencilState, 0);
+	}
+	else if (bWriteStencil)
+	{
+		DeviceContext->OMSetDepthStencilState(StencilWriteDepthStencilState, 1);
+	}
+	else
+	{
+		DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+	}
 
 	DeviceContext->DrawIndexed(Data.IndexCount,0,0);
 
@@ -712,6 +761,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	const bool bShowPrimitives = Editor->IsShowingPrimitives();
 	const EViewModeIndex ViewMode = Editor->GetViewMode();
 	TArray<const FPrimitiveRenderData*> AdditiveRenderList;
+	TArray<const FPrimitiveRenderData*> OutlineRenderList;
 	for (auto& Item : RenderList)
 	{
 		if (!Item.WorldMatrix || !Item.VertexBuffer || !Item.IndexBuffer || Item.IndexCount == 0)
@@ -728,12 +778,14 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 			{
 				FMatrix MVP = (*Item.WorldMatrix) * ViewProjMatrix;
 				UpdateTransformConstantBuffer(MVP);
-				if (Item.isSelected)
-				{
-					RenderHighlight(Item);
-				}
 
-				RenderPrimitive(Item, ViewMode);
+				// 선택된 오브젝트는 그리면서 스텐실 마스크를 기록하고, 외곽선은 나중에 그림
+				const bool bOutline = Item.isSelected && ViewMode != EViewModeIndex::VMI_Wireframe;
+				RenderPrimitive(Item, ViewMode, bOutline);
+				if (bOutline)
+				{
+					OutlineRenderList.Add(&Item);
+				}
 			}
 		}
 		if (Editor->IsShowingBoundingBoxes() || Item.isSelected)
@@ -800,6 +852,15 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 		UpdateTransformConstantBuffer(MVP);
 
 		RenderPrimitive(*Item, ViewMode);
+	}
+
+	// 외곽선: 모든 씬 오브젝트 이후, 기즈모 이전에 그림 (깊이 무시라 뒤에 그려진 물체에 덮이지 않게)
+	for (const FPrimitiveRenderData* Item : OutlineRenderList)
+	{
+		const FMatrix MVP = (*Item->WorldMatrix) * ViewProjMatrix;
+		UpdateTransformConstantBuffer(MVP);
+
+		RenderOutline(*Item);
 	}
 
 	// Render Gizmo
@@ -886,10 +947,10 @@ void FRenderer::UpdateGridConstantBuffer(const FGridConstants& GridConstants)
 	}
 }
 
-void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex InViewMode)
+void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex InViewMode, bool bWriteStencil)
 {
 	if (Data.Pipeline == EPrimitivePipeline::Texture) {
-		RenderTexturedPrimitive(Data, InViewMode);
+		RenderTexturedPrimitive(Data, InViewMode, bWriteStencil);
 		return;
 	}
 	UINT Offset = 0;
@@ -906,10 +967,42 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex
 
 	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 
-	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
-	// BindMaterial(Data.Material); 
+	if (bWriteStencil)
+	{
+		DeviceContext->OMSetDepthStencilState(StencilWriteDepthStencilState, 1);
+	}
+	else
+	{
+		DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
+	}
+	// BindMaterial(Data.Material);
 
 	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+}
+
+void FRenderer::RenderOutline(const FPrimitiveRenderData& Data)
+{
+	UINT Offset = 0;
+	// 두 레이아웃 모두 POSITION(0), COLOR(12) 배치라 VS_Highlight와 호환됨
+	DeviceContext->IASetInputLayout(Data.Pipeline == EPrimitivePipeline::Texture ? TextureInputLayout : SimpleInputLayout);
+	DeviceContext->IASetVertexBuffers(0, 1, &Data.VertexBuffer, &Data.Stride, &Offset);
+	DeviceContext->IASetIndexBuffer(Data.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	DeviceContext->IASetPrimitiveTopology(Data.Topology);
+
+	DeviceContext->VSSetShader(HighlightVertexShader, nullptr, 0);
+	DeviceContext->VSSetConstantBuffers(0, 1, &TransformConstantBuffer);
+
+	// 안쪽은 스텐실이 가려주므로 컬링 불필요 (Plane처럼 한 면짜리도 처리)
+	DeviceContext->RSSetState(CullNoneRasterizerState);
+
+	DeviceContext->PSSetShader(HighlightPixelShader, nullptr, 0);
+
+	DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+	DeviceContext->OMSetDepthStencilState(OutlineDepthStencilState, 1);
+
+	DeviceContext->DrawIndexed(Data.IndexCount, 0, 0);
+
+	DeviceContext->OMSetDepthStencilState(DefaultDepthStencilState, 0);
 }
 
 void FRenderer::RenderHighlight(const FPrimitiveRenderData& Data)
