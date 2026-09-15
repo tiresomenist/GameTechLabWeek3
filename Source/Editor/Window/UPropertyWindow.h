@@ -5,6 +5,7 @@
 #include "Core/Container/FString.h"
 
 class USceneComponent;
+struct FClassType;
 
 class UPropertyWindow : public UEditorWindow
 {
@@ -24,11 +25,17 @@ private:
 	int SelectedSnapIndex = 0;
 	TArray<float> SnapSizeList = {0.001f, 0.01f, 0.1f, 1.0f, 5.0f};
 	bool bScaleLock = false;
+	TArray<FClassType*> AddableComponentClasses;
+	FClassType* SelectedAddComponentClass = nullptr;
+	TArray<FString> SpawnableMeshKeys;
+	FString SelectedMeshKey;
 public:
+	virtual void Initialize(FEditor* InEditor) override;
 
 	void GetSelectedValue();
 	void SetSelectedValue(bool bSetRotation);
-	void DeleteSelected();
+	void RemoveSelectedComponent();
+	void DeleteSelectedActor();
 
 	bool DrawRotationField(const char* ID, float& Degree, bool& bRotationActive);
 

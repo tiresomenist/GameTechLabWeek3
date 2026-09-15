@@ -33,6 +33,7 @@ private:
 public:
 	void SpawnStaticMesh();
 	void SpawnSpecialComponent();
+	void SpawnEmptyActor();
 	void NewScene();
 	void SaveScene();
 	void LoadScene();

@@ -31,6 +31,11 @@ void USceneWindow::SpawnSpecialComponent()
 	Editor->SpawnComponent(SelectedSpecialComponentClass, NumberOfSpawn);
 }
 
+void USceneWindow::SpawnEmptyActor()
+{
+	Editor->CreateEmptyActor();
+}
+
 void USceneWindow::NewScene()
 {
 	Editor->NewScene();
@@ -186,6 +191,11 @@ void USceneWindow::Render(float DeltaTime)
 		if (ImGui::Button("Spawn Special Component"))
 		{
 			SpawnSpecialComponent();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Create Empty Actor"))
+		{
+			SpawnEmptyActor();
 		}
 		ImGui::Separator();
 		ImGui::PushItemWidth(WideItemWidth);
