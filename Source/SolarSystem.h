@@ -75,6 +75,20 @@ inline void SpawnSolarSystem(UScene* Scene)
 	MoonRot->SetOrbit(-1.0f, 1.5f, FVector(0.0f, 0.0f, 1.0f));
 	MoonRot->SetPivot(EarthMesh);
 
+	// 화성
+	AActor* Mars = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Mars->CreateComponent(UWidgetComponent::GetClass());
+
+	auto* MarsMesh = static_cast<UStaticMeshComponent*>(Mars->CreateComponent(UStaticMeshComponent::GetClass()));
+	MarsMesh->SetStaticMesh("Sphere");
+	MarsMesh->SetMaterial("Assets/Textures/mars.png");
+	MarsMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 0.8f));
+
+	auto* MarsRot = static_cast<URotationComponent*>(Mars->CreateComponent(URotationComponent::GetClass()));
+	MarsRot->SetRotation(1.0f, FVector(0.0f, 0.0f, 1.0f));
+	MarsRot->SetOrbit(0.5f, 15.0f, FVector(0.0f, 0.0f, 1.0f));
+	MarsRot->SetPivot(SunMesh);
+
 	// 목성
 	AActor* Jupiter = Scene->SpawnActor<AActor*>(AActor::GetClass());
 	Jupiter->CreateComponent(UWidgetComponent::GetClass());
