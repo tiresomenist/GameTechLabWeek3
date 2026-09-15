@@ -8,15 +8,6 @@
 #include "Engine/FConsole.h"
 #include "Engine/GEngine.h"
 #include "Core/Container/TArray.h"
-#include "Engine/Object/FClassType.h"
-#include "Engine/Component/Primitive/USphereComponent.h"
-#include "Engine/Component/Primitive/UCubeComponent.h"
-#include "Engine/Component/Primitive/UTriangleComponent.h"
-#include "Engine/Component/Primitive/UPlaneComponent.h"
-#include "Engine/Component/Primitive/UPepeComponent.h"
-#include "Engine/Component/Primitive/UOctopusComponent.h"
-#include "Engine/Component/Primitive/UTextComponent.h"
-#include "Engine/Component/Primitive/UFlameComponent.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
@@ -30,7 +21,7 @@
 
 void USceneWindow::SpawnPrimitive() 
 {
-	Editor->SpawnPrimitive(SelectedClass, NumberOfSpawn);
+	Editor->SpawnPrimitive(SelectedMeshKey, NumberOfSpawn);
 }
 
 void USceneWindow::NewScene()
@@ -49,15 +40,13 @@ void USceneWindow::Initialize(FEditor* Editor)
 {
 	UEditorWindow::Initialize(Editor);
 
-	Spawnables.Add(USphereComponent::GetClass());
-	Spawnables.Add(UCubeComponent::GetClass());
-	Spawnables.Add(UPlaneComponent::GetClass());
-	Spawnables.Add(UTriangleComponent::GetClass());
-	Spawnables.Add(UPepeComponent::GetClass());
-	Spawnables.Add(UOctopusComponent::GetClass());
-	Spawnables.Add(UTextComponent::GetClass());
-	Spawnables.Add(UFlameComponent::GetClass());
-	SelectedClass = *Spawnables.begin();
+	SpawnableMeshKeys.Add(FString("Sphere"));
+	SpawnableMeshKeys.Add(FString("Cube"));
+	SpawnableMeshKeys.Add(FString("Plane"));
+	SpawnableMeshKeys.Add(FString("Triangle"));
+	SpawnableMeshKeys.Add(FString("Pepe"));
+	SpawnableMeshKeys.Add(FString("Octopus"));
+	SelectedMeshKey = *SpawnableMeshKeys.begin();
 
 	SceneName.reserve(128);
 }
@@ -126,15 +115,15 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Separator();
 
 		ImGui::PushItemWidth(WideItemWidth);
-		if (ImGui::BeginCombo("Primitive", SelectedClass->Name.c_str(), ImGuiComboFlags_HeightSmall))
+		if (ImGui::BeginCombo("Primitive", SelectedMeshKey.c_str(), ImGuiComboFlags_HeightSmall))
 		{
-			for (FClassType* ClassType : Spawnables)
+			for (const FString& MeshKey : SpawnableMeshKeys)
 			{
-				bool bSelected = (SelectedClass == ClassType);
+				bool bSelected = (SelectedMeshKey == MeshKey);
 
-				if (ImGui::Selectable(ClassType->Name.c_str(), bSelected))
+				if (ImGui::Selectable(MeshKey.c_str(), bSelected))
 				{
-					SelectedClass = ClassType;
+					SelectedMeshKey = MeshKey;
 				}
 
 				if (bSelected)

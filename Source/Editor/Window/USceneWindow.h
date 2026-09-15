@@ -17,8 +17,8 @@ private:
 	uint32 Step = 1;
 	FString SceneName{"NewScene"};
 	bool bOrthogonal = false;
-	TArray<FClassType*> Spawnables;
-	FClassType* SelectedClass;
+	TArray<FString> SpawnableMeshKeys;
+	FString SelectedMeshKey;
 	/* Camera Info */
 	float FOV = 90.0f;
 	float MaxFOV = 175.0f;

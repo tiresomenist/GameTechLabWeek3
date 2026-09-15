@@ -23,6 +23,8 @@
 #include "Editor/Picker/FObjectPicker.h"
 #include "Editor/Picker/FGizmoPicker.h"
 #include "Engine/Component/UWidgetComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 
 #include "Engine/Scene/GSceneManager.h"
 
@@ -396,17 +398,18 @@ void FEditor::ReleaseGrids()
 	Grids.Empty();
 }
 
-void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
+void FEditor::SpawnPrimitive(const FString& MeshKey, int Count)
 {
 	UScene* CurrentScene = GetCurrentScene();
 
 	for (int i = 0; i < Count; ++i)
 	{
 		AActor* Actor = CurrentScene->SpawnActor<AActor*>(AActor::GetClass());
-		if (Actor->CreateComponent(PrimitiveType))
-		{
-			Actor->CreateComponent(UWidgetComponent::GetClass());
-		}
+		auto* StaticMesh = static_cast<UStaticMeshComponent*>(
+			Actor->CreateComponent(UStaticMeshComponent::GetClass()));
+
+		StaticMesh->SetStaticMesh(MeshKey);
+		Actor->CreateComponent(UWidgetComponent::GetClass());
 	}
 }
 

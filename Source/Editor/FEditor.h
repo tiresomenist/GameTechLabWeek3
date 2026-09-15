@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Core/Container/FString.h"
 #include "Core/Container/TArray.h"
 #include "Engine/Object/FObjectFactory.h"
 #include "Engine/Renderer/RenderUtil.h"
@@ -61,7 +62,7 @@ public:
 
 	void Release();
 
-	void SpawnPrimitive(FClassType* PrimitiveType, int Count);
+	void SpawnPrimitive(const FString& MeshKey, int Count);
 
 	void NewScene();
 	void LoadScene(FStringView SceneName);
