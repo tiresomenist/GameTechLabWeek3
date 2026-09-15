@@ -252,12 +252,12 @@ FShaderResource* GResourceManager::GetShader(const std::wstring& FilePath, const
 	return nullptr;
 }
 
-void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
+void GResourceManager::RegisterDefaultPrimitives(GDevice* InDevice)
 {
     //if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
     //if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
+    //if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateTexturedMesh("Flame", flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
     if (!CreateMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
@@ -294,6 +294,15 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
     FGeometryGenerator::CreateSphere(1.0f, 64, 32, SphereVertices, SphereIndices);
 
     if (!CreateTexturedMesh("Sphere", SphereVertices, SphereIndices))
+    {
+        throw std::runtime_error("TexturedCube mesh creation failed");
+    }
+
+    TArray<FVertexTexture> PlaneVertices;
+    TArray<uint32> PlaneIndices;
+    FGeometryGenerator::CreatePlane(1.0f, 1.0f, 1, 1, PlaneVertices, PlaneIndices);
+
+    if (!CreateTexturedMesh("Plane", PlaneVertices, PlaneIndices))
     {
         throw std::runtime_error("TexturedCube mesh creation failed");
     }

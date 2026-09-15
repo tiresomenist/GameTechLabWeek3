@@ -40,6 +40,11 @@ void FGeometryGenerator::CreatePlane(
 			Vertex.y = y;
 			Vertex.z = 0.0f;
 
+			Vertex.r = 1.0f;
+			Vertex.g = 1.0f;
+			Vertex.b = 1.0f;
+			Vertex.a = 1.0f;
+
 			Vertex.u = u;
 			Vertex.v = v;
 

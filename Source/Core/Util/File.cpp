@@ -80,7 +80,7 @@ FString File::ReadTextFromPath(const std::filesystem::path& Path)
 	return StringStream.str();
 }
 
-std::optional<std::filesystem::path> File::OpenJsonFileDialog(HWND Owner, const std::filesystem::path& InitialDir)
+std::optional<std::filesystem::path> File::OpenFileDialog(HWND Owner, EFileDialogType Type, const std::filesystem::path& InitialDir)
 {
 	std::optional<std::filesystem::path> Result = std::nullopt;
 
@@ -96,11 +96,20 @@ std::optional<std::filesystem::path> File::OpenJsonFileDialog(HWND Owner, const 
 		COMDLG_FILTERSPEC Filters[] =
 		{
 			{ L"JSON Scene Files (*.json)", L"*.json" },
+			{ L"Image Files (*.png;*.jpg;*.dds;*.tga)", L"*.png;*.jpg;*.jpeg;*.dds;*.tga" },
 			{ L"All Files (*.*)",           L"*.*" }
 		};
 		FileOpen->SetFileTypes(ARRAYSIZE(Filters), Filters);
-		FileOpen->SetFileTypeIndex(1);
 
+		int DefaultIndex = 1;
+		switch (Type)
+		{
+		case EFileDialogType::Json: DefaultIndex = 1; break;
+		case EFileDialogType::Image:DefaultIndex = 2; break;
+		case EFileDialogType::All:	DefaultIndex = 3; break;
+		default: DefaultIndex = 3; break;
+		}
+		FileOpen->SetFileTypeIndex(DefaultIndex);
 		if (!InitialDir.empty())
 		{
 			const std::filesystem::path AbsoluteDir = std::filesystem::absolute(InitialDir);
@@ -112,6 +121,7 @@ std::optional<std::filesystem::path> File::OpenJsonFileDialog(HWND Owner, const 
 			}
 		}
 
+		FileOpen->SetFileTypeIndex(DefaultIndex);
 		// 취소 시 hr == HRESULT_FROM_WIN32(ERROR_CANCELLED)
 		hr = FileOpen->Show(Owner);
 
