@@ -57,6 +57,20 @@ bool AActor::RemoveComponent(UActorComponent* Component, bool bDestroy)
     if (RootComponent == Component)
     {
         RootComponent = nullptr;
+
+        // Root를 제거해도 Actor에 남아 있는 SceneComponent가 있으면 새 Root로 승격한다.
+        for (UActorComponent* RemainingComponent : Components)
+        {
+            if (RemainingComponent->IsA(USceneComponent::GetClass()))
+            {
+                USceneComponent* Candidate = static_cast<USceneComponent*>(RemainingComponent);
+                if (Candidate->CanBeRootComponent())
+                {
+                    RootComponent = Candidate;
+                    break;
+                }
+            }
+        }
     }
 
     Component->SetOwner(nullptr);

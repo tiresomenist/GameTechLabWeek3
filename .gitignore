@@ -421,3 +421,5 @@ imgui.ini
 # Tests and temporary files
 /tests/
 /tmp/
+
+editor.ini

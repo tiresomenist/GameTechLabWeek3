@@ -17,6 +17,7 @@
 #include <charconv>
 #include <filesystem>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 
 namespace
@@ -54,8 +55,7 @@ void GSceneManager::Initialize()
 
 void GSceneManager::Release()
 {
-    NextScene = nullptr;
-    NextSceneFile.clear();
+    ClearNextScene();
 	if (CurrentScene)
 	{
 		CurrentScene->EndPlay();
@@ -82,11 +82,31 @@ void GSceneManager::LoadScene(FSceneType* SceneType, FStringView SerializedName)
 {
 	NextScene = SceneType;
 	NextSceneFile = SerializedName;
+	NextScenePath.clear();
 
 	if (!CurrentScene)
 	{
 		InternalLoadScene();
 	}
+}
+
+void GSceneManager::LoadSceneFromPath(FSceneType* SceneType, const std::filesystem::path& ScenePath)
+{
+	NextScene = SceneType;
+	NextSceneFile.clear();
+	NextScenePath = ScenePath;
+
+	if (!CurrentScene)
+	{
+		InternalLoadScene();
+	}
+}
+
+void GSceneManager::ClearNextScene()
+{
+	NextScene = nullptr;
+	NextSceneFile.clear();
+	NextScenePath.clear();
 }
 
 bool ValidateSceneJSON(const nlohmann::json& Root)
@@ -118,8 +138,7 @@ void GSceneManager::InternalLoadScene()
 {
 	if (NextScene == nullptr || NextScene->SceneConstructor == nullptr)
 	{
-		NextScene = nullptr;
-		NextSceneFile = "";
+		ClearNextScene();
 		return;
 	}
 
@@ -129,12 +148,20 @@ void GSceneManager::InternalLoadScene()
 	// 현재 Scene을 제거하기 전에 파일 전체를 파싱하고 검증합니다.
 	try
 	{
-		if (!NextSceneFile.empty())
+		// 경로 지정 로드가 우선, 없으면 이름 기반 로드, 둘 다 없으면 빈 씬
+		std::optional<FString> FileText;
+		if (!NextScenePath.empty())
 		{
-			const FString FileName = GetScenePath(NextSceneFile);
+			FileText = File::ReadTextFromPath(NextScenePath);
+		}
+		else if (!NextSceneFile.empty())
+		{
+			FileText = File::ReadText(GetScenePath(NextSceneFile));
+		}
 
-			const FString FileText = File::ReadText(FileName);
-			const nlohmann::json FileJSON = nlohmann::json::parse(FileText);
+		if (FileText)
+		{
+			const nlohmann::json FileJSON = nlohmann::json::parse(*FileText);
 
 			if (!ValidateSceneJSON(FileJSON))
 			{
@@ -155,9 +182,9 @@ void GSceneManager::InternalLoadScene()
 	}
 	catch (const std::exception& Error)
 	{
-		UE_LOG("[SceneManger] 저장된 {} 씬 로드 실패: {}", NextSceneFile, Error.what());
-		NextScene = nullptr;
-		NextSceneFile = "";
+		const FString SceneLabel = NextScenePath.empty() ? NextSceneFile : NextScenePath.filename().string();
+		UE_LOG("[SceneManger] 저장된 {} 씬 로드 실패: {}", SceneLabel, Error.what());
+		ClearNextScene();
 		return;
 	}
 
@@ -176,17 +203,14 @@ void GSceneManager::InternalLoadScene()
 	if (CurrentScene == nullptr)
 	{
 		UE_LOG("[SceneManger] {} Scene 생성 실패", NextScene->Name);
-		NextScene = nullptr;
-		NextSceneFile = "";
+		ClearNextScene();
 		return;
 	}
 
 	CurrentScene->Deserialize(ObjectInfoList);
 	CurrentScene->BeginPlay();
 
-
-	NextScene = nullptr;
-	NextSceneFile = "";
+	ClearNextScene();
 }
 
 

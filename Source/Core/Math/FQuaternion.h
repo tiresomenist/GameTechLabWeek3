@@ -9,7 +9,7 @@ struct FQuaternion
     // Axis is normalized internally. A zero/non-finite axis or angle gives identity.
     static FQuaternion FromAxisAngle(const FVector& Axis, float Radian);
 
-    // X/Y/Z angles in radians. Matches FMatrix::MakeRotationMatrix (Rz * Ry * Rx).
+    // X/Y/Z angles in radians.
     // Returns identity if any angle is non-finite.
     static FQuaternion FromEuler(const FVector& EulerRadians);
     // Inverse of FromEuler: radians, Y in [-pi/2, pi/2], X/Z in [-pi, pi].
