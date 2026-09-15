@@ -26,11 +26,18 @@ namespace
 TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* Scene)
 {
 	TArray<FPrimitiveRenderData> RenderList;
+	if (!Editor || !Scene) return RenderList;
+
+	const UCameraComponent* Camera = Editor->GetEditorCamera();
 	Scene->ForEachPrimitive(
-		[&RenderList, Editor](UPrimitiveComponent* Primitive)
+		[&RenderList, Editor, Camera](UPrimitiveComponent* Primitive)
 		{
 			const bool bSelected = IsComponentSelected(Editor, Primitive);
-			RenderList.Add(Primitive->CreateRenderData(bSelected));
+			FPrimitiveRenderData Data = Primitive->CreateRenderData(bSelected);
+
+			// 현재 카메라 기준의 렌더링용 행렬 연결함
+			Data.WorldMatrix = &Primitive->GetRenderWorldMatrix(Camera);
+			RenderList.Add(Data);
 		}
 	);
 

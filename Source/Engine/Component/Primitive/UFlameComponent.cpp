@@ -3,6 +3,7 @@
 #include "Engine/Resource/GResourceManager.h"
 #include "Engine/Resource/FTextureResource.h"
 #include "Engine/Object/FArchive.h"
+#include "Engine/Component/UCameraComponent.h"
 
 #include <algorithm>
 #include <cmath>
@@ -37,6 +38,40 @@ void UFlameComponent::Tick(float DeltaTime)
     {
         FramePosition = NextPosition;
     }
+}
+
+const FMatrix& UFlameComponent::GetRenderWorldMatrix(const UCameraComponent* Camera) const
+{
+    // 카메라가 없으면 기존 월드 행렬 사용함
+    if (!Camera)
+    {
+        return GetWorldMatrix();
+    }
+
+    // 카메라 기준의 가로·세로·깊이 방향 조회함
+    const FVector Right = Camera->GetRight();
+    const FVector Up = Camera->GetUp();
+    const FVector Forward = Camera->GetForward();
+
+    // 현재 오브젝트의 크기와 월드 위치 사용함
+    const FVector Scale = GetRelativeScale3D();
+    const FVector Center = GetWorldLocation();
+
+    // Flame의 로컬 XY 평면을 카메라의 Right-Up 평면에 대응시킴
+    const FMatrix BillboardRotation(
+        Right.X, Right.Y, Right.Z, 0.0f,
+        Up.X, Up.Y, Up.Z, 0.0f,
+        Forward.X, Forward.Y, Forward.Z, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // 크기 적용 → 빌보드 방향 적용 → 월드 위치 이동
+    BillboardWorldMatrix =
+        FMatrix::MakeScaleMatrix(Scale)
+        * BillboardRotation
+        * FMatrix::MakeTranslationMatrix(Center);
+
+    return BillboardWorldMatrix;
 }
 
 void UFlameComponent::SetAtlasGrid(int32 InColumns, int32 InRows, int32 InFrameCount)
