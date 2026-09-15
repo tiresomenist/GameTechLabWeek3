@@ -4,6 +4,8 @@
 #include "Engine/Resource/GResourceManager.h"
 #include "Engine/Object/FClassType.h"
 
+class UCameraComponent;
+
 class UFlameComponent : public UPrimitiveComponent
 {
 
@@ -24,6 +26,7 @@ public:
     void SetPlaying(bool Value) { bPlaying = Value; }
     void SetCurrentFrame(int32 Value);
     void Restart();
+    virtual const FMatrix& GetRenderWorldMatrix(const UCameraComponent* Camera) const override;
 
     int32 GetColumns() const { return Columns; }
     int32 GetRows() const { return Rows; }
@@ -48,4 +51,7 @@ private:
     bool bPlaying = true;
     // 소수 부분을 유지하여 프레임 시간의 누적 오차를 줄임
     double FramePosition = 0.0;
+
+    mutable FMatrix BillboardWorldMatrix;
+
 };
