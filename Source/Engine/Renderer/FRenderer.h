@@ -54,6 +54,8 @@ public:
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* GizmoDepthStencilState = nullptr;
 	ID3D11DepthStencilState* HighlightDepthStencilState = nullptr;
+	ID3D11DepthStencilState* StencilWriteDepthStencilState = nullptr;	// 선택 오브젝트 본체: 스텐실에 1 기록
+	ID3D11DepthStencilState* OutlineDepthStencilState = nullptr;		// 외곽선: 스텐실 != 1 인 곳만 통과
 
 	ID3D11BlendState* AlphaBlendState = nullptr;
 
@@ -129,8 +131,9 @@ public:
 	void EndFrame();
 
 	void Render(float DeltaTime, FEditor* Editor, UScene* Scene);
-	void RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex InViewMode);
+	void RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex InViewMode, bool bWriteStencil = false);
 	void RenderHighlight(const FPrimitiveRenderData& Data);
+	void RenderOutline(const FPrimitiveRenderData& Data);
 	void RenderGrid(FMeshResource* Data);
 	void RenderGizmo(const FPrimitiveRenderData& Data);
 	void RenderBatchLine(const FMatrix& ViewProj);
@@ -143,5 +146,5 @@ public:
 	void CreateTextureResources();
 	void ReleaseTextureResources();
 
-	void RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewModeIndex InViewMode);
+	void RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewModeIndex InViewMode, bool bWriteStencil = false);
 };

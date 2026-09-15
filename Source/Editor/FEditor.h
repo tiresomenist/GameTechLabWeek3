@@ -65,6 +65,7 @@ public:
 
 	void NewScene();
 	void LoadScene(FStringView SceneName);
+	void LoadSceneFromPath(const std::filesystem::path& ScenePath);
 	void SaveScene(FStringView SceneName);
 
 	UScene* GetCurrentScene();

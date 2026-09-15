@@ -27,6 +27,7 @@
 #include "Engine/Memory/GAllocator.h"
 #include "Engine/Renderer/FViewSettings.h"
 #include "Engine/Scene/GSceneManager.h"
+#include "Core/Util/File.h"
 
 void USceneWindow::SpawnPrimitive() 
 {
@@ -43,7 +44,18 @@ void USceneWindow::SaveScene()
 }
 void USceneWindow::LoadScene()
 {
-	Editor->LoadScene(SceneName);
+	// imgui_impl_win32가 메인 뷰포트에 HWND를 넣어두므로 그걸 대화상자 owner로 사용
+	const HWND Owner = static_cast<HWND>(ImGui::GetMainViewport()->PlatformHandleRaw);
+
+	const std::optional<std::filesystem::path> ScenePath = File::OpenJsonFileDialog(Owner, "Scenes");
+	if (!ScenePath)
+	{
+		return; // 취소
+	}
+
+	// 이후 Save Scene이 같은 이름으로 저장되도록 이름 칸도 갱신
+	SceneName = ScenePath->stem().string();
+	Editor->LoadSceneFromPath(*ScenePath);
 }
 void USceneWindow::Initialize(FEditor* Editor)
 {
@@ -168,7 +180,7 @@ void USceneWindow::Render(float DeltaTime)
 		}
 		if(ImGui::Button("Load Scene"))
 		{
-			LoadScene();
+			bRequestLoadDialog = true;
 		}
 		ImGui::Separator();
 		bool bShowUUIDLabels = Editor->IsShowingUUIDLabels();
@@ -297,4 +309,10 @@ void USceneWindow::Render(float DeltaTime)
 	}
 	Editor->SetCameraLocation(CameraLocation);
 	ImGui::End();
+
+	if (bRequestLoadDialog)
+	{
+		bRequestLoadDialog = false;
+		LoadScene();
+	}
 }
