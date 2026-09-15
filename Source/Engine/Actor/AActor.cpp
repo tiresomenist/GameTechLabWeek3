@@ -25,9 +25,9 @@ UActorComponent* AActor::CreateComponent(FClassType* Type, uint32 UUID)
         {
             RootComponent = SceneComponent;
         }
-        else if (RootComponent != nullptr && SceneComponent != RootComponent && SceneComponent->CanBeRootComponent())
+        else if (RootComponent != nullptr && SceneComponent != RootComponent)
         {
-            // 두 번째부터의 편집 가능한 SceneComponent는 Root의 로컬 자식으로 생성한다.
+            // Root가 될 수 없는 보조 SceneComponent도 Transform 계층에는 포함한다.
             SceneComponent->AttachTo(RootComponent);
         }
     }

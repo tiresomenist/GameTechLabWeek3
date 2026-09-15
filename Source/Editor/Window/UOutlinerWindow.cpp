@@ -48,23 +48,62 @@ void UOutlinerWindow::Render(float DeltaTime)
 
 			if (!bOpen) return;
 
+			auto RenderComponentTree = [&](auto&& Self, USceneComponent* Component, bool bIsRoot) -> void
+			{
+				const FString DisplayName = bIsRoot
+					? std::format("{} (Root)", Component->GetName().ToString())
+					: Component->GetName().ToString();
+				const FString ComponentLabel = std::format(
+					"{}##Component{}", DisplayName, Component->GetUUID());
+				const bool bHasChildren = !Component->GetAttachChildren().empty();
+				const ImGuiTreeNodeFlags ComponentFlags = bHasChildren
+					? ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen
+					: ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet;
+
+				const bool bComponentOpen = ImGui::TreeNodeEx(
+					ComponentLabel.c_str(),
+					ComponentFlags | (Editor->GetSelectedSceneComponent() == Component ? ImGuiTreeNodeFlags_Selected : 0));
+				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+				{
+					Editor->SetSelectedSceneComponent(Component);
+				}
+
+				if (bHasChildren && bComponentOpen)
+				{
+					for (USceneComponent* Child : Component->GetAttachChildren())
+					{
+						if (Child != nullptr) Self(Self, Child, false);
+					}
+					ImGui::TreePop();
+				}
+			};
+
+			if (USceneComponent* Root = Actor->GetRootComponent())
+			{
+				RenderComponentTree(RenderComponentTree, Root, true);
+			}
+
+			// Root에 연결되지 않은 SceneComponent도 잃지 않고 Actor 바로 아래에 표시한다.
 			for (UActorComponent* Component : Actor->GetComponents())
 			{
-				const FString ComponentLabel = std::format(
-					"{}##Component{}", Component->GetName().ToString(), Component->GetUUID());
+				if (!Component->IsA(USceneComponent::GetClass())) continue;
 
-				if (!Component->IsA(USceneComponent::GetClass()))
+				USceneComponent* SceneComponent = static_cast<USceneComponent*>(Component);
+				if (SceneComponent == Actor->GetRootComponent() || SceneComponent->GetAttachParent() != nullptr)
 				{
-					ImGui::TextDisabled("%s", ComponentLabel.c_str());
 					continue;
 				}
 
-				USceneComponent* SceneComponent = static_cast<USceneComponent*>(Component);
-				if (ImGui::Selectable(ComponentLabel.c_str(),
-					Editor->GetSelectedSceneComponent() == SceneComponent))
+				// UUID Widget처럼 Root가 될 수 없는 보조 컴포넌트는 편집 대상이 아님을 표시한다.
+				if (!SceneComponent->CanBeRootComponent())
 				{
-					Editor->SetSelectedSceneComponent(SceneComponent);
+					const FString HelperLabel = std::format(
+						"{} (Helper)##Component{}", SceneComponent->GetName().ToString(), SceneComponent->GetUUID());
+					ImGui::TextDisabled("%s", HelperLabel.c_str());
+					continue;
 				}
+
+				RenderComponentTree(RenderComponentTree, SceneComponent, false);
 			}
 			ImGui::TreePop();
 		});
