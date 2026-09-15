@@ -2,7 +2,7 @@
 #include "FEditor.h"
 
 #include "Engine/Component/UCameraComponent.h"
-#include "Engine/Actor/UActor.h"
+#include "Engine/Actor/AActor.h"
 #include "Editor/Window/UEditorWindow.h"
 
 #include "Editor/Window/UConsoleWindow.h"
@@ -402,7 +402,7 @@ void FEditor::SpawnPrimitive(FClassType* PrimitiveType, int Count)
 
 	for (int i = 0; i < Count; ++i)
 	{
-		UActor* Actor = CurrentScene->SpawnActor<UActor*>(UActor::GetClass());
+		AActor* Actor = CurrentScene->SpawnActor<AActor*>(AActor::GetClass());
 		if (Actor->CreateComponent(PrimitiveType))
 		{
 			Actor->CreateComponent(UWidgetComponent::GetClass());

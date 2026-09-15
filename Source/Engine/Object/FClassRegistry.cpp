@@ -10,7 +10,7 @@
 #include "Editor/UGrid.h"
 
 #include "Engine/Object/UObject.h"
-#include "Engine/Actor/UActor.h"
+#include "Engine/Actor/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/Component/UCameraComponent.h"

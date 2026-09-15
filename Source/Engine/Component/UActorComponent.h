@@ -2,7 +2,7 @@
 
 #include "Engine/Object/UObject.h"
 
-class UActor;
+class AActor;
 
 // Actor에 소속되는 기능 단위입니다. Owner는 Actor만 설정할 수 있습니다.
 class UActorComponent : public UObject
@@ -10,7 +10,7 @@ class UActorComponent : public UObject
     UCLASS(UActorComponent, "ActorComponent", UObject)
 
 public:
-    UActor* GetOwner() const { return Owner; }
+    AActor* GetOwner() const { return Owner; }
 
     // Owner가 설정된 뒤 한 번 호출됩니다. Owner가 필요한 초기화는 여기서 합니다.
     virtual void OnRegister() {}
@@ -22,9 +22,9 @@ public:
     virtual void EndPlay() {}
 
 private:
-    UActor* Owner = nullptr;
+    AActor* Owner = nullptr;
 
-    void SetOwner(UActor* InOwner) { Owner = InOwner; }
+    void SetOwner(AActor* InOwner) { Owner = InOwner; }
 
-    friend class UActor;
+    friend class AActor;
 };

@@ -7,7 +7,7 @@
 // #include "Engine/Gizmo/UGizmo.h"
 
 #include "Engine/Component/UCameraComponent.h"
-#include "Engine/Actor/UActor.h"
+#include "Engine/Actor/AActor.h"
 #include "Engine/Component/UActorComponent.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
@@ -33,7 +33,7 @@ FSceneType* UScene::GetStaticSceneType()
 // But 아직 그런 용도가 없음 언젠가 생기면 쓰는걸로...
 void UScene::BeginPlay()
 {
-    for (UActor* Actor : Actors)
+    for (AActor* Actor : Actors)
     {
         Actor->BeginPlay();
     }
@@ -41,7 +41,7 @@ void UScene::BeginPlay()
 
 void UScene::Tick(float DeltaTime)
 {
-    for (UActor* Actor : Actors)
+    for (AActor* Actor : Actors)
     {
         Actor->Tick(DeltaTime);
     }
@@ -49,7 +49,7 @@ void UScene::Tick(float DeltaTime)
 
 void UScene::EndPlay()
 {
-    for (UActor* Actor : Actors)
+    for (AActor* Actor : Actors)
     {
         Actor->EndPlay();
     }
@@ -57,13 +57,13 @@ void UScene::EndPlay()
 
 void UScene::CreateMainCamera()
 {
-    UActor* CameraActor = SpawnActor<UActor*>(UActor::GetClass());
+    AActor* CameraActor = SpawnActor<AActor*>(AActor::GetClass());
     MainCamera = static_cast<UCameraComponent*>(CameraActor->CreateComponent(UCameraComponent::GetClass()));
 }
 
 void UScene::Serialize(TArray<FArchive>& ObjectInfoList)
 {
-    for (UActor* Actor : Actors)
+    for (AActor* Actor : Actors)
     {
         for (UActorComponent* Component : Actor->GetComponents())
         {
@@ -94,11 +94,11 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         FClassType* Type = FClassRegistry::FindClassType(TypeName);
 
         uint32 UUID = Item.GetUInt32("UUID");
-        UActor* Actor = nullptr;
+        AActor* Actor = nullptr;
         if (Item.GetJSON().contains("ActorUUID"))
         {
             const uint32 ActorUUID = Item.GetUInt32("ActorUUID");
-            for (UActor* ExistingActor : Actors)
+            for (AActor* ExistingActor : Actors)
             {
                 if (ExistingActor->GetUUID() == ActorUUID)
                 {
@@ -109,13 +109,13 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
 
             if (Actor == nullptr)
             {
-                Actor = SpawnActor<UActor*>(UActor::GetClass(), ActorUUID);
+                Actor = SpawnActor<AActor*>(AActor::GetClass(), ActorUUID);
             }
         }
         else
         {
             // 기존 Component-직접-소유 JSON과의 호환: Component 하나당 Actor 하나를 만듭니다.
-            Actor = SpawnActor<UActor*>(UActor::GetClass());
+            Actor = SpawnActor<AActor*>(AActor::GetClass());
         }
         if (Item.Contains("ActorName"))
         {
@@ -143,7 +143,7 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
 
 void UScene::EnsureUUIDWidgets()
 {
-	for (UActor* Actor : Actors)
+	for (AActor* Actor : Actors)
 	{
 		USceneComponent* Root = Actor->GetRootComponent();
 		if (!Root || !Root->IsA(UPrimitiveComponent::GetClass())) continue;
@@ -172,9 +172,9 @@ void UScene::Destroy(UObject* Object)
         return;
     }
 
-    if (Object->IsA(UActor::GetClass()))
+    if (Object->IsA(AActor::GetClass()))
     {
-        DestroyActor(static_cast<UActor*>(Object));
+        DestroyActor(static_cast<AActor*>(Object));
         return;
     }
 
@@ -185,7 +185,7 @@ void UScene::Destroy(UObject* Object)
     }
 }
 
-void UScene::DestroyActor(UActor* Actor)
+void UScene::DestroyActor(AActor* Actor)
 {
     if (Actor == nullptr)
     {
@@ -211,7 +211,7 @@ void UScene::DestroyActor(UActor* Actor)
 
 UScene::~UScene()
 {
-    for (UActor* Actor : Actors)
+    for (AActor* Actor : Actors)
     {
         delete Actor;
     }
