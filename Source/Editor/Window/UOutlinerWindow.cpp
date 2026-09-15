@@ -6,13 +6,20 @@
 void UOutlinerWindow::Initialize(FEditor* InEditor)
 {
 	UEditorWindow::Initialize(InEditor);
-	Scene = Editor->GetCurrentScene();
 }
 
 void UOutlinerWindow::Render(float DeltaTime)
 {
 	SelectedComponent = Editor->GetSelectedSceneComponent();
 	ImGui::Begin("Outliner");
+
+	UScene* Scene = Editor->GetCurrentScene();
+	if (Scene == nullptr)
+	{
+		ImGui::End();
+		return;
+	}
+
 	Scene->ForEachPrimitive([&](UPrimitiveComponent* Component) -> void
 		{
 			USceneComponent* SC = static_cast<USceneComponent*>(Component);

@@ -12,6 +12,6 @@ public:
 	virtual void Render(float DeltaTime) override;
 
 private:
-	UScene* Scene = nullptr;
-	USceneComponent* SelectedComponent;
+	// 씬은 로드 시 교체되므로 포인터를 캐시하지 않고 매 프레임 Editor에서 가져온다
+	USceneComponent* SelectedComponent = nullptr;
 };

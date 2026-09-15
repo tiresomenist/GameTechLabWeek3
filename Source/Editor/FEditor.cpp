@@ -427,6 +427,15 @@ void FEditor::LoadScene(FStringView SceneName)
 	SceneManager->LoadScene(SceneType, SceneName);
 }
 
+void FEditor::LoadSceneFromPath(const std::filesystem::path& ScenePath)
+{
+	SetSelectedSceneComponent(nullptr);
+	GSceneManager* SceneManager = GSceneManager::GetInstance();
+	FSceneType* SceneType = GetCurrentScene()->GetSceneType();
+
+	SceneManager->LoadSceneFromPath(SceneType, ScenePath);
+}
+
 void FEditor::SaveScene(FStringView SceneName)
 {
 	GSceneManager* SceneManager = GSceneManager::GetInstance();
