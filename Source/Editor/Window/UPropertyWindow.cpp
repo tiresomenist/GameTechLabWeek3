@@ -3,9 +3,11 @@
 #include "UPropertyWindow.h"
 #include "Core/Math/FVector.h"
 #include "ImGui/imgui.h"
+#include "ImGui/imgui_stdlib.h"
 #include "Editor/FEditor.h"
 #include "Core/Math/FQuaternion.h"
 #include "Engine/Component/Primitive/UFlipbookComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 
 void UPropertyWindow::GetSelectedValue()
 {
@@ -223,6 +225,22 @@ void UPropertyWindow::Render(float DeltaTime)
                     Flame->SetPlaying(false);
                 }
             }
+			if (SelectedComponent->IsA(UStaticMeshComponent::GetClass()) &&
+				ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				auto* MeshComp = static_cast<UStaticMeshComponent*>(SelectedComponent);
+
+					ImGui::Text("Mesh Key: %s", MeshComp->GetStaticMeshKey().c_str());
+
+					std::string CurrentTexPath = MeshComp->GetMaterialPath().c_str();
+
+				if (ImGui::InputText("Texture Path", &CurrentTexPath, ImGuiInputTextFlags_EnterReturnsTrue))
+				{
+					MeshComp->SetMaterial(FString(CurrentTexPath.c_str()));
+				}
+
+				ImGui::TextDisabled("Type texture path and press Enter.");
+			}
 			if (ImGui::Button("Delete"))
 			{
 				DeleteSelected();

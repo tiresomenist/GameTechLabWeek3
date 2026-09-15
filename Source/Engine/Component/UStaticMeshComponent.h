@@ -11,9 +11,14 @@ public:
     virtual void Serialize(FArchive& Archive) override;
     virtual void Deserialize(FArchive& Archive) override;
 
-    const FString& GetStaticMeshKey() const { return MeshKey; }
+    void SetMaterial(const FString& TexturePath);
+    void SetMaterial(FTextureResource* InTexture);
+    FPrimitiveRenderData CreateRenderData(bool bSelected = false) const override;
 
+    const FString& GetStaticMeshKey() const { return MeshKey; }
+    const FString& GetMaterialPath() const { return MaterialPath; }
 private:
     FString MeshKey;
-
+    FString MaterialPath;
+    FTextureResource* MaterialTexture = nullptr;
 };
