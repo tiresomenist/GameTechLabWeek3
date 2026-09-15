@@ -11,6 +11,8 @@
 #include "Engine/Component/Primitive/UTextComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
+#include "Core/Math/FRotator.h"
+
 
 namespace
 {
@@ -158,7 +160,7 @@ void UPropertyWindow::Render(float DeltaTime)
 	bool bRotationChanged = false;
 	bool bRotationActive = false;
 	bool bRotationFinished = false;
-	float PreviousDegree = RotationDegree.X;
+	float PreviousDegree = RotationDegree.Roll;
 
 	AActor* SelectedActor = Editor->GetSelectedActor();
 	if (SelectedActor != nullptr)
