@@ -53,9 +53,13 @@ const FMatrix& UFlipbookComponent::GetRenderWorldMatrix(const UCameraComponent* 
     const FVector Up = Camera->GetUp();
     const FVector Forward = Camera->GetForward();
 
-    // 현재 오브젝트의 크기와 월드 위치 사용함
-    const FVector Scale = GetRelativeScale3D();
-    const FVector Center = GetWorldLocation();
+    // 빌보드 방향은 카메라를 따르되, 위치와 크기는 Attach 부모까지 반영한다.
+    const FMatrix& WorldMatrix = GetWorldMatrix();
+    const FVector Scale(
+        WorldMatrix.GetAxis(0).Length(),
+        WorldMatrix.GetAxis(1).Length(),
+        WorldMatrix.GetAxis(2).Length());
+    const FVector Center = WorldMatrix.GetOrigin();
 
     // Flame의 로컬 XY 평면을 카메라의 Right-Up 평면에 대응시킴
     const FMatrix BillboardRotation(
