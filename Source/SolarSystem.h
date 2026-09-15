@@ -12,7 +12,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Sun->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* SunMesh = static_cast<UStaticMeshComponent*>(Sun->CreateComponent(UStaticMeshComponent::GetClass()));
-	SunMesh->SetStaticMesh("TexturedSphere");
+	SunMesh->SetStaticMesh("Sphere");
 	SunMesh->SetMaterial("Assets/Textures/sun.png");
 
 	auto* SunRot = static_cast<URotationComponent*>(Sun->CreateComponent(URotationComponent::GetClass()));
@@ -23,7 +23,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Earth->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* EarthMesh = static_cast<UStaticMeshComponent*>(Earth->CreateComponent(UStaticMeshComponent::GetClass()));
-	EarthMesh->SetStaticMesh("TexturedSphere");
+	EarthMesh->SetStaticMesh("Sphere");
 	EarthMesh->SetMaterial("Assets/Textures/earth.png");
 
 	auto* EarthRot = static_cast<URotationComponent*>(Earth->CreateComponent(URotationComponent::GetClass()));
