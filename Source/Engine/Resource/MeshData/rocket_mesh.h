@@ -6,7 +6,7 @@
 // 머티리얼 단색을 정점 색상(sRGB)으로 구워 넣었으므로 흰색 텍스처를 입히면 원래 색이 유지됨
 // UV 원점은 좌측 상단 (Blender 기준 V 반전)
 // 원점을 로켓 높이 중심으로 옮김 (Z 범위 -0.944 ~ 0.944)
-inline const TArray<FVertexTexture> rocket_vertices =
+inline const FVertexTexture rocket_vertices[] =
 {
     {  0.00000f, -0.10897f, -0.73935f, 0.9063f,0.9063f,0.9063f,1.0000f, 1.00000f,0.50000f},
     {  0.00000f, -0.15571f,  0.72683f, 0.9063f,0.9063f,0.9063f,1.0000f, 1.00000f,0.00000f},
@@ -478,7 +478,7 @@ inline const TArray<FVertexTexture> rocket_vertices =
     {  0.06751f,  0.14970f,  0.35435f, 0.0781f,0.7611f,0.9063f,1.0000f, 0.58333f,1.00000f},
 };
 
-inline const TArray<uint32> rocket_indices =
+inline const uint32 rocket_indices[] =
 {
       293,   295,   294,
       293,   296,   295,

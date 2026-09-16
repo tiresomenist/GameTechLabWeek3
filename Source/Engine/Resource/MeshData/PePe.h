@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Container/TArray.h"
+#include "Core/Core.h"
 #include "Engine/Renderer/FVertexSimple.h"
 
 // Blender에서 내보낸 경량화 PePe OBJ를 텍스처 정점 배열로 변환함
@@ -8,7 +8,8 @@
 // PNG의 좌측 상단 원점에 맞춰 V를 반전하고 UV 경계의 정점을 분리함
 // 정점 색상은 흰색으로 설정하여 텍스처 원색을 유지함
 // 정점 9,620개, 삼각형 9,591개, 인덱스 28,773개
-inline const TArray<FVertexTexture> pepe_vertices =
+// 대형 TArray의 동적 초기화를 피하도록 원본 데이터를 고정 배열로 보관함
+inline const FVertexTexture pepe_vertices[] =
 {
     { 0.482059f, -0.803623f, 0.461616f, 1.000000f, 1.000000f, 1.000000f, 1.000000f, 0.650401f, 0.059950f },
     { 0.486043f, -0.796406f, 0.450483f, 1.000000f, 1.000000f, 1.000000f, 1.000000f, 0.651248f, 0.057420f },
@@ -9633,7 +9634,7 @@ inline const TArray<FVertexTexture> pepe_vertices =
 };
 
 // 축 변환이 회전이므로 원본 삼각형의 감김 순서를 유지함
-inline const TArray<uint32> pepe_indices =
+inline const uint32 pepe_indices[] =
 {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
     9, 12, 10, 12, 9, 13, 9, 11, 13, 14, 15, 16,
