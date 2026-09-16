@@ -46,7 +46,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	VenusMesh->SetRelativeScale3D(FVector(0.6f, 0.6f, 0.6f));
 
 	auto* VenusRot = static_cast<URotationComponent*>(Venus->CreateComponent(URotationComponent::GetClass()));
-	VenusRot->SetRotation(0.8f, FVector(0.0f, 0.0f, 1.0f));
+	VenusRot->SetRotation(2.0f, FVector(0.0f, 0.0f, 1.0f));
 	VenusRot->SetOrbit(-0.8f, 8.0f, FVector(0.0f, 0.0f, 1.0f));
 	VenusRot->SetPivot(SunMesh);
 
@@ -97,7 +97,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 로켓
 	AActor* Rocket = Scene->SpawnActor<AActor*>(AActor::GetClass());
-	Rocket->SetParentActor(Sun);
+	Rocket->SetParentActor(Mars);
 	Rocket->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* RocketMesh = static_cast<UStaticMeshComponent*>(Rocket->CreateComponent(UStaticMeshComponent::GetClass()));
