@@ -11,6 +11,7 @@
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/Primitive/UFlipbookComponent.h"
 #include "Engine/Component/Primitive/UTextComponent.h"
+#include "Engine/Component/Light/USpotLightComponent.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -68,6 +69,7 @@ void USceneWindow::Initialize(FEditor* Editor)
 
 	SpecialComponentClasses.Add(UTextComponent::GetClass());
 	SpecialComponentClasses.Add(UFlipbookComponent::GetClass());
+	SpecialComponentClasses.Add(USpotLightComponent::GetClass());
 
 	SelectedSpecialComponentClass = *SpecialComponentClasses.begin();
 
@@ -77,6 +79,7 @@ void USceneWindow::Initialize(FEditor* Editor)
 	SpawnableMeshKeys.Add(FString("Triangle"));
 	SpawnableMeshKeys.Add(FString("Pepe"));
 	SpawnableMeshKeys.Add(FString("Octopus"));
+	
 	SelectedMeshKey = *SpawnableMeshKeys.begin();
 
 	SceneName.reserve(128);

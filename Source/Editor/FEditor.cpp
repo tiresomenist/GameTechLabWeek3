@@ -304,7 +304,7 @@ void FEditor::Tick(float DeltaTime)
 		//기즈모가 선택 안되면 오브젝트 선택
 		else
 		{
-			UPrimitiveComponent* Selected = ObjectPicker->Pick();
+			USceneComponent* Selected = ObjectPicker->Pick();
 
 			SetSelectedSceneComponent(Selected);
 			if (Selected != nullptr) {

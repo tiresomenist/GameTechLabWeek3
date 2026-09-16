@@ -34,6 +34,6 @@ public:
 
     virtual FMeshResource* GetMeshResource() const;
 
-    virtual void AppendLineDrawRequests(const FLineDrawContext& Context,TArray<FLineDrawRequest>& OutRequests) const;
+    virtual void SubmitLineDrawRequests(const FLineDrawContext& Context, const FLineRequestConsumer& Submit) const;
 };
 

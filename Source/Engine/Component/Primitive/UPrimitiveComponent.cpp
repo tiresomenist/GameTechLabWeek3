@@ -50,7 +50,7 @@ FMeshResource* UPrimitiveComponent::GetMeshResource() const
 	return GResourceManager::GetInstance()->GetPrimitive(FString(GetInstanceClass()->Name));
 }
 
-void UPrimitiveComponent::AppendLineDrawRequests(const FLineDrawContext& Context, TArray<FLineDrawRequest>& OutRequests) const
+void UPrimitiveComponent::SubmitLineDrawRequests(const FLineDrawContext& Context, const FLineRequestConsumer& Submit) const
 {
     if (!Context.bShowBounds && !Context.bSelected)
     {
@@ -96,6 +96,5 @@ void UPrimitiveComponent::AppendLineDrawRequests(const FLineDrawContext& Context
             }
         }
     }
-
-    OutRequests.Add(std::move(Request));
+    Submit(Request);
 }

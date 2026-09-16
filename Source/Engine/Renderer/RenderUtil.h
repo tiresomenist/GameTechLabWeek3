@@ -14,5 +14,5 @@ namespace RenderUtil
 	TArray<FPrimitiveRenderData> GetRenderList(FEditor* Editor, UScene* Scene);
 	TArray<FPrimitiveRenderData> GetGizmoList(FEditor* Editor, UScene* Scene);
 	TArray<FWorldTextItem> GetTextRenderList(UScene* Scene, const UCameraComponent* Camera, bool bShowUUIDWidgets);
-	TArray<FLineDrawRequest> GetLineDrawRequests(FEditor* Editor,UScene* Scene);
+	void SubmitLineDrawRequests(FEditor* Editor,UScene* Scene,FLineBatcher& Batcher);
 };

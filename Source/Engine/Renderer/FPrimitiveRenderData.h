@@ -26,6 +26,22 @@ struct FTextureUVTransform
 };
 static_assert(sizeof(FTextureUVTransform) == 16);
 
+struct FTextureDrawConstants
+{
+	FTextureUVTransform UV;
+
+	// 텍스처에 곱할 오브젝트별 색상
+	FVector4 Tint{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+	// 해당 값보다 작은 알파의 픽셀을 제거함
+	float AlphaCutoff = 0.0f;
+
+	// 상수 버퍼 크기를 16바이트 배수로 맞춤
+	float Padding[3]{};
+};
+static_assert(sizeof(FTextureDrawConstants) == 48);
+
+
 struct FPrimitiveRenderData
 {
 	ID3D11Buffer*				VertexBuffer = nullptr;
@@ -48,4 +64,12 @@ struct FPrimitiveRenderData
     // 기본값은 텍스처 전체를 사용함
     FTextureUVTransform UVTransform;
 
+	// 텍스처에 곱할 색상
+	FVector4 TextureTint{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+	// 0이면 알파 컷아웃을 사용하지 않음
+	float AlphaCutoff = 0.0f;
+
+	// 선택 시 일반 메시 외곽선 렌더링 허용 여부
+	bool bAllowOutline = true;
 };

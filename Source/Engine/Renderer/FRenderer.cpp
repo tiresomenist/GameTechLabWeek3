@@ -629,7 +629,7 @@ void FRenderer::CreateTextureResources()
 
     // 텍스처 Draw Call마다 교체하는 UV 크기와 오프셋 버퍼
     D3D11_BUFFER_DESC UVDesc{};
-    UVDesc.ByteWidth = sizeof(FTextureUVTransform);
+    UVDesc.ByteWidth = sizeof(FTextureDrawConstants);
     UVDesc.Usage = D3D11_USAGE_DEFAULT;
     UVDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     CheckHR(D3DDevice->CreateBuffer(&UVDesc, nullptr, &TextureUVConstantBuffer));
@@ -671,10 +671,17 @@ void FRenderer::RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewMo
 {
 	if (!Data.VertexBuffer||!Data.IndexBuffer||!Data.Material||Data.IndexCount == 0){return;}
 
-    // 공유 메시를 수정하지 않고 이번 오브젝트의 UV 변환만 전달함
-    DeviceContext->UpdateSubresource(TextureUVConstantBuffer, 0, nullptr, &Data.UVTransform, 0, 0);
+	FTextureDrawConstants Constants{};
+	Constants.UV = Data.UVTransform;
+	Constants.Tint = Data.TextureTint;
+	Constants.AlphaCutoff = Data.AlphaCutoff;
+
+	DeviceContext->UpdateSubresource(TextureUVConstantBuffer,0,nullptr,&Constants,0,0);
+	//UV변환에 사용함
     DeviceContext->VSSetConstantBuffers(1, 1, &TextureUVConstantBuffer);
 
+	//색상 및 알파컷아웃에 사용함
+	DeviceContext->PSSetConstantBuffers(1, 1, &TextureUVConstantBuffer);
 	const UINT Offset = 0;
 
 	// 위치와 UV 형식으로 정점 버퍼를 읽음
@@ -781,7 +788,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 				UpdateTransformConstantBuffer(MVP);
 
 				// 선택된 오브젝트는 그리면서 스텐실 마스크를 기록하고, 외곽선은 나중에 그림
-				const bool bOutline = Item.isSelected && ViewMode != EViewModeIndex::VMI_Wireframe;
+				const bool bOutline = Item.isSelected && Item.bAllowOutline && ViewMode != EViewModeIndex::VMI_Wireframe;
 				RenderPrimitive(Item, ViewMode, bOutline);
 				if (bOutline)
 				{
@@ -834,16 +841,10 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	}
 #else
 #endif
-	// BatchLine
-	const TArray<FLineDrawRequest> LineRequests = RenderUtil::GetLineDrawRequests(Editor, Scene);
+	// 모든 라인 요청을 배처의 통합 배열에 즉시 병합함
+	RenderUtil::SubmitLineDrawRequests(Editor, Scene, LineBatcher);
 
-	for (const FLineDrawRequest& Request : LineRequests)
-	{
-		if (!LineBatcher.AddRequest(Request))
-		{
-			UE_LOG("[FRenderer] 잘못되었거나 용량을 초과한 라인 요청");
-		}
-	}
+	// 통합 데이터를 GPU에 업로드하고 배치 렌더링함
 	RenderBatchLine(ViewProjMatrix);
 
 	for (const FPrimitiveRenderData* Item : AdditiveRenderList)
