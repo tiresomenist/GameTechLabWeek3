@@ -705,8 +705,9 @@ void FRenderer::RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewMo
 
 	DeviceContext->PSSetSamplers(0,1,&TextureSamplerState);
 
-	// 일반 모드에서는 사각형의 양면을 렌더링함
-	DeviceContext->RSSetState(InViewMode == EViewModeIndex::VMI_Wireframe? WireframeRasterizerState:CullNoneRasterizerState);
+	// 구형 텍스처는 백페이스 컬링 / 플립북,빌보드 는 none 컬링
+	ID3D11RasterizerState* RasterizerState = InViewMode == EViewModeIndex::VMI_Wireframe ? WireframeRasterizerState : (Data.bTwoSided ? CullNoneRasterizerState : DefaultRasterizerState);
+	DeviceContext->RSSetState(RasterizerState);
 
 	//블렌드 모드에 따라 가산블렌딩으로 변환
 	const bool bAdditive = Data.BlendMode == EPrimitiveBlendMode::Additive;
