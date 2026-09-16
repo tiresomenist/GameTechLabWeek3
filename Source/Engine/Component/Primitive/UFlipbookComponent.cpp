@@ -127,6 +127,7 @@ FTextureUVTransform UFlipbookComponent::GetUVTransform() const
 
 FPrimitiveRenderData UFlipbookComponent::CreateRenderData(bool bSelected) const
 {
+
     if (!Texture || !Texture->GetSRV())
     {
         return {};
@@ -134,6 +135,7 @@ FPrimitiveRenderData UFlipbookComponent::CreateRenderData(bool bSelected) const
 
     FPrimitiveRenderData Data = Super::CreateRenderData(bSelected);
 
+    Data.bTwoSided = true;
     Data.Pipeline = EPrimitivePipeline::Texture;
     Data.Material = Texture->GetSRV();
     Data.UVTransform = GetUVTransform();

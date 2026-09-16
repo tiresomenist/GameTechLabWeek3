@@ -18,6 +18,21 @@
 
 namespace
 {
+	UStaticMeshComponent* FindStaticMeshComponent(AActor* Actor)
+	{
+		if (Actor == nullptr) return nullptr;
+
+		for (UActorComponent* Component : Actor->GetComponents())
+		{
+			if (Component->IsA(UStaticMeshComponent::GetClass()))
+			{
+				return static_cast<UStaticMeshComponent*>(Component);
+			}
+		}
+
+		return nullptr;
+	}
+
 	void EnsurePrimitiveWidget(AActor* Actor)
 	{
 		for (UActorComponent* Component : Actor->GetComponents())
@@ -248,12 +263,29 @@ void UPropertyWindow::Render(float DeltaTime)
 					ImGui::EndCombo();
 				}
 
-				if (ImGui::Button("Add Component##Action"))
+				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
+					? "Apply Static Mesh##Action" : "Add Component##Action"))
 				{
-					UActorComponent* AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
-					if (bAddingStaticMesh && AddedComponent != nullptr)
+					UActorComponent* AddedComponent = nullptr;
+					if (bAddingStaticMesh)
 					{
-						static_cast<UStaticMeshComponent*>(AddedComponent)->SetStaticMesh(SelectedMeshKey);
+						if (UStaticMeshComponent* StaticMesh = FindStaticMeshComponent(SelectedActor))
+						{
+							StaticMesh->SetStaticMesh(SelectedMeshKey);
+							AddedComponent = StaticMesh;
+						}
+						else
+						{
+							AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
+							if (AddedComponent != nullptr)
+							{
+								static_cast<UStaticMeshComponent*>(AddedComponent)->SetStaticMesh(SelectedMeshKey);
+							}
+						}
+					}
+					else
+					{
+						AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
 					}
 
 					if (AddedComponent != nullptr && AddedComponent->IsA(UPrimitiveComponent::GetClass()))
@@ -501,10 +533,6 @@ void UPropertyWindow::Render(float DeltaTime)
 					}
 
 					ImGui::PopID();
-				}
-				if (ImGui::Button("Delete"))
-				{
-					DeleteSelectedActor();
 				}
 				if (SelectedComponent->IsA(UTextComponent::GetClass()))
 				{
