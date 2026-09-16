@@ -165,7 +165,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	// 토성
 	AActor* Saturn = Scene->SpawnActor<AActor*>(AActor::GetClass());
 	Saturn->SetParentActor(Sun);
-	Jupiter->CreateComponent(UWidgetComponent::GetClass());
+	Saturn->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* SaturnMesh = static_cast<UStaticMeshComponent*>(Saturn->CreateComponent(UStaticMeshComponent::GetClass()));
 	SaturnMesh->SetStaticMesh(GetMeshNames().Sphere);
@@ -195,7 +195,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	// 해왕성
 	AActor* Neptune = Scene->SpawnActor<AActor*>(AActor::GetClass());
 	Neptune->SetParentActor(Sun);
-	Uranus->CreateComponent(UWidgetComponent::GetClass());
+	Neptune->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* NeptuneMesh = static_cast<UStaticMeshComponent*>(Neptune->CreateComponent(UStaticMeshComponent::GetClass()));
 	NeptuneMesh->SetStaticMesh(GetMeshNames().Sphere);
@@ -249,5 +249,5 @@ inline void LaunchRocket(UScene* Scene, USceneComponent* Launcher = nullptr, USc
 
 	auto* RocketTracer = static_cast<UTracerComponent*>(Rocket->CreateComponent(UTracerComponent::GetClass()));
 	RocketTracer->SetTarget(T);
-	RocketTracer->SetSpeed(6.0f);
+	RocketTracer->SetSpeed(8.0f);
 }
