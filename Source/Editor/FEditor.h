@@ -92,6 +92,8 @@ public:
 	void SetShowPrimitives(bool bShow){ViewSettings.ShowFlags.SetEnabled(EEngineShowFlag::Primitives, bShow);}
 	bool IsShowingGrid() const{return ViewSettings.ShowFlags.IsEnabled(EEngineShowFlag::Grid);}
 	void SetShowGrid(bool bShow){ViewSettings.ShowFlags.SetEnabled(EEngineShowFlag::Grid, bShow);}
+	bool IsShowingWorldAxis() const { return ViewSettings.ShowFlags.IsEnabled(EEngineShowFlag::WorldAxis); }
+	void SetShowWorldAxis(bool bShow) { ViewSettings.ShowFlags.SetEnabled(EEngineShowFlag::WorldAxis, bShow); }
 	const FGrid& GetGrid() const { return Grid; }
 	void SetGridInterval(float InInterval)
 	{

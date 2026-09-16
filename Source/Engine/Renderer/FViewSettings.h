@@ -30,11 +30,12 @@ inline constexpr FViewModeEntry ViewModeEntries[] =
 #undef VIEW_MODE_LIST
 
 // 독립적으로 켜고 끌 수 있는 표시 기능
-enum class EEngineShowFlag : uint32 { 
+enum class EEngineShowFlag : uint32 {
     UUID = 1u << 0,
     Primitives = 1u << 1,
     Grid = 1u << 2,
     Bounds = 1u << 3,
+    WorldAxis = 1u << 4,
 };
 
 // 표시 기능의 상태와 조회·변경 기능
@@ -60,7 +61,8 @@ private:
         static_cast<uint32>(EEngineShowFlag::UUID) |
         static_cast<uint32>(EEngineShowFlag::Primitives) |
         static_cast<uint32>(EEngineShowFlag::Grid) |
-        static_cast<uint32>(EEngineShowFlag::Bounds); };
+        static_cast<uint32>(EEngineShowFlag::Bounds)|
+        static_cast<uint32>(EEngineShowFlag::WorldAxis); };
 
 // 하나의 뷰에서 사용하는 렌더링 설정
 struct FViewSettings

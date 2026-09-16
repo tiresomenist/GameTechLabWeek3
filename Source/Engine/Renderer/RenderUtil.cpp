@@ -190,8 +190,10 @@ void RenderUtil::SubmitLineDrawRequests(FEditor* Editor,UScene* Scene,FLineBatch
 	}
 
 	// 생성된 기즈모 라인 요청을 즉시 제출함
-	for (UGizmo* Gizmo : Editor->GetGizmos())
-	{
-		Submit(Gizmo->BuildLineDrawRequest(GridSettings,CameraPosition));
+	if (Editor->IsShowingWorldAxis()) {
+		for (UGizmo* Gizmo : Editor->GetGizmos())
+		{
+			Submit(Gizmo->BuildLineDrawRequest(GridSettings, CameraPosition));
+		}
 	}
 }
