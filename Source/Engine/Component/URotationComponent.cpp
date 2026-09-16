@@ -23,7 +23,8 @@ void URotationComponent::Tick(float DeltaTime)
 		}
 	}
 
-	OwnerTransform->SetRelativeRotation(FQuaternion::FromAxisAngle(RotationAxis, RotationSpeed * ElapsedTime));
+	const FQuaternion SpinRotation = FQuaternion::FromAxisAngle(RotationAxis, RotationSpeed * ElapsedTime);
+	OwnerTransform->SetRelativeRotation(SpinRotation);
 
 	if (!PivotTransform)
 	{
@@ -33,6 +34,18 @@ void URotationComponent::Tick(float DeltaTime)
 	FVector Offset = OrbitPlane * OrbitRadius;
 	FVector Rotated = FQuaternion::FromAxisAngle(OrbitAxis, OrbitSpeed * ElapsedTime).ToRotationMatrix().TransformPosition(Offset);
 	OwnerTransform->SetRelativeLocation(Rotated + PivotTransform->GetRelativeLocation());
+
+	if (bFaceOrbitDirection)
+	{
+		// 잠시 뒤 위치와의 차이로 공전 진행 방향을 구하고 로컬 +Z(머리)를 그 방향으로 맞춤
+		const float LookAheadTime = 0.01f;
+		FVector Next = FQuaternion::FromAxisAngle(OrbitAxis, OrbitSpeed * (ElapsedTime + LookAheadTime)).ToRotationMatrix().TransformPosition(Offset);
+		const FQuaternion FaceRotation = FQuaternion::FromToRotation(FVector(0.0f, 0.0f, 1.0f), Next - Rotated);
+		// 자전을 먼저 적용해 머리 방향 축으로 롤 회전하게 함
+		OwnerTransform->SetRelativeRotation(FaceRotation * SpinRotation);
+		return;
+	}
+
 	OwnerTransform->AddWorldRotation(FQuaternion::FromAxisAngle(OrbitAxis, OrbitSpeed * ElapsedTime));
 }
 
@@ -50,6 +63,11 @@ void URotationComponent::SetOrbit(float Speed, float Radius, FVector Axis)
 	OrbitAxis = Axis;
 	OrbitAxis.Normalize();
 	OrbitPlane = GetOrbitPlane(OrbitAxis);
+}
+
+void URotationComponent::SetFaceOrbitDirection(bool bFace)
+{
+	bFaceOrbitDirection = bFace;
 }
 
 void URotationComponent::SetPivot(USceneComponent* Transform)

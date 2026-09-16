@@ -25,6 +25,7 @@
 #include "Engine/Resource/MeshData/RotateGreen.h"
 #include "Engine/Resource/MeshData/RotateBlue.h"
 #include "Engine/Resource/MeshData/Grid.h"
+#include "Engine/Resource/MeshData/rocket_mesh.h"
 #include "Core/Math/FVector.h"
 #include "Engine/Resource/FTextureResource.h"
 #include "FGeometryGenerator.h"
@@ -312,6 +313,12 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
     if (!CreateTexturedMesh(Names.Plane, PlaneVertices, PlaneIndices))
     {
         throw std::runtime_error("TexturedCube mesh creation failed");
+    }
+
+    // Blender에서 내보낸 UV 포함 로켓 메시
+    if (!CreateTexturedMesh("Rocket", rocket_vertices, rocket_indices))
+    {
+        throw std::runtime_error("Rocket mesh creation failed");
     }
 
     // SpotLight의 빌보드 아이콘용 정점데이터
