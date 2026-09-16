@@ -840,8 +840,8 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	{
 		// 그리드가 표시되는 경우에만 배치에 선을 추가함
 		LineBatcher.AddGrid(Editor->GetGrid(),Camera->GetWorldLocation());
+		LineBatcher.AddWorldAxis(Editor->GetGrid(), Camera->GetWorldLocation());
 	}
-	LineBatcher.AddWorldAxis(Editor->GetGrid(), Camera->GetWorldLocation());
 #endif
 	// BatchLine
 	RenderBatchLine(ViewProjMatrix);
