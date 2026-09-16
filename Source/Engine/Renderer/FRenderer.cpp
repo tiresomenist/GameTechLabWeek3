@@ -476,8 +476,8 @@ void FRenderer::CreateTextResources()
 	D3D11_INPUT_ELEMENT_DESC Layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	CheckHR(D3DDevice->CreateInputLayout(Layout, ARRAYSIZE(Layout), ShaderBlob->GetBufferPointer(), ShaderBlob->GetBufferSize(), &TextInputLayout));
 	ShaderBlob.Reset();
@@ -504,7 +504,7 @@ void FRenderer::CreateTextResources()
 
 	// Vertex Buffer: 매 프레임 내용이 바뀌므로 DYNAMIC, 고정 용량으로 1회만 생성
 	D3D11_BUFFER_DESC VBDesc = {};
-	VBDesc.ByteWidth = sizeof(FVertexText) * MaxTextVertices;
+	VBDesc.ByteWidth = sizeof(FVertexTexture) * MaxTextVertices;
 	VBDesc.Usage = D3D11_USAGE_DYNAMIC;
 	VBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	VBDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -544,7 +544,7 @@ void FRenderer::ReleaseTextResources()
 	if (TextVertexShader) { TextVertexShader->Release(); TextVertexShader = nullptr; }
 }
 
-void FRenderer::UpdateTextVertexBuffer(TArray<FVertexText>& Vertices)
+void FRenderer::UpdateTextVertexBuffer(TArray<FVertexTexture>& Vertices)
 {
 	if (Vertices.Num() == 0) return;
 
@@ -552,7 +552,7 @@ void FRenderer::UpdateTextVertexBuffer(TArray<FVertexText>& Vertices)
 
 	D3D11_MAPPED_SUBRESOURCE Mapped;
 	DeviceContext->Map(TextVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
-	memcpy(Mapped.pData, Vertices.GetData(), sizeof(FVertexText) * CopyCount);
+	memcpy(Mapped.pData, Vertices.GetData(), sizeof(FVertexTexture) * CopyCount);
 	DeviceContext->Unmap(TextVertexBuffer, 0);
 }
 
@@ -560,7 +560,7 @@ void FRenderer::RenderText(UINT IndexCount)
 {
 	if (IndexCount == 0) return;
 
-	UINT Stride = sizeof(FVertexText);
+	UINT Stride = sizeof(FVertexTexture);
 	UINT Offset = 0;
 	DeviceContext->IASetInputLayout(TextInputLayout);
 	DeviceContext->IASetVertexBuffers(0, 1, &TextVertexBuffer, &Stride, &Offset);
@@ -883,7 +883,7 @@ void FRenderer::Render(float DeltaTime, FEditor* Editor, UScene* Scene)
 	if (FontAtlas)
 	{
 		TArray<FWorldTextItem> TextItems = RenderUtil::GetTextRenderList(Scene, Camera, Editor->IsShowingUUIDLabels());
-		TArray<FVertexText> TextVerts = FTextMeshBuilder::Build(TextItems, *FontAtlas);
+		TArray<FVertexTexture> TextVerts = FTextMeshBuilder::Build(TextItems, *FontAtlas);
 		UpdateTextVertexBuffer(TextVerts);
 		UpdateTransformConstantBuffer(ViewProjMatrix); // 텍스트는 이미 월드공간이라 World=Identity
 		const UINT TextVertexCount = (static_cast<UINT>(TextVerts.Num()) < MaxTextVertices) ? static_cast<UINT>(TextVerts.Num()) : MaxTextVertices;

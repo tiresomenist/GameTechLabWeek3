@@ -139,7 +139,7 @@ public:
 
 	void CreateTextResources();
 	void ReleaseTextResources();
-	void UpdateTextVertexBuffer(TArray<FVertexText>& Vertices);
+	void UpdateTextVertexBuffer(TArray<FVertexTexture>& Vertices);
 	void RenderText(UINT IndexCount);
 
 	void CreateTextureResources();
