@@ -95,7 +95,7 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         const bool bLegacyStaticMesh =
             TypeName == "Plane" || TypeName == "Cube" ||
             TypeName == "Sphere" || TypeName == "Triangle" ||
-            TypeName == "Pepe" || TypeName == "Octopus" ||
+            TypeName == "Pepe" || TypeName == "Octopus" || TypeName == "Rocket" ||
             TypeName == "ArrowRed" || TypeName == "ArrowGreen" ||
             TypeName == "ArrowBlue";
         const bool bLegacyFlipbook = TypeName == "Flame";

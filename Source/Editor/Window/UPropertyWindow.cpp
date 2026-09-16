@@ -60,6 +60,7 @@ void UPropertyWindow::Initialize(FEditor* InEditor)
 	SpawnableMeshKeys.Add(FString("Triangle"));
 	SpawnableMeshKeys.Add(FString("Pepe"));
 	SpawnableMeshKeys.Add(FString("Octopus"));
+	SpawnableMeshKeys.Add(FString("Rocket"));
 	SelectedMeshKey = *SpawnableMeshKeys.begin();
 }
 

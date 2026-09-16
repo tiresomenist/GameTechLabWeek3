@@ -9,7 +9,7 @@ inline bool IsAllowedSceneType(FStringView Name)
 {
     // 단순 메시 타입은 이전 씬 파일을 StaticMeshComponent로 이관하기 위해서만 허용한다.
     return Name == "StaticMeshComponent" || Name == "Cube" || Name == "Sphere" || Name == "Plane" ||
-        Name == "Triangle" || Name == "Pepe" || Name == "Octopus" ||
+        Name == "Triangle" || Name == "Pepe" || Name == "Octopus" || Name == "Rocket" ||
         Name == "CameraComponent" || Name == "ArrowRed" ||
         Name == "ArrowGreen" || Name == "ArrowBlue" ||
         Name == "WidgetComponent" || Name == "FlipbookComponent" || Name == "Flame"||Name=="Text"|| Name == "SpotLight";

@@ -79,6 +79,7 @@ void USceneWindow::Initialize(FEditor* Editor)
 	SpawnableMeshKeys.Add(FString("Triangle"));
 	SpawnableMeshKeys.Add(FString("Pepe"));
 	SpawnableMeshKeys.Add(FString("Octopus"));
+	SpawnableMeshKeys.Add(FString("Rocket"));
 	
 	SelectedMeshKey = *SpawnableMeshKeys.begin();
 

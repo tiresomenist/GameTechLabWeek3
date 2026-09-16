@@ -416,6 +416,11 @@ void FEditor::SpawnStaticMesh(const FString& MeshKey, int Count)
 		{
 			StaticMesh->SetMaterial("Assets/Textures/DefaultMaterial.png");
 		}*/
+		// 로켓 색상은 정점 색상에 있으므로 흰색 텍스처를 곱해 원래 색을 유지함
+		if (MeshKey == "Rocket")
+		{
+			StaticMesh->SetMaterial("Assets/Textures/WhiteTexture.png");
+		}
 
 		Actor->CreateComponent(UWidgetComponent::GetClass());
 	}
