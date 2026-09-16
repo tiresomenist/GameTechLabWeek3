@@ -8,24 +8,18 @@ void URotationComponent::Tick(float DeltaTime)
 {
 	ElapsedTime += DeltaTime;
 
-	if (!OwnerTransform)
+	AActor* Owner = GetOwner();
+	if (!Owner)
 	{
-		AActor* Owner = GetOwner();
-		if (!Owner)
-		{
-			return;
-		}
-
-		OwnerTransform = Owner->GetRootComponent();
-		if (!OwnerTransform)
-		{
-			return;
-		}
+		return;
 	}
+	USceneComponent* OwnerTransform = Owner->GetRootComponent();
+	if (!OwnerTransform) return;
 
 	const FQuaternion SpinRotation = FQuaternion::FromAxisAngle(RotationAxis, RotationSpeed * ElapsedTime);
 	OwnerTransform->SetRelativeRotation(SpinRotation);
 
+	USceneComponent* PivotTransform = ResolvePivotTransform();
 	if (!PivotTransform)
 	{
 		return;
@@ -72,7 +66,22 @@ void URotationComponent::SetFaceOrbitDirection(bool bFace)
 
 void URotationComponent::SetPivot(USceneComponent* Transform)
 {
-	PivotTransform = Transform;
+	PivotActor = Transform ? Transform->GetOwner() : nullptr;
+	PivotComponentUUID = Transform ? Transform->GetUUID() : static_cast<uint32>(-1);
+}
+
+USceneComponent* URotationComponent::ResolvePivotTransform() const
+{
+	if (!PivotActor || PivotComponentUUID == static_cast<uint32>(-1)) return nullptr;
+
+	for (UActorComponent* Component : PivotActor->GetComponents())
+	{
+		if (Component->GetUUID() == PivotComponentUUID && Component->IsA(USceneComponent::GetClass()))
+		{
+			return static_cast<USceneComponent*>(Component);
+		}
+	}
+	return nullptr;
 }
 
 FVector URotationComponent::GetOrbitPlane(FVector Axis) const
