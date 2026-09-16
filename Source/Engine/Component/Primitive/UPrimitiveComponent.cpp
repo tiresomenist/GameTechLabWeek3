@@ -47,7 +47,8 @@ const FMatrix& UPrimitiveComponent::GetRenderWorldMatrix(const UCameraComponent*
 
 FMeshResource* UPrimitiveComponent::GetMeshResource() const
 {
-	return GResourceManager::GetInstance()->GetPrimitive(FString(GetInstanceClass()->Name));
+    const FName MeshName(GetInstanceClass()->Name);
+    return GResourceManager::GetInstance()->GetPrimitive(MeshName);
 }
 
 void UPrimitiveComponent::SubmitLineDrawRequests(const FLineDrawContext& Context, const FLineRequestConsumer& Submit) const

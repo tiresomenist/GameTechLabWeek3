@@ -4,11 +4,12 @@
 #include "Engine/Object/FClassType.h"
 #include "Engine/Renderer/FVertexSimple.h"
 #include "Engine/Resource/GResourceManager.h"
+#include "Engine/Resource/FMeshNames.h"
 
 void UGrid::Initialize(FEditor* InEditor)
 {
 	Editor = InEditor;
-	MeshResource = GResourceManager::GetInstance()->GetPrimitive("Grid");
+	MeshResource = GResourceManager::GetInstance()->GetPrimitive(GetMeshNames().Grid);
 }
 
 TArray<FPrimitiveRenderData> UGrid::GetRenderData()

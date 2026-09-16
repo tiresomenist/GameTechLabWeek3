@@ -143,7 +143,7 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         Component->Deserialize(Item);
         if (bLegacyStaticMesh)
         {
-            static_cast<UStaticMeshComponent*>(Component)->SetStaticMesh(TypeName);
+            static_cast<UStaticMeshComponent*>(Component)->SetStaticMesh(FName(TypeName));
         }
         // 역직렬화 확인 임시코드
         UE_LOG("[Object Restored] UUID:{} Name:{} ActorName:{}",Component->GetUUID(),Component->GetName().ToString(),Actor->GetName().ToString()

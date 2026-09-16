@@ -5,7 +5,7 @@
 #include "Core/Math/Matrix.h"
 #include "Core/Math/FRotator.h"
 #include "Core/Container/FString.h"
-
+#include "Core/Name/FName.h"
 
 class USceneComponent;
 class AActor;
@@ -27,8 +27,7 @@ private:
 	bool bScaleLock = false;
 	TArray<FClassType*> AddableComponentClasses;
 	FClassType* SelectedAddComponentClass = nullptr;
-	TArray<FString> SpawnableMeshKeys;
-	FString SelectedMeshKey;
+	FName SelectedMeshKey;
 	AActor* NameEditingActor = nullptr;
 	std::array<char, 128> ActorNameBuffer {};
 public:

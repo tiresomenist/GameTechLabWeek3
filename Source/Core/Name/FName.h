@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/Core.h"
 #include "Core/Container/FString.h"
+#include <cstddef>
+#include <functional>
 
 struct FName
 {

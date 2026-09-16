@@ -15,6 +15,7 @@
 #include "Core/Math/FRotator.h"
 #include "Core/Util/File.h"
 #include "Engine/Component/Light/USpotLightComponent.h"
+#include "Editor/Util/MeshSelection.h"
 
 namespace
 {
@@ -54,13 +55,7 @@ void UPropertyWindow::Initialize(FEditor* InEditor)
 	AddableComponentClasses.Add(USpotLightComponent::GetClass());
 	SelectedAddComponentClass = *AddableComponentClasses.begin();
 
-	SpawnableMeshKeys.Add(FString("Sphere"));
-	SpawnableMeshKeys.Add(FString("Cube"));
-	SpawnableMeshKeys.Add(FString("Plane"));
-	SpawnableMeshKeys.Add(FString("Triangle"));
-	SpawnableMeshKeys.Add(FString("Pepe"));
-	SpawnableMeshKeys.Add(FString("Octopus"));
-	SelectedMeshKey = *SpawnableMeshKeys.begin();
+	SelectedMeshKey = MeshSelection::GetEntries()[0].Key;
 }
 
 void UPropertyWindow::GetSelectedValue()
@@ -248,19 +243,9 @@ void UPropertyWindow::Render(float DeltaTime)
 
 				const bool bAddingStaticMesh =
 					SelectedAddComponentClass == UStaticMeshComponent::GetClass();
-				if (bAddingStaticMesh &&
-					ImGui::BeginCombo("Mesh", SelectedMeshKey.c_str()))
+				if (bAddingStaticMesh )
 				{
-					for (const FString& MeshKey : SpawnableMeshKeys)
-					{
-						const bool bSelected = SelectedMeshKey == MeshKey;
-						if (ImGui::Selectable(MeshKey.c_str(), bSelected))
-						{
-							SelectedMeshKey = MeshKey;
-						}
-						if (bSelected) ImGui::SetItemDefaultFocus();
-					}
-					ImGui::EndCombo();
+					MeshSelection::DrawCombo("Mesh", SelectedMeshKey);
 				}
 
 				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
@@ -435,18 +420,11 @@ void UPropertyWindow::Render(float DeltaTime)
 					ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					auto* MeshComp = static_cast<UStaticMeshComponent*>(SelectedComponent);
-					if (ImGui::BeginCombo("Mesh Key", MeshComp->GetStaticMeshKey().c_str()))
+					FName NewMeshKey = MeshComp->GetStaticMeshKey();
+
+					if (MeshSelection::DrawCombo("Mesh Key", NewMeshKey))
 					{
-						for (const FString& MeshKey : SpawnableMeshKeys)
-						{
-							const bool bSelected = MeshComp->GetStaticMeshKey() == MeshKey;
-							if (ImGui::Selectable(MeshKey.c_str(), bSelected))
-							{
-								MeshComp->SetStaticMesh(MeshKey);
-							}
-							if (bSelected) ImGui::SetItemDefaultFocus();
-						}
-						ImGui::EndCombo();
+						MeshComp->SetStaticMesh(NewMeshKey);
 					}
 
 					std::string CurrentTexPath = MeshComp->GetMaterialPath().c_str();

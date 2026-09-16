@@ -17,6 +17,8 @@
 #include "Engine/Renderer/FViewSettings.h"
 
 #include "Engine/Renderer/FGrid.h"
+#include "Core/Name/FName.h"
+
 
 class USceneComponent;
 class UCameraComponent;
@@ -66,7 +68,7 @@ public:
 
 	void Release();
 
-	void SpawnStaticMesh(const FString& MeshKey, int Count);
+	void SpawnStaticMesh(const FName& MeshKey, int Count);
 	void SpawnComponent(FClassType* ComponentClass, int Count);
 	void CreateEmptyActor();
 
