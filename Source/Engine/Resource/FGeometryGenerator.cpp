@@ -1,6 +1,44 @@
 #include <pch.h>
 #include "FGeometryGenerator.h"
 
+void FGeometryGenerator::CreateTriangle(
+	float Width,
+	float Height,
+	TArray<FVertexTexture>& OutVertices,
+	TArray<uint32>& OutIndices
+)
+{
+	OutVertices.Empty();
+	OutIndices.Empty();
+
+	float HalfWidth = 0.5f * Width;
+	float HalfHeight = 0.5f * Height;
+
+	FVertexTexture Vertex;
+
+	Vertex.x = 0.0f; Vertex.y = HalfHeight; Vertex.z = 0.0f;
+	Vertex.r = 1.0f; Vertex.g = 1.0f; Vertex.b = 1.0f; Vertex.a = 1.0f;
+	Vertex.u = 0.5f; Vertex.v = 0.0f;
+
+	OutVertices.Add(Vertex);
+
+	Vertex.x = HalfWidth; Vertex.y = -HalfHeight; Vertex.z = 0.0f;
+	Vertex.r = 1.0f; Vertex.g = 1.0f; Vertex.b = 1.0f; Vertex.a = 1.0f;
+	Vertex.u = 1.0f; Vertex.v = 1.0f;
+
+	OutVertices.Add(Vertex);
+
+	Vertex.x = -HalfWidth; Vertex.y = -HalfHeight; Vertex.z = 0.0f;
+	Vertex.r = 1.0f; Vertex.g = 1.0f; Vertex.b = 1.0f; Vertex.a = 1.0f;
+	Vertex.u = 0.0f; Vertex.v = 1.0f;
+
+	OutVertices.Add(Vertex);
+
+	OutIndices.Add(0);
+	OutIndices.Add(2);
+	OutIndices.Add(1);
+}
+
 void FGeometryGenerator::CreatePlane(
 	float Width,
 	float Height,
