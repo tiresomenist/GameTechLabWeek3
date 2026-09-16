@@ -24,7 +24,7 @@ LRESULT HandleInput(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 
-	if (message == WM_KEYDOWN || message == WM_KEYUP)
+	if (message == WM_KEYDOWN || message == WM_KEYUP || message == WM_SYSKEYDOWN || message == WM_SYSKEYUP)
 	{
 		if (DisableKeyboard && message == WM_KEYDOWN)
 		{
@@ -49,7 +49,7 @@ LRESULT HandleInput(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 
-		if (message == WM_KEYDOWN)
+		if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN)
 		{
 			Input.SetKey(Key, true);
 		}
