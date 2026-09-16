@@ -3,7 +3,8 @@
 #include "Core/Math/Matrix.h"
 #include "Core/Core.h"
 #include "Engine/Component/USceneComponent.h"
-#include "Engine/Object/FArchive.h"
+
+class FArchive;
 
 class UCameraComponent : public USceneComponent
 {

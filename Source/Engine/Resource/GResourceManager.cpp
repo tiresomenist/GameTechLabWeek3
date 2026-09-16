@@ -111,7 +111,7 @@ FMeshResource* GResourceManager::CreateMesh(const FName& MeshName,
 }
 
 FMeshResource* GResourceManager::CreateTexturedMesh(const FName& MeshName,
-    const TArray<FVertexTexture>& Vertices, const TArray<uint32>& Indices)
+    std::span<const FVertexTexture> Vertices, std::span<const uint32> Indices)
 {
     // 같은 이름의 텍스처 메시를 재사용하며 다른 정점 형식과의 충돌을 거부함
     if (MeshName.IsNone()) { return nullptr; }
@@ -119,11 +119,11 @@ FMeshResource* GResourceManager::CreateTexturedMesh(const FName& MeshName,
         return (*Existing)->GetStride() == sizeof(FVertexTexture) ? *Existing : nullptr;
     }
     if (!Device || !Device->GetDevice()) return nullptr;
-    if (Vertices.IsEmpty() || Indices.IsEmpty() || Indices.Num() % 3 != 0) return nullptr;
+    if (Vertices.empty() || Indices.empty() || Indices.size() % 3 != 0) return nullptr;
 
     // 버퍼 크기를 UINT로 변환하기 전에 곱셈 오버플로를 검사함
-    const size_t VertexCount = static_cast<size_t>(Vertices.Num());
-    const size_t IndexCount = static_cast<size_t>(Indices.Num());
+    const size_t VertexCount = Vertices.size();
+    const size_t IndexCount = Indices.size();
     const size_t MaxBytes = (std::numeric_limits<UINT>::max)();
     if (VertexCount > MaxBytes / sizeof(FVertexTexture) || IndexCount > MaxBytes / sizeof(uint32))
         return nullptr;
@@ -142,7 +142,9 @@ FMeshResource* GResourceManager::CreateTexturedMesh(const FName& MeshName,
     Mesh->VertexCount = static_cast<UINT>(VertexCount);
     Mesh->IndexCount = static_cast<UINT>(IndexCount);
     Mesh->Stride = sizeof(FVertexTexture);
-    Mesh->indexes = Indices;
+    // 입력은 소유하지 않는 뷰이므로 CPU 피킹용 인덱스는 자체 배열에 복사함
+    Mesh->indexes.SetNum(IndexCount);
+    std::copy(Indices.begin(), Indices.end(), Mesh->indexes.begin());
 
     // CPU에는 피킹과 바운딩 계산에 사용하는 위치만 보관함
     Mesh->Positions.SetNum(VertexCount);
@@ -154,7 +156,7 @@ FMeshResource* GResourceManager::CreateTexturedMesh(const FName& MeshName,
 
     // GPU에는 위치와 UV가 포함된 원본 정점을 업로드함
     Mesh->VertexBuffer = Device->CreateVertexBuffer(
-        &Vertices[0], static_cast<UINT>(VertexCount * sizeof(FVertexTexture)));
+        Vertices.data(), static_cast<UINT>(VertexCount * sizeof(FVertexTexture)));
     if (!Mesh->VertexBuffer) return nullptr;
 
     Mesh->IndexBuffer = Device->CreateIndexBuffer(

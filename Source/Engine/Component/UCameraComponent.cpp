@@ -2,6 +2,8 @@
 #include "UCameraComponent.h"
 #include "Engine/Object/UObject.h"
 #include <stdexcept>
+#include "Engine/Object/FArchive.h"
+
 
 namespace
 {
