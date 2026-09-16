@@ -101,6 +101,60 @@ void AActor::SetRootComponent(USceneComponent* Component)
     RootComponent = Component;
 }
 
+bool AActor::SetParentActor(AActor* NewParent)
+{
+    if (NewParent == this)
+    {
+        return false;
+    }
+
+    // 새 부모의 상위 체인에 자신이 있으면 순환 계층이 된다.
+    for (AActor* Ancestor = NewParent; Ancestor != nullptr; Ancestor = Ancestor->ParentActor)
+    {
+        if (Ancestor == this)
+        {
+            return false;
+        }
+    }
+
+    if (ParentActor == NewParent)
+    {
+        return true;
+    }
+
+    if (ParentActor != nullptr)
+    {
+        TArray<AActor*>& Siblings = ParentActor->ChildActors;
+        for (int32 Index = 0; Index < Siblings.Num(); ++Index)
+        {
+            if (Siblings[Index] == this)
+            {
+                Siblings.RemoveAt(Index);
+                break;
+            }
+        }
+    }
+
+    ParentActor = NewParent;
+    if (ParentActor != nullptr)
+    {
+        ParentActor->ChildActors.Add(this);
+    }
+    return true;
+}
+
+void AActor::DetachChildren()
+{
+    for (AActor* Child : ChildActors)
+    {
+        if (Child != nullptr && Child->ParentActor == this)
+        {
+            Child->ParentActor = nullptr;
+        }
+    }
+    ChildActors.Empty();
+}
+
 void AActor::BeginPlay()
 {
     if (bHasBegunPlay)
@@ -152,6 +206,8 @@ void AActor::ReleaseComponents()
 
 AActor::~AActor()
 {
+    SetParentActor(nullptr);
+    DetachChildren();
     EndPlay();
     ReleaseComponents();
 }

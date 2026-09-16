@@ -208,6 +208,27 @@ void UScene::DestroyActor(AActor* Actor)
         return;
     }
 
+    bool bExistsInScene = false;
+    for (AActor* ExistingActor : Actors)
+    {
+        if (ExistingActor == Actor)
+        {
+            bExistsInScene = true;
+            break;
+        }
+    }
+    if (!bExistsInScene)
+    {
+        return;
+    }
+
+    // 복사본을 사용한다. 자식 삭제 과정에서 부모의 ChildActors는 함께 갱신된다.
+    const TArray<AActor*> Children = Actor->GetChildActors();
+    for (AActor* Child : Children)
+    {
+        DestroyActor(Child);
+    }
+
     for (int32 Index = 0; Index < Actors.Num(); ++Index)
     {
         if (Actors[Index] == Actor)
