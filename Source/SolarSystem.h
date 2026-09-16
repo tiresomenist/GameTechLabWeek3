@@ -172,4 +172,15 @@ inline void SpawnSolarSystem(UScene* Scene)
 	NeptuneRot->SetRotation(-1.0f, FVector(0.0f, 0.3f, 1.0f));
 	NeptuneRot->SetOrbit(-0.05f, 35.0f, FVector(0.0f, 0.0f, 1.0f));
 	NeptuneRot->SetPivot(SunMesh);
+
+	// 배경
+	AActor* Stars = Scene->SpawnActor<AActor*>(AActor::GetClass());
+
+	auto* StarsMesh = static_cast<UStaticMeshComponent*>(Stars->CreateComponent(UStaticMeshComponent::GetClass()));
+	StarsMesh->SetStaticMesh("Sphere");
+	StarsMesh->SetMaterial("Assets/Textures/stars.png");
+	StarsMesh->SetRelativeScale3D(FVector(100.0f, 100.0f, 100.0f));
+
+	auto* StarsRot = static_cast<URotationComponent*>(Stars->CreateComponent(URotationComponent::GetClass()));
+	StarsRot->SetRotation(0.05f, FVector(1.0f, 1.0f, 1.0f));
 }
