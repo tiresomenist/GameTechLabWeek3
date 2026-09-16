@@ -151,10 +151,29 @@ void UPropertyWindow::Render(float DeltaTime)
 	float PreviousDegree = RotationDegree.Roll;
 
 	AActor* SelectedActor = Editor->GetSelectedActor();
+	ImGui::Begin("Property Window");
 	if (SelectedActor != nullptr)
 	{
-		ImGui::Begin("Property Window");
 		{
+			bool bVisible = true;
+			for (UActorComponent* Comp : SelectedActor->GetComponents())
+			{
+				if (Comp && Comp->IsA(UStaticMeshComponent::GetClass()))
+				{
+					bVisible = static_cast<UStaticMeshComponent*>(Comp)->IsVisible();
+					break;
+				}
+			}
+			if (ImGui::Checkbox("Visible", &bVisible))
+			{
+				for (UActorComponent* Comp : SelectedActor->GetComponents())
+				{
+					if (Comp && Comp->IsA(UStaticMeshComponent::GetClass()))
+					{
+						static_cast<UStaticMeshComponent*>(Comp)->SetVisibility(bVisible);
+					}
+				}
+			}
 			const FString ActorName = SelectedActor->GetName().ToString();
 			ImGui::Text("Actor: %s", ActorName.c_str());
 			if (NameEditingActor != SelectedActor)
@@ -487,10 +506,19 @@ void UPropertyWindow::Render(float DeltaTime)
 				{
 					DeleteSelectedActor();
 				}
+				if (SelectedComponent->IsA(UTextComponent::GetClass()))
+				{
+					auto* TextComp = static_cast<UTextComponent*>(SelectedComponent);
+					FString Text = TextComp->GetText();
+					if (ImGui::InputText("Text: ", &Text))
+					{
+						TextComp->SetText(Text);
+					}
+				}
 			}
-			ImGui::End();
 		}
 	}
+	ImGui::End();
 	SetSelectedValue(bRotationChanged);
 	bEditingRotation = SelectedComponent != nullptr && bRotationActive;
 }

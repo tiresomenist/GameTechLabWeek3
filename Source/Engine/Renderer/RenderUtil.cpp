@@ -6,6 +6,7 @@
 #include "Engine/Component/Primitive/UTextComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
 #include "Engine/Component/UCameraComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Resource/FMeshResource.h"
 #include "Engine/Scene/UScene.h"
 #include "Editor/FEditor.h"
@@ -35,6 +36,15 @@ TArray<FPrimitiveRenderData> RenderUtil::GetRenderList(FEditor* Editor, UScene* 
 	Scene->ForEachPrimitive(
 		[&RenderList, Editor, Camera](UPrimitiveComponent* Primitive)
 		{
+			if (Primitive->IsA(UStaticMeshComponent::GetClass()))
+			{
+				auto* StaticMesh = static_cast<UStaticMeshComponent*>(Primitive);
+				if (!StaticMesh->IsVisible())
+				{
+					return;
+				}
+			}
+
 			const bool bSelected = IsComponentSelected(Editor, Primitive);
 			FPrimitiveRenderData Data = Primitive->CreateRenderData(bSelected);
 
