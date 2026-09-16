@@ -3,6 +3,7 @@
 #include <functional>
 #include "Core/Core.h"
 #include "Core/Container/FString.h"
+#include "Core/Name/FName.h"
 
 // 전방 선언
 class UObject;
@@ -15,9 +16,12 @@ using Constructor = std::function<UObject* (const FObjectCreateInfo&)>;
 struct FClassType
 {
     // 객체를 직렬화/역직렬화 할 때 사용되는 이름입니다.
-    const FString Name;
+    const FName Name;
 
-    // TypeInfo로 객체를 생성할 때 사용되는 객체 생성 함수입니다.
+	// UI에서 재사용하는 클래스 표시 문자열임
+	const FString DisplayName = Name.ToString();
+	
+	// TypeInfo로 객체를 생성할 때 사용되는 객체 생성 함수입니다.
     const Constructor ClassConstructor;
 
     // 객체의 상속 구조를 파악할 때 사용되는 부모 포인터입니다.

@@ -157,13 +157,13 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::PushItemWidth(WideItemWidth);
 		if (ImGui::BeginCombo(
 			"Special Component",
-			SelectedSpecialComponentClass->Name.c_str(),
+			SelectedSpecialComponentClass->DisplayName.c_str(),
 			ImGuiComboFlags_HeightSmall))
 		{
 			for (FClassType* ComponentClass : SpecialComponentClasses)
 			{
 				const bool bSelected = SelectedSpecialComponentClass == ComponentClass;
-				if (ImGui::Selectable(ComponentClass->Name.c_str(), bSelected))
+				if (ImGui::Selectable(ComponentClass->DisplayName.c_str(), bSelected))
 				{
 					SelectedSpecialComponentClass = ComponentClass;
 				}

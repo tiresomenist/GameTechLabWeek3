@@ -227,12 +227,12 @@ void UPropertyWindow::Render(float DeltaTime)
 
 			if (ImGui::CollapsingHeader("Add Component##Section", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				if (ImGui::BeginCombo("Component Type", SelectedAddComponentClass->Name.c_str()))
+				if (ImGui::BeginCombo("Component Type", SelectedAddComponentClass->DisplayName.c_str()))
 				{
 					for (FClassType* ComponentClass : AddableComponentClasses)
 					{
 						const bool bSelected = SelectedAddComponentClass == ComponentClass;
-						if (ImGui::Selectable(ComponentClass->Name.c_str(), bSelected))
+						if (ImGui::Selectable(ComponentClass->DisplayName.c_str(), bSelected))
 						{
 							SelectedAddComponentClass = ComponentClass;
 						}

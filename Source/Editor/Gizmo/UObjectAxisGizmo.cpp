@@ -2,7 +2,7 @@
 #include "UObjectAxisGizmo.h"
 #include "Engine/Component/USceneComponent.h"
 #include "Engine/Resource/GResourceManager.h"
-
+#include "Engine/Resource/FMeshNames.h"
 #include "Engine/Renderer/GDevice.h"
 #include "Engine/Component/UCameraComponent.h"
 #include <cmath>
@@ -302,14 +302,24 @@ FMatrix UObjectAxisGizmo::GetZAxisWorldMatirx() const
 void UObjectAxisGizmo::SetMode(EGizmoMode InMode)
 {
 	Mode = InMode;
-	TArray<FString> Names;
+
+	const FMeshNames& MeshNames = GetMeshNames();
+	TArray<FName> Names;
+
 	switch (Mode)
 	{
-	case EGizmoMode::Translate: Names = { "ArrowRed", "ArrowGreen", "ArrowBlue" }; break;
-	case EGizmoMode::Rotate: Names = { "RotateRed", "RotateGreen", "RotateBlue" }; break;
-	case EGizmoMode::Scale: Names = { "ScaleRed", "ScaleGreen", "ScaleBlue" }; break;
+	case EGizmoMode::Translate:
+		Names = {MeshNames.ArrowRed,MeshNames.ArrowGreen,MeshNames.ArrowBlue};
+		break;
+
+	case EGizmoMode::Rotate:
+		Names = {MeshNames.RotateRed,MeshNames.RotateGreen,MeshNames.RotateBlue};
+		break;
+
+	case EGizmoMode::Scale:
+		Names = {MeshNames.ScaleRed,MeshNames.ScaleGreen,MeshNames.ScaleBlue};
+		break;
 	}
-	if (Names.Num() != 3 || Handles.Num() != 3) return;
 
 	HandleBaseLengths = { 0.0f, 0.0f, 0.0f };
 	for (int32 Axis = 0; Axis < 3; ++Axis) {
