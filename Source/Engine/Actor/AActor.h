@@ -20,6 +20,11 @@ public:
 
     const TArray<UActorComponent*>& GetComponents() const { return Components; }
 
+    // 삭제 수명을 공유하는 Actor 계층입니다. Transform 계층은 각 Actor 내부 Component가 담당합니다.
+    bool SetParentActor(AActor* NewParent);
+    AActor* GetParentActor() const { return ParentActor; }
+    const TArray<AActor*>& GetChildActors() const { return ChildActors; }
+
     virtual void BeginPlay();
     virtual void Tick(float DeltaTime);
     virtual void EndPlay();
@@ -28,8 +33,11 @@ public:
 
 private:
     void ReleaseComponents();
+    void DetachChildren();
 
     TArray<UActorComponent*> Components;
     USceneComponent* RootComponent = nullptr;
+    AActor* ParentActor = nullptr;
+    TArray<AActor*> ChildActors;
     bool bHasBegunPlay = false;
 };

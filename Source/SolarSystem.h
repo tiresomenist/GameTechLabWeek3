@@ -21,6 +21,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 수성
 	AActor* Mercury = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Mercury->SetParentActor(Sun);
 	Mercury->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MercuryMesh = static_cast<UStaticMeshComponent*>(Mercury->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -35,6 +36,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 금성
 	AActor* Venus = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Venus->SetParentActor(Sun);
 	Venus->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* VenusMesh = static_cast<UStaticMeshComponent*>(Venus->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -49,6 +51,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 지구
 	AActor* Earth = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Earth->SetParentActor(Sun);
 	Earth->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* EarthMesh = static_cast<UStaticMeshComponent*>(Earth->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -63,6 +66,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 달
 	AActor* Moon = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Moon->SetParentActor(Earth);
 	Moon->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MoonMesh = static_cast<UStaticMeshComponent*>(Moon->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -77,6 +81,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 화성
 	AActor* Mars = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Mars->SetParentActor(Sun);
 	Mars->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MarsMesh = static_cast<UStaticMeshComponent*>(Mars->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -91,6 +96,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 목성
 	AActor* Jupiter = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Jupiter->SetParentActor(Sun);
 	Jupiter->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* JupiterMesh = static_cast<UStaticMeshComponent*>(Jupiter->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -105,6 +111,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 목성 위성 1
 	AActor* Makemake = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Makemake->SetParentActor(Jupiter);
 	Makemake->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MakemakeMesh = static_cast<UStaticMeshComponent*>(Makemake->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -119,6 +126,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 목성 위성 2
 	AActor* Ceres = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Ceres->SetParentActor(Jupiter);
 	Ceres->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* CeresMesh = static_cast<UStaticMeshComponent*>(Ceres->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -133,6 +141,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 토성
 	AActor* Saturn = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Saturn->SetParentActor(Sun);
 	Jupiter->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* SaturnMesh = static_cast<UStaticMeshComponent*>(Saturn->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -147,6 +156,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 천왕성
 	AActor* Uranus = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Uranus->SetParentActor(Sun);
 	Uranus->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* UranusMesh = static_cast<UStaticMeshComponent*>(Uranus->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -161,6 +171,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 해왕성
 	AActor* Neptune = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Neptune->SetParentActor(Sun);
 	Uranus->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* NeptuneMesh = static_cast<UStaticMeshComponent*>(Neptune->CreateComponent(UStaticMeshComponent::GetClass()));
@@ -175,6 +186,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 배경
 	AActor* Stars = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Stars->SetParentActor(Sun);
 
 	auto* StarsMesh = static_cast<UStaticMeshComponent*>(Stars->CreateComponent(UStaticMeshComponent::GetClass()));
 	StarsMesh->SetStaticMesh("Sphere");
