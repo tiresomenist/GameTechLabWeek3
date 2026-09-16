@@ -217,8 +217,27 @@ void FGizmoController::Tick()
     switch (Mode)
     {
     case EGizmoMode::Translate:
-        SelectedObject->SetRelativeLocation(StartObjectLocation + DragWorldDirection * Distance);
+    {
+        const FVector WorldDelta = DragWorldDirection * Distance;
+        FVector LocalDelta = WorldDelta;
+
+        // 기즈모 축은 월드 공간 기준이다. 부모가 회전/스케일된 자식은
+        // 월드 이동량을 부모 로컬 공간으로 변환한 뒤 RelativeLocation에 반영한다.
+        if (USceneComponent* Parent = SelectedObject->GetAttachParent())
+        {
+            FMatrix InverseParentWorld;
+            if (!Parent->GetWorldMatrix().TryInverse(InverseParentWorld))
+            {
+                break;
+            }
+
+            const FVector4 ParentLocalDelta = FVector4(WorldDelta, 0.0f) * InverseParentWorld;
+            LocalDelta = FVector(ParentLocalDelta.X, ParentLocalDelta.Y, ParentLocalDelta.Z);
+        }
+
+        SelectedObject->SetRelativeLocation(StartObjectLocation + LocalDelta);
         break;
+    }
 
     case EGizmoMode::Rotate:
     {
