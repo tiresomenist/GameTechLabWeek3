@@ -94,6 +94,22 @@ inline void SpawnSolarSystem(UScene* Scene)
 	MarsRot->SetOrbit(-0.5f, 15.0f, FVector(0.0f, 0.0f, 1.0f));
 	MarsRot->SetPivot(SunMesh);
 
+	// 로켓
+	AActor* Rocket = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Rocket->SetParentActor(Sun);
+	Rocket->CreateComponent(UWidgetComponent::GetClass());
+
+	auto* RocketMesh = static_cast<UStaticMeshComponent*>(Rocket->CreateComponent(UStaticMeshComponent::GetClass()));
+	RocketMesh->SetStaticMesh("Rocket");
+	RocketMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
+
+	auto* RocketRot = static_cast<URotationComponent*>(Rocket->CreateComponent(URotationComponent::GetClass()));
+	RocketRot->SetRotation(0.2f, FVector(0.0f, 0.0f, 1.0f));
+	RocketRot->SetOrbit(-2.0f, 1.7f, FVector(0.0f, 0.0f, 1.0f));
+	// 로켓 머리가 공전 진행 방향을 향하게 하고, 자전은 머리 축 기준 롤 회전이 됨
+	RocketRot->SetFaceOrbitDirection(true);
+	RocketRot->SetPivot(MarsMesh);
+
 	// 목성
 	AActor* Jupiter = Scene->SpawnActor<AActor*>(AActor::GetClass());
 	Jupiter->SetParentActor(Sun);

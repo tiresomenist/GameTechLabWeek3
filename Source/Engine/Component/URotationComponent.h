@@ -14,6 +14,8 @@ public:
 	void SetRotation(float Speed, FVector Axis);
 	void SetOrbit(float Speed, float Radius, FVector Axis);
 	void SetPivot(USceneComponent* Comp);
+	// 공전 중 로컬 +Z가 진행 방향을 향하게 함 (로켓처럼 긴 메시용)
+	void SetFaceOrbitDirection(bool bFace);
 
 private:
 	USceneComponent* OwnerTransform = nullptr;
@@ -23,6 +25,7 @@ private:
 	float OrbitSpeed = 0.0f;
 	float OrbitRadius = 0.0f;
 	float ElapsedTime = 0.0f;
+	bool bFaceOrbitDirection = false;
 
 	FVector RotationAxis = FVector(0.0f, 0.0f, 1.0f);
 	FVector OrbitAxis = FVector(0.0f, 0.0f, 1.0f);
