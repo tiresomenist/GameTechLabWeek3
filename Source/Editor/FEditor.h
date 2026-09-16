@@ -16,6 +16,8 @@
 #include "Engine/FConsole.h"
 #include "Engine/Renderer/FViewSettings.h"
 
+#include "Engine/Renderer/FGrid.h"
+
 class USceneComponent;
 class UCameraComponent;
 class AActor;

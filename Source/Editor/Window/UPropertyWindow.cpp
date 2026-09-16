@@ -14,6 +14,7 @@
 #include "Engine/Component/UWidgetComponent.h"
 #include "Core/Math/FRotator.h"
 #include "Core/Util/File.h"
+#include "Engine/Component/Light/USpotLightComponent.h"
 
 namespace
 {
@@ -35,6 +36,7 @@ void UPropertyWindow::Initialize(FEditor* InEditor)
 	AddableComponentClasses.Add(UStaticMeshComponent::GetClass());
 	AddableComponentClasses.Add(UTextComponent::GetClass());
 	AddableComponentClasses.Add(UFlipbookComponent::GetClass());
+	AddableComponentClasses.Add(USpotLightComponent::GetClass());
 	SelectedAddComponentClass = *AddableComponentClasses.begin();
 
 	SpawnableMeshKeys.Add(FString("Sphere"));

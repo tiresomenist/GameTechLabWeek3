@@ -1,29 +1,25 @@
 #pragma once
-
+#include <d3d11.h>
 #include "Core/Container/TArray.h"
-#include "Core/Math/FVector.h"
-#include "Core/Math/Matrix.h"
-#include "FVertexSimple.h"
-#include "Engine/Renderer/FGrid.h"
+#include "Engine/Renderer/Line/FLineDrawRequest.h"
 
 class FLineBatcher
 {
 public:
-	void AddLine(const FVertexSimple& A, const FVertexSimple& B);
-	void AddBoundBox(const FVector& Min, const FVector& Max, const FMatrix& World);
-	void AddWorldAxis(FGrid Grid, FVector CameraPos);
-	void AddGrid(FGrid Grid, FVector CameraPos);
+	bool AddRequest(const FLineDrawRequest& Request);
 	bool Build();
 	void Clear();
 	void Release();
+
 	ID3D11Buffer* GetVertexBuffer() const;
 	ID3D11Buffer* GetIndexBuffer() const;
+
 	UINT GetVertexCount() const;
 	UINT GetIndexCount() const;
 
 private:
 	TArray<FVertexSimple> Vertices;
-	TArray<uint32> Indexes;
+	TArray<uint32> Indices;
 
 	ID3D11Buffer* VertexBuffer = nullptr;
 	ID3D11Buffer* IndexBuffer = nullptr;

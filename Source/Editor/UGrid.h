@@ -4,6 +4,8 @@
 #include "Engine/Renderer/FPrimitiveRenderData.h"
 #include "Engine/Resource/GResourceManager.h"
 #include "Engine/Object/UObject.h"
+#include "Engine/Renderer/FGrid.h"
+#include "Engine/Renderer/Line/FLineDrawRequest.h"
 
 class UGrid : public UObject
 {
@@ -17,7 +19,7 @@ public:
 
     virtual TArray<FPrimitiveRenderData> GetRenderData();
     FMeshResource* GetMeshResource() { return MeshResource; }
-
+    FLineDrawRequest BuildLineDrawRequest(const FGrid& Grid,const FVector& CameraPosition) const;
     FPrimitiveRenderData RenderData;
     FMeshResource* MeshResource;
 
