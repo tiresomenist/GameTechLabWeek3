@@ -4,6 +4,7 @@
 #include "Engine/Component/UActorComponent.h"
 
 class USceneComponent;
+class UScene;
 
 class UTracerComponent : public UActorComponent
 {

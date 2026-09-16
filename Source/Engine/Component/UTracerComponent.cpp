@@ -3,6 +3,8 @@
 #include "Core/Math/FQuaternion.h"
 #include "Engine/Actor/AActor.h"
 #include "Engine/Component/USceneComponent.h"
+#include "Engine/Component/Primitive/UFlipbookComponent.h"
+#include "Engine/Scene/UScene.h"
 
 void UTracerComponent::Tick(float DeltaTime)
 {
@@ -26,10 +28,13 @@ void UTracerComponent::Tick(float DeltaTime)
 		return;
 	}
 
-	FVector OwnerLocation = OwnerTransform->GetRelativeLocation();
-	FVector Direction = TargetTransform->GetRelativeLocation() - OwnerLocation;
+	FVector O = OwnerTransform->GetRelativeLocation();
+	FVector T = TargetTransform->GetRelativeLocation();
+	FVector Direction = T - O;
+
+	// 이동
 	Direction.Normalize();
-	OwnerTransform->SetRelativeLocation(OwnerLocation + Direction * TraceSpeed * DeltaTime);
+	OwnerTransform->SetRelativeLocation(O + Direction * TraceSpeed * DeltaTime);
 	OwnerTransform->SetRelativeRotation(FQuaternion::FromToRotation(FVector(0.0f, 0.0f, 1.0f), Direction));
 }
 
