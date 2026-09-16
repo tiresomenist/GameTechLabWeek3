@@ -2,9 +2,12 @@
 
 #include "Engine/Scene/UScene.h"
 #include "Engine/Component/URotationComponent.h"
+#include "Engine/Component/UTracerComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
 #include "Engine/Resource/FMeshNames.h"
+
+inline void LaunchRocket(UScene* Scene, USceneComponent* Launcher, USceneComponent* Target);
 
 inline void SpawnSolarSystem(UScene* Scene)
 {
@@ -95,21 +98,24 @@ inline void SpawnSolarSystem(UScene* Scene)
 	MarsRot->SetOrbit(-0.5f, 15.0f, FVector(0.0f, 0.0f, 1.0f));
 	MarsRot->SetPivot(SunMesh);
 
+	// 로켓 발사
+	LaunchRocket(Scene, EarthMesh, MarsMesh);
+
 	// 로켓
-	AActor* Rocket = Scene->SpawnActor<AActor*>(AActor::GetClass());
-	Rocket->SetParentActor(Mars);
-	Rocket->CreateComponent(UWidgetComponent::GetClass());
+	//AActor* Rocket = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	//Rocket->SetParentActor(Mars);
+	//Rocket->CreateComponent(UWidgetComponent::GetClass());
 
-	auto* RocketMesh = static_cast<UStaticMeshComponent*>(Rocket->CreateComponent(UStaticMeshComponent::GetClass()));
-	RocketMesh->SetStaticMesh("Rocket");
-	RocketMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
+	//auto* RocketMesh = static_cast<UStaticMeshComponent*>(Rocket->CreateComponent(UStaticMeshComponent::GetClass()));
+	//RocketMesh->SetStaticMesh("Rocket");
+	//RocketMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
 
-	auto* RocketRot = static_cast<URotationComponent*>(Rocket->CreateComponent(URotationComponent::GetClass()));
-	RocketRot->SetRotation(0.2f, FVector(0.0f, 0.0f, 1.0f));
-	RocketRot->SetOrbit(-2.0f, 1.7f, FVector(0.0f, 0.0f, 1.0f));
-	// 로켓 머리가 공전 진행 방향을 향하게 하고, 자전은 머리 축 기준 롤 회전이 됨
-	RocketRot->SetFaceOrbitDirection(true);
-	RocketRot->SetPivot(MarsMesh);
+	//auto* RocketRot = static_cast<URotationComponent*>(Rocket->CreateComponent(URotationComponent::GetClass()));
+	//RocketRot->SetRotation(0.2f, FVector(0.0f, 0.0f, 1.0f));
+	//RocketRot->SetOrbit(-2.0f, 1.7f, FVector(0.0f, 0.0f, 1.0f));
+	//// 로켓 머리가 공전 진행 방향을 향하게 하고, 자전은 머리 축 기준 롤 회전이 됨
+	//RocketRot->SetFaceOrbitDirection(true);
+	//RocketRot->SetPivot(MarsMesh);
 
 	// 목성
 	AActor* Jupiter = Scene->SpawnActor<AActor*>(AActor::GetClass());
@@ -212,4 +218,36 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	auto* StarsRot = static_cast<URotationComponent*>(Stars->CreateComponent(URotationComponent::GetClass()));
 	StarsRot->SetRotation(0.05f, FVector(1.0f, 1.0f, 1.0f));
+}
+
+inline void LaunchRocket(UScene* Scene, USceneComponent* Launcher = nullptr, USceneComponent* Target = nullptr)
+{
+	static USceneComponent* L;
+	static USceneComponent* T;
+
+	if (Launcher != nullptr && Target != nullptr)
+	{
+		L = Launcher;
+		T = Target;
+		return;
+	}
+
+	if (L == nullptr || T == nullptr)
+	{
+		return;
+	}
+
+	// 로켓
+	AActor* Rocket = Scene->SpawnActor<AActor*>(AActor::GetClass());
+	Rocket->SetParentActor(T->GetOwner());
+	Rocket->CreateComponent(UWidgetComponent::GetClass());
+
+	auto* RocketMesh = static_cast<UStaticMeshComponent*>(Rocket->CreateComponent(UStaticMeshComponent::GetClass()));
+	RocketMesh->SetStaticMesh("Rocket");
+	RocketMesh->SetRelativeLocation(L->GetRelativeLocation());
+	RocketMesh->SetRelativeScale3D(FVector(0.7f, 0.7f, 0.7f));
+
+	auto* RocketTracer = static_cast<UTracerComponent*>(Rocket->CreateComponent(UTracerComponent::GetClass()));
+	RocketTracer->SetTarget(T);
+	RocketTracer->SetSpeed(6.0f);
 }
