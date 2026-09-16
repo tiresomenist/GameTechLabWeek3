@@ -362,6 +362,7 @@ void UPropertyWindow::Render(float DeltaTime)
 				ImGui::PopItemWidth();
 				ImGui::SameLine();
 				ImGui::Checkbox("Scale Lock", &bScaleLock);
+				//선택된 객체가 Flipbook일때
 				if (SelectedComponent->IsA(UFlipbookComponent::GetClass()) &&
 					ImGui::CollapsingHeader("SubUV", ImGuiTreeNodeFlags_DefaultOpen))
 				{
@@ -397,6 +398,7 @@ void UPropertyWindow::Render(float DeltaTime)
 						Flame->SetPlaying(false);
 					}
 				}
+				//선택된 객체가 StaticMeshComponent일때
 				if (SelectedComponent->IsA(UStaticMeshComponent::GetClass()) &&
 					ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen))
 				{
@@ -437,6 +439,68 @@ void UPropertyWindow::Render(float DeltaTime)
 						}
 					}
 					ImGui::TextDisabled("Type texture path and press Enter.");
+				}
+				//선택된 객체가 SpotLight일때. 추후에 Light일때로 확장할수있어야함.
+				if (SelectedComponent->IsA(USpotLightComponent::GetClass()) &&
+					ImGui::CollapsingHeader("SpotLight", ImGuiTreeNodeFlags_DefaultOpen)) {
+					auto* SpotLight = static_cast<USpotLightComponent*>(SelectedComponent);
+
+					ImGui::PushID(SpotLight);
+
+					const FVector& CurrentColor = SpotLight->GetLightColor();
+
+					float Color[3]
+					{
+						CurrentColor.X,
+						CurrentColor.Y,
+						CurrentColor.Z
+					};
+
+					const ImGuiColorEditFlags PickerFlags =
+						ImGuiColorEditFlags_PickerHueBar |	//사각형 픽커+Hue막대
+						ImGuiColorEditFlags_DisplayRGB |	//RGB 입력칸
+						ImGuiColorEditFlags_DisplayHSV |	//HSV 입력칸
+						ImGuiColorEditFlags_InputRGB |		//인풋을 RGB 데이터로 판단
+						ImGuiColorEditFlags_Uint8 |			//채널값 정수로 표시
+						ImGuiColorEditFlags_NoSidePreview |	//사이드 미리보기 제거
+						ImGuiColorEditFlags_NoSmallPreview |	//작은 색상 미리보기 제거
+						ImGuiColorEditFlags_NoLabel |	//라벨 텍스트 제거
+						ImGuiColorEditFlags_NoOptions;	//옵션 메뉴 제거
+
+					ImGui::TextUnformatted("Light Color");
+
+					// 패널 너비를 사용하되 픽커가 과도하게 커지지 않도록 제한함
+					const float PickerWidth = (std::min)(ImGui::GetContentRegionAvail().x, 300.0f);
+
+					ImGui::SetNextItemWidth(PickerWidth);
+
+					if (ImGui::ColorPicker3("##LightColor", Color, PickerFlags))
+					{
+						// HSV로 편집한 경우에도 RGB 값으로 전달됨
+						SpotLight->SetLightColor(FVector(Color[0], Color[1], Color[2]));
+					}
+
+					ImGui::Spacing();
+					ImGui::Separator();
+					ImGui::Spacing();
+
+					// 원뿔 밑면 반지름 조절부
+					float Radius = SpotLight->GetConeRadius();
+
+					if (ImGui::DragFloat("Cone Radius",&Radius,0.05f,0.0f,0.0f,"%.2f"))
+					{
+						SpotLight->SetConeRadius(Radius);
+					}
+
+					// 원뿔 높이 조절부
+					float Distance = SpotLight->GetConeLength();
+
+					if (ImGui::DragFloat("Cone Distance",&Distance,	0.05f,0.0f,	0.0f,"%.2f"))
+					{
+						SpotLight->SetConeLength(Distance);
+					}
+
+					ImGui::PopID();
 				}
 				if (ImGui::Button("Delete"))
 				{
