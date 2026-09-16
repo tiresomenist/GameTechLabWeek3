@@ -8,6 +8,7 @@
 #include "Engine/Log.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
+#include "Engine/Component/UStaticMeshComponent.h"
 #include "Editor/FEditor.h"
 
 FObjectPicker::FObjectPicker(FEditor* InEditor)
@@ -122,6 +123,17 @@ UPrimitiveComponent* FObjectPicker::Pick()
 	Scene->ForEachPrimitive(
 		[&](UPrimitiveComponent* Primitive)
 		{
+			if (!Primitive) return;
+
+			// Visible 끈 오브젝트는 피킹되지 않음
+			if (Primitive->IsA(UStaticMeshComponent::GetClass()))
+			{
+				auto* StaticMesh = static_cast<UStaticMeshComponent*>(Primitive);
+				if (!StaticMesh->IsVisible())
+				{
+					return;
+				}
+			}
 			FVector BoundsMin;
 			FVector BoundsMax;
 			if (!Primitive->GetLocalBounds(BoundsMin, BoundsMax)) return;

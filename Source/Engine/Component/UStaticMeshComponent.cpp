@@ -18,6 +18,7 @@ void UStaticMeshComponent::Serialize(FArchive& Archive)
     Super::Serialize(Archive);
     Archive.SetString("MeshKey", MeshKey);
     Archive.SetString("MaterialPath", MaterialPath);
+    Archive.SetBool("bIsVisible", bIsVisible);
 }
 
 void UStaticMeshComponent::Deserialize(FArchive& Archive)
@@ -28,6 +29,8 @@ void UStaticMeshComponent::Deserialize(FArchive& Archive)
         : FString{});
     if (Archive.Contains("MaterialPath"))
         SetMaterial(Archive.GetString("MaterialPath"));
+    if (Archive.Contains("bIsVisible"))
+        SetVisibility(Archive.GetBool("bIsVisible"));
 }
 
 

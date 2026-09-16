@@ -153,6 +153,25 @@ void UPropertyWindow::Render(float DeltaTime)
 	{
 		ImGui::Begin("Property Window");
 		{
+			bool bVisible = true;
+			for (UActorComponent* Comp : SelectedActor->GetComponents())
+			{
+				if (Comp && Comp->IsA(UStaticMeshComponent::GetClass()))
+				{
+					bVisible = static_cast<UStaticMeshComponent*>(Comp)->IsVisible();
+					break;
+				}
+			}
+			if (ImGui::Checkbox("Visible", &bVisible))
+			{
+				for (UActorComponent* Comp : SelectedActor->GetComponents())
+				{
+					if (Comp && Comp->IsA(UStaticMeshComponent::GetClass()))
+					{
+						static_cast<UStaticMeshComponent*>(Comp)->SetVisibility(bVisible);
+					}
+				}
+			}
 			const FString ActorName = SelectedActor->GetName().ToString();
 			ImGui::Text("Actor: %s", ActorName.c_str());
 			if (NameEditingActor != SelectedActor)
