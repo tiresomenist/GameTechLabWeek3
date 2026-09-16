@@ -336,6 +336,10 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			SpawnSolarSystem(Editor->GetCurrentScene());
 		}
+		if (ImGui::Button("발사"))
+		{
+			LaunchRocket(Editor->GetCurrentScene());
+		}
 	}
 	Editor->SetCameraLocation(CameraLocation);
 	ImGui::End();

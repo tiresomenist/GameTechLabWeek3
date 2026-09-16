@@ -35,7 +35,7 @@ public:
 	void Shutdown();
 	FMeshResource* CreateMesh(const FName& MeshName, std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices);
 	// 위치와 UV 정점으로 삼각형 메시를 생성하며 실패 시 nullptr을 반환함
-	FMeshResource* CreateTexturedMesh(const FName& MeshName, const TArray<FVertexTexture>& Vertices, const TArray<uint32>& Indices);
+	FMeshResource* CreateTexturedMesh(const FName& MeshName, std::span<const FVertexTexture> Vertices, std::span<const uint32> Indices);
 	FMeshResource* GetPrimitive(const FName& MeshName);
 	FFontAtlas* GetDefaultFont() { return DefaultFont.GetSRV() ? &DefaultFont : nullptr; }
 	FTextureResource* GetOrLoadTexture(const FString& FilePath);
