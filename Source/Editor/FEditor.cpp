@@ -237,6 +237,7 @@ namespace
 		{ "ShowPrimitives", EEngineShowFlag::Primitives },
 		{ "ShowGrid",       EEngineShowFlag::Grid },
 		{ "ShowBounds",     EEngineShowFlag::Bounds },
+		{"ShowWorldAxis",	EEngineShowFlag::WorldAxis},
 	};
 }
 

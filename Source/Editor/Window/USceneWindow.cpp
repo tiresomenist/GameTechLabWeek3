@@ -245,6 +245,11 @@ void USceneWindow::Render(float DeltaTime)
 		{
 			Editor->SetShowGrid(bShowGrid);
 		}
+		bool bShowWorldAxis = Editor->IsShowingWorldAxis();
+		if (ImGui::Checkbox("Show World Axis", &bShowWorldAxis))
+		{
+			Editor->SetShowWorldAxis(bShowWorldAxis);
+		}
 		ImGui::PushItemWidth(WideItemWidth);
 		float GridInterval = Editor->GetGrid().Interval;
 		if (ImGui::DragFloat("Grid Spacing", &GridInterval, 0.1f,
