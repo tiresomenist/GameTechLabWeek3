@@ -8,6 +8,13 @@
 class FGeometryGenerator
 {
 public:
+    static void CreateTriangle(
+        float Width,
+        float Height,
+        TArray<FVertexTexture>& OutVertices,
+        TArray<uint32>& OutIndices
+    );
+
     static void CreatePlane(
         float Width,
         float Height,

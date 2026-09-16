@@ -265,7 +265,7 @@ void GResourceManager::RegisterDefaultPrimitives(GDevice* InDevice)
 {
     const FMeshNames& Names = GetMeshNames();
 
-    if (!CreateMesh(Names.Triangle, triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
+    //if (!CreateMesh(Names.Triangle, triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateTexturedMesh(Names.Flame, flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
     if (!CreateTexturedMesh(Names.Pepe, pepe_vertices, pepe_indices)) throw std::runtime_error("Pepe mesh creation failed");
     if (!CreateMesh(Names.Octopus, octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
@@ -305,7 +305,7 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
 
     if (!CreateTexturedMesh(Names.Sphere, SphereVertices, SphereIndices))
     {
-        throw std::runtime_error("TexturedCube mesh creation failed");
+        throw std::runtime_error("TexturedSphere mesh creation failed");
     }
 
     TArray<FVertexTexture> PlaneVertices;
@@ -314,7 +314,16 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
 
     if (!CreateTexturedMesh(Names.Plane, PlaneVertices, PlaneIndices))
     {
-        throw std::runtime_error("TexturedCube mesh creation failed");
+        throw std::runtime_error("TexturedPlane mesh creation failed");
+    }
+
+    TArray<FVertexTexture> TriangleVertices;
+    TArray<uint32> TriangleIndices;
+    FGeometryGenerator::CreateTriangle(1.0f, 1.0f, TriangleVertices, TriangleIndices);
+
+    if (!CreateTexturedMesh(Names.Triangle, TriangleVertices, TriangleIndices))
+    {
+        throw std::runtime_error("TexturedTriangle mesh creation failed");
     }
 
     // Blender에서 내보낸 UV 포함 로켓 메시
