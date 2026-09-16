@@ -259,7 +259,8 @@ void GResourceManager::RegisterDefaultPrimitives(GDevice* InDevice)
     if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
     //if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateTexturedMesh("Flame", flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
-    if (!CreateMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Required mesh creation failed");
+    // UV가 포함된 경량화 페페를 텍스처 정점 형식으로 등록함
+    if (!CreateTexturedMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Pepe mesh creation failed");
     if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
     if (!CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
