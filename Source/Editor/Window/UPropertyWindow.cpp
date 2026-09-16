@@ -18,6 +18,21 @@
 
 namespace
 {
+	UStaticMeshComponent* FindStaticMeshComponent(AActor* Actor)
+	{
+		if (Actor == nullptr) return nullptr;
+
+		for (UActorComponent* Component : Actor->GetComponents())
+		{
+			if (Component->IsA(UStaticMeshComponent::GetClass()))
+			{
+				return static_cast<UStaticMeshComponent*>(Component);
+			}
+		}
+
+		return nullptr;
+	}
+
 	void EnsurePrimitiveWidget(AActor* Actor)
 	{
 		for (UActorComponent* Component : Actor->GetComponents())
@@ -151,9 +166,9 @@ void UPropertyWindow::Render(float DeltaTime)
 	float PreviousDegree = RotationDegree.Roll;
 
 	AActor* SelectedActor = Editor->GetSelectedActor();
-	ImGui::Begin("Property Window");
 	if (SelectedActor != nullptr)
 	{
+		ImGui::Begin("Property Window");
 		{
 			const FString ActorName = SelectedActor->GetName().ToString();
 			ImGui::Text("Actor: %s", ActorName.c_str());
@@ -229,12 +244,29 @@ void UPropertyWindow::Render(float DeltaTime)
 					ImGui::EndCombo();
 				}
 
-				if (ImGui::Button("Add Component##Action"))
+				if (ImGui::Button(bAddingStaticMesh && FindStaticMeshComponent(SelectedActor)
+					? "Apply Static Mesh##Action" : "Add Component##Action"))
 				{
-					UActorComponent* AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
-					if (bAddingStaticMesh && AddedComponent != nullptr)
+					UActorComponent* AddedComponent = nullptr;
+					if (bAddingStaticMesh)
 					{
-						static_cast<UStaticMeshComponent*>(AddedComponent)->SetStaticMesh(SelectedMeshKey);
+						if (UStaticMeshComponent* StaticMesh = FindStaticMeshComponent(SelectedActor))
+						{
+							StaticMesh->SetStaticMesh(SelectedMeshKey);
+							AddedComponent = StaticMesh;
+						}
+						else
+						{
+							AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
+							if (AddedComponent != nullptr)
+							{
+								static_cast<UStaticMeshComponent*>(AddedComponent)->SetStaticMesh(SelectedMeshKey);
+							}
+						}
+					}
+					else
+					{
+						AddedComponent = SelectedActor->CreateComponent(SelectedAddComponentClass);
 					}
 
 					if (AddedComponent != nullptr && AddedComponent->IsA(UPrimitiveComponent::GetClass()))
@@ -419,10 +451,6 @@ void UPropertyWindow::Render(float DeltaTime)
 					}
 					ImGui::TextDisabled("Type texture path and press Enter.");
 				}
-				if (ImGui::Button("Delete"))
-				{
-					DeleteSelectedActor();
-				}
 				if (SelectedComponent->IsA(UTextComponent::GetClass()))
 				{
 					auto* TextComp = static_cast<UTextComponent*>(SelectedComponent);
@@ -434,8 +462,8 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 			}
 		}
+		ImGui::End();
 	}
-	ImGui::End();
 	SetSelectedValue(bRotationChanged);
 	bEditingRotation = SelectedComponent != nullptr && bRotationActive;
 }
