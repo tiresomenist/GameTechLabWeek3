@@ -66,6 +66,7 @@ public:
 
 	ID3D11VertexShader* SimpleVertexShader = nullptr;
 	ID3D11PixelShader* SimplePixelShader = nullptr;
+	ID3D11PixelShader* WireframePixelShader = nullptr;
 	ID3D11InputLayout* SimpleInputLayout = nullptr;
 	ID3D11VertexShader* HighlightVertexShader = nullptr;
 	ID3D11PixelShader* HighlightPixelShader = nullptr;
