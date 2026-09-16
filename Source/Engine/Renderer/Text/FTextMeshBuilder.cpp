@@ -41,7 +41,7 @@ namespace
 }
 
 void FTextMeshBuilder::AppendString(
-	TArray<FVertexText>& OutVertices,
+	TArray<FVertexTexture>& OutVertices,
 	const FString& Text,
 	const FMatrix& WorldMatrix,
 	const FFontAtlas& Atlas,
@@ -85,10 +85,10 @@ void FTextMeshBuilder::AppendString(
 
 		auto PushVertex = [&](const FVector& P, float U, float V)
 		{
-			FVertexText Vert;
-			Vert.X = P.X; Vert.Y = P.Y; Vert.Z = P.Z;
-			Vert.U = U; Vert.V = V;
-			Vert.R = 1.0f; Vert.G = 1.0f; Vert.B = 1.0f; Vert.A = 1.0f;
+			FVertexTexture Vert;
+			Vert.x = P.X; Vert.y = P.Y; Vert.z = P.Z;
+			Vert.u = U; Vert.v = V;
+			Vert.r = 1.0f; Vert.g = 1.0f; Vert.b = 1.0f; Vert.a = 1.0f;
 			OutVertices.Add(Vert);
 		};
 
@@ -101,12 +101,12 @@ void FTextMeshBuilder::AppendString(
 	}
 }
 
-TArray<FVertexText> FTextMeshBuilder::Build(
+TArray<FVertexTexture> FTextMeshBuilder::Build(
 	const TArray<FWorldTextItem>& Items,
 	const FFontAtlas& Atlas,
 	float WorldUnitsPerPixel)
 {
-	TArray<FVertexText> Vertices;
+	TArray<FVertexTexture> Vertices;
 	for (int i = 0; i < Items.Num(); ++i)
 	{
 		AppendString(Vertices, Items[i].Text, Items[i].WorldMatrix, Atlas, WorldUnitsPerPixel);

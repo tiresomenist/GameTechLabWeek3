@@ -11,7 +11,7 @@
 class FTextMeshBuilder
 {
 public:
-	static TArray<FVertexText> Build(
+	static TArray<FVertexTexture> Build(
 		const TArray<FWorldTextItem>& Items,
 		const FFontAtlas& Atlas,
 		float WorldUnitsPerPixel = 0.02f);
@@ -26,7 +26,7 @@ public:
 
 private:
 	static void AppendString(
-		TArray<FVertexText>& OutVertices,
+		TArray<FVertexTexture>& OutVertices,
 		const FString& Text,
 		const FMatrix& WorldMatrix,
 		const FFontAtlas& Atlas,
