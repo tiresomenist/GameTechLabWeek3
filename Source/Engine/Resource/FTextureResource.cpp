@@ -21,7 +21,7 @@ void FTextureResource::Load(ID3D11Device* Device, FStringView FilePath)
     Desc.Height = Image.Height;
     Desc.MipLevels = 1;
     Desc.ArraySize = 1;
-    Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     Desc.SampleDesc.Count = 1;
     Desc.Usage = D3D11_USAGE_IMMUTABLE;
     Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
