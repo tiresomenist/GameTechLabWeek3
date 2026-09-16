@@ -34,6 +34,11 @@ public:
 		Array.push_back(Element);
 	}
 
+	void Add(T&& Element)
+	{
+		Array.push_back(std::move(Element));
+	}
+
 	void Empty()
 	{
 		Array.clear();
@@ -104,4 +109,13 @@ public:
 
 	auto begin() const { return Array.begin(); }
 	auto end() const { return Array.end(); }
+
+	void Reserve(size_t Capacity)
+	{
+		Array.reserve(Capacity);
+	}
+	const T* GetData() const
+	{
+		return Array.data();
+	}
 };

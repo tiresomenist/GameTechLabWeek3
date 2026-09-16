@@ -14,10 +14,9 @@
 #include "Engine/Resource/FMeshResource.h"
 #include "Core/Container/TArray.h"
 #include "Engine/Renderer/Text/FFontAtlas.h"
-#include "Engine/Renderer/Text/FVertexText.h"
 #include "Engine/Renderer/Text/FTextMeshBuilder.h"
 #include "Engine/Renderer/FViewSettings.h"
-#include "FLineBatcher.h"
+#include "Engine/Renderer/Line/FLineBatcher.h"
 
 //struct FVertexSimple;
 struct FConstants

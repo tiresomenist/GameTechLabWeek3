@@ -6,10 +6,15 @@ cbuffer TransformConstants : register(b0)
 Texture2D ObjectTexture : register(t0);
 SamplerState TextureSampler : register(s0);
 
-cbuffer TextureUVConstants : register(b1)
+cbuffer TextureDrawConstants : register(b1)
 {
     float2 UVScale;
     float2 UVOffset;
+
+    float4 Tint;
+
+    float AlphaCutoff;
+    float3 Padding;
 };
 
 struct VS_INPUT
@@ -41,6 +46,14 @@ PS_INPUT mainVS(VS_INPUT Input)
 
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
-    // 텍스처의 RGBA를 그대로 출력함
-    return ObjectTexture.Sample(TextureSampler, Input.UV) * Input.Color;
+    // 텍스처에 정점 색상과 오브젝트별 색상을 곱함
+    float4 Color = ObjectTexture.Sample(TextureSampler, Input.UV) * Input.Color * Tint;
+
+    // 투명한 배경의 색상과 깊이 기록을 차단함
+    if (AlphaCutoff > 0.0f)
+    {
+        clip(Color.a - AlphaCutoff);
+    }
+
+    return Color;
 }
