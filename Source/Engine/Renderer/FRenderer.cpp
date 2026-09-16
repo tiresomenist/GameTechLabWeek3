@@ -104,6 +104,10 @@ bool FRenderer::CreateShaders()
 	CheckHR(D3DDevice->CreateInputLayout(layout, ARRAYSIZE(layout), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), &SimpleInputLayout));
 	shaderBlob.Reset();
 
+	if (!CompileShader(L"Assets/Shaders/WireframeShader.hlsl", "mainPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
+	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &WireframePixelShader));
+	shaderBlob.Reset();
+
 	if (!CompileShader(L"Assets/Shaders/MainShader.hlsl", "mainPS", "ps_5_0", shaderBlob.ReleaseAndGetAddressOf())) return false;
 	CheckHR(D3DDevice->CreatePixelShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, &SimplePixelShader));
 	shaderBlob.Reset();
@@ -166,6 +170,11 @@ void FRenderer::ReleaseShaders()
 	{
 		SimpleVertexShader->Release();
 		SimpleVertexShader = nullptr;
+	}
+	if (WireframePixelShader)
+	{
+		WireframePixelShader->Release();
+		WireframePixelShader = nullptr;
 	}
 	if (HighlightVertexShader)
 	{
@@ -699,7 +708,7 @@ void FRenderer::RenderTexturedPrimitive(const FPrimitiveRenderData& Data,EViewMo
 	DeviceContext->VSSetConstantBuffers(0,1,&TransformConstantBuffer);
 
 	// 픽셀 셰이더의 t0와 s0에 텍스처와 샘플러를 연결함
-	DeviceContext->PSSetShader(TexturePixelShader,nullptr,0);
+	DeviceContext->PSSetShader(InViewMode == EViewModeIndex::VMI_Wireframe ? WireframePixelShader : TexturePixelShader,nullptr,0);
 
 	DeviceContext->PSSetShaderResources(0,1,&Data.Material);
 
@@ -968,7 +977,8 @@ void FRenderer::RenderPrimitive(const FPrimitiveRenderData& Data, EViewModeIndex
 	// Lit currently uses the unlit pipeline until lighting is implemented.
 	DeviceContext->RSSetState(InViewMode == EViewModeIndex::VMI_Wireframe ? WireframeRasterizerState : DefaultRasterizerState);
 
-	DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
+	DeviceContext->PSSetShader(InViewMode == EViewModeIndex::VMI_Wireframe ? WireframePixelShader : SimplePixelShader, nullptr, 0);
+	//DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
 
 	if (bWriteStencil)
 	{
