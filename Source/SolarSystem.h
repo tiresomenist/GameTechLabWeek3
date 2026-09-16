@@ -175,12 +175,11 @@ inline void SpawnSolarSystem(UScene* Scene)
 
 	// 배경
 	AActor* Stars = Scene->SpawnActor<AActor*>(AActor::GetClass());
-	Stars->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* StarsMesh = static_cast<UStaticMeshComponent*>(Stars->CreateComponent(UStaticMeshComponent::GetClass()));
 	StarsMesh->SetStaticMesh("Sphere");
 	StarsMesh->SetMaterial("Assets/Textures/stars.png");
-	StarsMesh->SetRelativeScale3D(FVector(-50.0f, -50.0f, -50.0f));
+	StarsMesh->SetRelativeScale3D(FVector(100.0f, 100.0f, 100.0f));
 
 	auto* StarsRot = static_cast<URotationComponent*>(Stars->CreateComponent(URotationComponent::GetClass()));
 	StarsRot->SetRotation(0.05f, FVector(1.0f, 1.0f, 1.0f));
