@@ -14,6 +14,7 @@
 #include "Engine/Component/UWidgetComponent.h"
 #include "Core/Math/FRotator.h"
 #include "Core/Util/File.h"
+#include "Engine/Component/Light/USpotLightComponent.h"
 
 namespace
 {
@@ -35,6 +36,7 @@ void UPropertyWindow::Initialize(FEditor* InEditor)
 	AddableComponentClasses.Add(UStaticMeshComponent::GetClass());
 	AddableComponentClasses.Add(UTextComponent::GetClass());
 	AddableComponentClasses.Add(UFlipbookComponent::GetClass());
+	AddableComponentClasses.Add(USpotLightComponent::GetClass());
 	SelectedAddComponentClass = *AddableComponentClasses.begin();
 
 	SpawnableMeshKeys.Add(FString("Sphere"));
@@ -153,6 +155,25 @@ void UPropertyWindow::Render(float DeltaTime)
 	if (SelectedActor != nullptr)
 	{
 		{
+			bool bVisible = true;
+			for (UActorComponent* Comp : SelectedActor->GetComponents())
+			{
+				if (Comp && Comp->IsA(UStaticMeshComponent::GetClass()))
+				{
+					bVisible = static_cast<UStaticMeshComponent*>(Comp)->IsVisible();
+					break;
+				}
+			}
+			if (ImGui::Checkbox("Visible", &bVisible))
+			{
+				for (UActorComponent* Comp : SelectedActor->GetComponents())
+				{
+					if (Comp && Comp->IsA(UStaticMeshComponent::GetClass()))
+					{
+						static_cast<UStaticMeshComponent*>(Comp)->SetVisibility(bVisible);
+					}
+				}
+			}
 			const FString ActorName = SelectedActor->GetName().ToString();
 			ImGui::Text("Actor: %s", ActorName.c_str());
 			if (NameEditingActor != SelectedActor)

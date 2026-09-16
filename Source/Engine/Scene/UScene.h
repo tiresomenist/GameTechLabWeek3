@@ -93,6 +93,21 @@ public:
 		}
 	}
 
+	template <typename Func>
+	void ForEachSceneComponent(Func&& Function) const
+	{
+		for (AActor* Actor : Actors)
+		{
+			for (UActorComponent* Component : Actor->GetComponents())
+			{
+				if (Component->IsA(USceneComponent::GetClass()))
+				{
+					Function(static_cast<USceneComponent*>(Component));
+				}
+			}
+		}
+	}
+
 	virtual ~UScene();
 
 protected:

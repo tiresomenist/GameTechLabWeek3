@@ -20,6 +20,9 @@
 #include "Engine/Component/Primitive/UTextComponent.h"
 #include "Engine/Component/Primitive/UFlipbookComponent.h"
 
+#include "Engine/Component/Light/ULightComponent.h"
+#include "Engine/Component/Light/USpotLightComponent.h"
+
 #include <cassert>
 #include <format>
 
