@@ -166,9 +166,9 @@ void UPropertyWindow::Render(float DeltaTime)
 	float PreviousDegree = RotationDegree.Roll;
 
 	AActor* SelectedActor = Editor->GetSelectedActor();
+	ImGui::Begin("Property Window");
 	if (SelectedActor != nullptr)
 	{
-		ImGui::Begin("Property Window");
 		{
 			bool bVisible = true;
 			for (UActorComponent* Comp : SelectedActor->GetComponents())
@@ -534,10 +534,6 @@ void UPropertyWindow::Render(float DeltaTime)
 
 					ImGui::PopID();
 				}
-				if (ImGui::Button("Delete"))
-				{
-					DeleteSelectedActor();
-				}
 				if (SelectedComponent->IsA(UTextComponent::GetClass()))
 				{
 					auto* TextComp = static_cast<UTextComponent*>(SelectedComponent);
@@ -549,8 +545,8 @@ void UPropertyWindow::Render(float DeltaTime)
 				}
 			}
 		}
-		ImGui::End();
 	}
+	ImGui::End();
 	SetSelectedValue(bRotationChanged);
 	bEditingRotation = SelectedComponent != nullptr && bRotationActive;
 }

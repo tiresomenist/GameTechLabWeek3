@@ -74,5 +74,5 @@ struct FPrimitiveRenderData
 	bool bAllowOutline = true;
 
 	// 구형 닫힌 메시에는 cull_back, 플립북, 평면, 빌보드에는 cull_none
-	bool bTwoSided = false;
+	bool bTwoSided = true;
 };
