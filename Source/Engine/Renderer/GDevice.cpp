@@ -296,7 +296,7 @@ void GDevice::ReleaseIndexBuffer(ID3D11Buffer* indexBuffer)
 void GDevice::SwapBuffer()
 {
     if (!IsRenderReady() || !SwapChain) return;
-    const HRESULT Result = SwapChain->Present(1, 0);
+    const HRESULT Result = SwapChain->Present(0, 0);
     if (FAILED(Result))
     {
         bRenderReady = false;
