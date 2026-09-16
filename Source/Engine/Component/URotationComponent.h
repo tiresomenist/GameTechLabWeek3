@@ -18,9 +18,10 @@ public:
 	void SetFaceOrbitDirection(bool bFace);
 
 private:
-	USceneComponent* OwnerTransform = nullptr;
-	USceneComponent* PivotTransform = nullptr;
+	USceneComponent* ResolvePivotTransform() const;
 
+	AActor* PivotActor = nullptr;
+	uint32 PivotComponentUUID = static_cast<uint32>(-1);
 	float RotationSpeed = 0.0f;
 	float OrbitSpeed = 0.0f;
 	float OrbitRadius = 0.0f;
