@@ -4,6 +4,7 @@
 #include "Engine/Component/URotationComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Engine/Component/UWidgetComponent.h"
+#include "Engine/Resource/FMeshNames.h"
 
 inline void SpawnSolarSystem(UScene* Scene)
 {
@@ -12,7 +13,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Sun->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* SunMesh = static_cast<UStaticMeshComponent*>(Sun->CreateComponent(UStaticMeshComponent::GetClass()));
-	SunMesh->SetStaticMesh("Sphere");
+	SunMesh->SetStaticMesh(GetMeshNames().Sphere);
 	SunMesh->SetMaterial("Assets/Textures/sun.png");
 	SunMesh->SetRelativeScale3D(FVector(3.0f, 3.0f, 3.0f));
 
@@ -25,7 +26,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Mercury->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MercuryMesh = static_cast<UStaticMeshComponent*>(Mercury->CreateComponent(UStaticMeshComponent::GetClass()));
-	MercuryMesh->SetStaticMesh("Sphere");
+	MercuryMesh->SetStaticMesh(GetMeshNames().Sphere);
 	MercuryMesh->SetMaterial("Assets/Textures/mercury.png");
 	MercuryMesh->SetRelativeScale3D(FVector(0.5f, 0.5f, 0.5f));
 
@@ -40,7 +41,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Venus->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* VenusMesh = static_cast<UStaticMeshComponent*>(Venus->CreateComponent(UStaticMeshComponent::GetClass()));
-	VenusMesh->SetStaticMesh("Sphere");
+	VenusMesh->SetStaticMesh(GetMeshNames().Sphere);
 	VenusMesh->SetMaterial("Assets/Textures/venus.png");
 	VenusMesh->SetRelativeScale3D(FVector(0.6f, 0.6f, 0.6f));
 
@@ -55,7 +56,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Earth->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* EarthMesh = static_cast<UStaticMeshComponent*>(Earth->CreateComponent(UStaticMeshComponent::GetClass()));
-	EarthMesh->SetStaticMesh("Sphere");
+	EarthMesh->SetStaticMesh(GetMeshNames().Sphere);
 	EarthMesh->SetMaterial("Assets/Textures/earth.png");
 	EarthMesh->SetRelativeScale3D(FVector(0.7f, 0.7f, 0.7f));
 
@@ -70,7 +71,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Moon->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MoonMesh = static_cast<UStaticMeshComponent*>(Moon->CreateComponent(UStaticMeshComponent::GetClass()));
-	MoonMesh->SetStaticMesh("Sphere");
+	MoonMesh->SetStaticMesh(GetMeshNames().Sphere);
 	MoonMesh->SetMaterial("Assets/Textures/moon.png");
 	MoonMesh->SetRelativeScale3D(FVector(0.2f, 0.2f, 0.2f));
 
@@ -85,7 +86,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Mars->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MarsMesh = static_cast<UStaticMeshComponent*>(Mars->CreateComponent(UStaticMeshComponent::GetClass()));
-	MarsMesh->SetStaticMesh("Sphere");
+	MarsMesh->SetStaticMesh(GetMeshNames().Sphere);
 	MarsMesh->SetMaterial("Assets/Textures/mars.png");
 	MarsMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 0.8f));
 
@@ -116,7 +117,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Jupiter->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* JupiterMesh = static_cast<UStaticMeshComponent*>(Jupiter->CreateComponent(UStaticMeshComponent::GetClass()));
-	JupiterMesh->SetStaticMesh("Sphere");
+	JupiterMesh->SetStaticMesh(GetMeshNames().Sphere);
 	JupiterMesh->SetMaterial("Assets/Textures/jupiter.png");
 	JupiterMesh->SetRelativeScale3D(FVector(1.5f, 1.5f, 1.5f));
 
@@ -131,7 +132,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Makemake->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* MakemakeMesh = static_cast<UStaticMeshComponent*>(Makemake->CreateComponent(UStaticMeshComponent::GetClass()));
-	MakemakeMesh->SetStaticMesh("Sphere");
+	MakemakeMesh->SetStaticMesh(GetMeshNames().Sphere);
 	MakemakeMesh->SetMaterial("Assets/Textures/makemake.png");
 	MakemakeMesh->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.3f));
 
@@ -146,7 +147,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Ceres->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* CeresMesh = static_cast<UStaticMeshComponent*>(Ceres->CreateComponent(UStaticMeshComponent::GetClass()));
-	CeresMesh->SetStaticMesh("Sphere");
+	CeresMesh->SetStaticMesh(GetMeshNames().Sphere);
 	CeresMesh->SetMaterial("Assets/Textures/ceres.png");
 	CeresMesh->SetRelativeScale3D(FVector(0.4f, 0.4f, 0.4f));
 
@@ -161,7 +162,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Jupiter->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* SaturnMesh = static_cast<UStaticMeshComponent*>(Saturn->CreateComponent(UStaticMeshComponent::GetClass()));
-	SaturnMesh->SetStaticMesh("Sphere");
+	SaturnMesh->SetStaticMesh(GetMeshNames().Sphere);
 	SaturnMesh->SetMaterial("Assets/Textures/saturn.png");
 	SaturnMesh->SetRelativeScale3D(FVector(1.3f, 1.3f, 1.3f));
 
@@ -176,7 +177,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Uranus->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* UranusMesh = static_cast<UStaticMeshComponent*>(Uranus->CreateComponent(UStaticMeshComponent::GetClass()));
-	UranusMesh->SetStaticMesh("Sphere");
+	UranusMesh->SetStaticMesh(GetMeshNames().Sphere);
 	UranusMesh->SetMaterial("Assets/Textures/uranus.png");
 	UranusMesh->SetRelativeScale3D(FVector(1.3f, 1.3f, 1.3f));
 
@@ -191,7 +192,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Uranus->CreateComponent(UWidgetComponent::GetClass());
 
 	auto* NeptuneMesh = static_cast<UStaticMeshComponent*>(Neptune->CreateComponent(UStaticMeshComponent::GetClass()));
-	NeptuneMesh->SetStaticMesh("Sphere");
+	NeptuneMesh->SetStaticMesh(GetMeshNames().Sphere);
 	NeptuneMesh->SetMaterial("Assets/Textures/neptune.png");
 	NeptuneMesh->SetRelativeScale3D(FVector(1.3f, 1.3f, 1.3f));
 
@@ -205,7 +206,7 @@ inline void SpawnSolarSystem(UScene* Scene)
 	Stars->SetParentActor(Sun);
 
 	auto* StarsMesh = static_cast<UStaticMeshComponent*>(Stars->CreateComponent(UStaticMeshComponent::GetClass()));
-	StarsMesh->SetStaticMesh("Sphere");
+	StarsMesh->SetStaticMesh(GetMeshNames().Sphere);
 	StarsMesh->SetMaterial("Assets/Textures/stars.png");
 	StarsMesh->SetRelativeScale3D(FVector(-100.0f, -100.0f, -100.0f));
 

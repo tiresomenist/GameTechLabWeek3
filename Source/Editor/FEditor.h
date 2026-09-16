@@ -17,6 +17,8 @@
 #include "Engine/Renderer/FViewSettings.h"
 
 #include "Engine/Renderer/FGrid.h"
+#include "Core/Name/FName.h"
+
 
 class USceneComponent;
 class UCameraComponent;
@@ -66,7 +68,7 @@ public:
 
 	void Release();
 
-	void SpawnStaticMesh(const FString& MeshKey, int Count);
+	void SpawnStaticMesh(const FName& MeshKey, int Count);
 	void SpawnComponent(FClassType* ComponentClass, int Count);
 	void CreateEmptyActor();
 
@@ -136,7 +138,7 @@ public:
 	float GetCameraFOV() { return GetEditorCamera()->GetFOV() * 180.0f / PI; }
 	void SetCameraFOV(float NewFOV) { EditorCamera->SetFOVByDegree(NewFOV); }
 	
-	void SpawnPrimitives(FClassType* ClassType, uint32 num) { GEngine::GetInstance()->GetConsole()->Append(std::format("Make {}, {} times",ClassType->Name,num)); }
+	void SpawnPrimitives(FClassType* ClassType, uint32 num) { GEngine::GetInstance()->GetConsole()->Append(std::format("Make {}, {} times",ClassType->DisplayName,num)); }
 	
 	void SetObjectAxisGizmo(UGizmo* InGizmo);
 	UGizmo* GetObjectAxisGizmo()const;

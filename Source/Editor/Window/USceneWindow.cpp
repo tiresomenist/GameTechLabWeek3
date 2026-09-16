@@ -22,7 +22,7 @@
 #include "Engine/Renderer/FViewSettings.h"
 #include "Engine/Scene/GSceneManager.h"
 #include "Core/Util/File.h"
-
+#include "Editor/Util/MeshSelection.h"
 #include "SolarSystem.h"
 
 void USceneWindow::SpawnStaticMesh()
@@ -73,15 +73,7 @@ void USceneWindow::Initialize(FEditor* Editor)
 
 	SelectedSpecialComponentClass = *SpecialComponentClasses.begin();
 
-	SpawnableMeshKeys.Add(FString("Sphere"));
-	SpawnableMeshKeys.Add(FString("Cube"));
-	SpawnableMeshKeys.Add(FString("Plane"));
-	SpawnableMeshKeys.Add(FString("Triangle"));
-	SpawnableMeshKeys.Add(FString("Pepe"));
-	SpawnableMeshKeys.Add(FString("Octopus"));
-	SpawnableMeshKeys.Add(FString("Rocket"));
-	
-	SelectedMeshKey = *SpawnableMeshKeys.begin();
+	SelectedMeshKey = MeshSelection::GetEntries()[0].Key;
 
 	SceneName.reserve(128);
 }
@@ -142,24 +134,9 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::Separator();
 
 		ImGui::PushItemWidth(WideItemWidth);
-		if (ImGui::BeginCombo("Static Mesh", SelectedMeshKey.c_str(), ImGuiComboFlags_HeightSmall))
-		{
-			for (const FString& MeshKey : SpawnableMeshKeys)
-			{
-				bool bSelected = (SelectedMeshKey == MeshKey);
 
-				if (ImGui::Selectable(MeshKey.c_str(), bSelected))
-				{
-					SelectedMeshKey = MeshKey;
-				}
+		MeshSelection::DrawCombo("Static Mesh",SelectedMeshKey,ImGuiComboFlags_HeightSmall);
 
-				if (bSelected)
-				{
-					ImGui::SetItemDefaultFocus();
-				}
-			}
-			ImGui::EndCombo();
-		}
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Spawn Static Mesh"))
 		{
@@ -180,13 +157,13 @@ void USceneWindow::Render(float DeltaTime)
 		ImGui::PushItemWidth(WideItemWidth);
 		if (ImGui::BeginCombo(
 			"Special Component",
-			SelectedSpecialComponentClass->Name.c_str(),
+			SelectedSpecialComponentClass->DisplayName.c_str(),
 			ImGuiComboFlags_HeightSmall))
 		{
 			for (FClassType* ComponentClass : SpecialComponentClasses)
 			{
 				const bool bSelected = SelectedSpecialComponentClass == ComponentClass;
-				if (ImGui::Selectable(ComponentClass->Name.c_str(), bSelected))
+				if (ImGui::Selectable(ComponentClass->DisplayName.c_str(), bSelected))
 				{
 					SelectedSpecialComponentClass = ComponentClass;
 				}

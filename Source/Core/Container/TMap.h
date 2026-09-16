@@ -1,12 +1,12 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 
 template<typename KeyType, typename ValueType>
 class TMap
 {
 private:
-    std::map<KeyType, ValueType> Map;
+    std::unordered_map<KeyType, ValueType> Map;
 
 public:
     bool Add(const KeyType& Key, const ValueType& Value)

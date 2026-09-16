@@ -87,23 +87,23 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
 {
     for (auto& Item : ObjectInfoList)
     {
-        FString TypeName = Item.GetString("Type");
-        if (!IsAllowedSceneType(TypeName)) throw std::runtime_error("Unsupported scene type");
-        // 이전 버전에서 저장된 UUID 위젯은 로드 후 EnsureUUIDWidgets가 다시 생성한다.
-        if (TypeName == "WidgetComponent") continue;
+        // 원본 문자열은 오류 메시지 출력에 사용함
+        const FString TypeText = Item.GetString("Type");
 
-        const bool bLegacyStaticMesh =
-            TypeName == "Plane" || TypeName == "Cube" ||
-            TypeName == "Sphere" || TypeName == "Triangle" ||
-            TypeName == "Pepe" || TypeName == "Octopus" || TypeName == "Rocket" ||
-            TypeName == "ArrowRed" || TypeName == "ArrowGreen" ||
-            TypeName == "ArrowBlue";
-        const bool bLegacyFlipbook = TypeName == "Flame";
-        FClassType* Type = bLegacyStaticMesh
-            ? UStaticMeshComponent::GetClass()
-            : bLegacyFlipbook
-                ? UFlipbookComponent::GetClass()
-                : FClassRegistry::FindClassType(TypeName);
+        // 복원 진입점에서 타입 이름을 한 번 변환함
+        const FName TypeName(TypeText);
+
+        const FResolvedSceneType Resolved = ResolveSceneType(TypeName);
+
+        if (!Resolved.IsValid())
+        {
+            throw std::runtime_error("지원되지 않거나 등록되지 않은 타입: " + TypeText);
+        }
+
+        // 이전 씬에 저장된 UUID 위젯의 직접 복원을 생략함
+        if (Resolved.Kind == ESceneTypeKind::SkipRuntimeWidget){ continue; }
+
+        FClassType* Type = Resolved.ClassType;
 
         uint32 UUID = Item.GetUInt32("UUID");
         AActor* Actor = nullptr;
@@ -136,12 +136,12 @@ void UScene::Deserialize(TArray<FArchive>& ObjectInfoList)
         UActorComponent* Component = Actor->CreateComponent(Type, UUID);
         if (Component == nullptr)
         {
-            UE_LOG("[UScene] {} 타입은 ActorComponent가 아니므로 로드하지 않습니다.", TypeName);
+            UE_LOG("[UScene] {} 타입은 ActorComponent가 아니므로 로드하지 않습니다.", TypeText);
             continue;
         }
 
         Component->Deserialize(Item);
-        if (bLegacyStaticMesh)
+        if (Resolved.Kind == ESceneTypeKind::LegacyStaticMesh)
         {
             static_cast<UStaticMeshComponent*>(Component)->SetStaticMesh(TypeName);
         }

@@ -29,6 +29,7 @@
 #include "Core/Math/FVector.h"
 #include "Engine/Resource/FTextureResource.h"
 #include "FGeometryGenerator.h"
+#include "Engine/Resource/FMeshNames.h"
 
 #include <memory>
 #include <limits>
@@ -51,11 +52,13 @@ void GResourceManager::Initialize(GDevice* InDevice)
     RegisterTexturePrimitives(InDevice);
 }
 
-FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
+FMeshResource* GResourceManager::CreateMesh(const FName& MeshName,
     std::span<const FVertexSimple> Vertices, std::span<const uint32> Indices)
 {
-    auto Existing = PrimitiveCache.find(MeshName);
-    if (Existing != PrimitiveCache.end()) return Existing->second;
+    if (MeshName.IsNone()) { return nullptr; }
+    if (FMeshResource** Existing = PrimitiveCache.Find(MeshName)) {
+        return *Existing;
+    }
     if (Vertices.empty() || Indices.empty()) return nullptr;
     const size_t MaxBytes = (std::numeric_limits<UINT>::max)();
     if (Vertices.size() > MaxBytes / sizeof(FVertexSimple) || Indices.size() > MaxBytes / sizeof(uint32))
@@ -99,20 +102,22 @@ FMeshResource* GResourceManager::CreateMesh(const FString& MeshName,
         Mesh->bHasBounds = true;
     }
 
-    const auto [It, Inserted] = PrimitiveCache.emplace(MeshName, Mesh.get());
-    if (Inserted) Mesh.release();
-    return It->second;
+    if (PrimitiveCache.Add(MeshName, Mesh.get())){
+        return Mesh.release();
+    }
+    // 등록되지 않은 임시 Mesh는 unique_ptr이 해제함
+    return GetPrimitive(MeshName);
     
 }
 
-FMeshResource* GResourceManager::CreateTexturedMesh(const FString& MeshName,
+FMeshResource* GResourceManager::CreateTexturedMesh(const FName& MeshName,
     const TArray<FVertexTexture>& Vertices, const TArray<uint32>& Indices)
 {
     // 같은 이름의 텍스처 메시를 재사용하며 다른 정점 형식과의 충돌을 거부함
-    const auto Existing = PrimitiveCache.find(MeshName);
-    if (Existing != PrimitiveCache.end())
-        return Existing->second->GetStride() == sizeof(FVertexTexture) ? Existing->second : nullptr;
-
+    if (MeshName.IsNone()) { return nullptr; }
+    if (FMeshResource** Existing = PrimitiveCache.Find(MeshName)) {
+        return (*Existing)->GetStride() == sizeof(FVertexTexture) ? *Existing : nullptr;
+    }
     if (!Device || !Device->GetDevice()) return nullptr;
     if (Vertices.IsEmpty() || Indices.IsEmpty() || Indices.Num() % 3 != 0) return nullptr;
 
@@ -170,10 +175,13 @@ FMeshResource* GResourceManager::CreateTexturedMesh(const FString& MeshName,
     }
     Mesh->bHasBounds = true;
 
-    // 등록 성공 시 리소스 매니저가 메시 소유권을 넘겨받음
-    const auto [It, Inserted] = PrimitiveCache.emplace(MeshName, Mesh.get());
-    if (Inserted) Mesh.release();
-    return It->second;
+    if (PrimitiveCache.Add(MeshName, Mesh.get()))
+    {
+        return Mesh.release();
+    }
+
+    // 등록되지 않은 임시 Mesh는 unique_ptr이 해제함
+    return GetPrimitive(MeshName);
 }
 
 void GResourceManager::Shutdown()
@@ -187,8 +195,8 @@ void GResourceManager::Shutdown()
         delete Texture;
     }
     TextureCache.Empty();
-    PrimitiveCache.clear();
-	DefaultFont.Release();
+    PrimitiveCache.Empty();
+    DefaultFont.Release();
     Device = nullptr;
 
     //for (auto& [path, shader] : ShaderCache)
@@ -205,18 +213,16 @@ void GResourceManager::Shutdown()
     //RasterizerStateCache.clear();
 }
 
-FMeshResource* GResourceManager::GetPrimitive(const FString& Type)
+FMeshResource* GResourceManager::GetPrimitive(const FName& MeshName)
 {
-    auto Item = PrimitiveCache.find(Type);
+    if (MeshName.IsNone()){return nullptr;}
 
-    if (Item != PrimitiveCache.end())
+    if (FMeshResource** Found = PrimitiveCache.Find(MeshName))
     {
-        return Item->second;
+        return *Found;
     }
-    else
-    {
-        return nullptr;
-    }
+
+    return nullptr;
 }
 
 FTextureResource* GResourceManager::GetOrLoadTexture(const FString& FilePath)
@@ -255,37 +261,37 @@ FShaderResource* GResourceManager::GetShader(const std::wstring& FilePath, const
 
 void GResourceManager::RegisterDefaultPrimitives(GDevice* InDevice)
 {
-    //if (!CreateMesh("Sphere", sphere_vertices, sphere_indices)) throw std::runtime_error("Required mesh creation failed");
-    //if (!CreateMesh("Cube", cube_vertices, cube_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Triangle", triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
-    //if (!CreateMesh("Plane", plane_vertices, plane_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateTexturedMesh("Flame", flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
-    // UV가 포함된 경량화 페페를 텍스처 정점 형식으로 등록함
-    if (!CreateTexturedMesh("Pepe", pepe_vertices, pepe_indices)) throw std::runtime_error("Pepe mesh creation failed");
-    if (!CreateMesh("Octopus", octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowRed", arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowGreen", arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ArrowBlue", arrow_blue_vertices, arrow_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveRed", move_red_vertices, move_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveGreen", move_green_vertices, move_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("MoveBlue", move_blue_vertices, move_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleRed", scale_red_vertices, scale_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleGreen", scale_green_vertices, scale_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("ScaleBlue", scale_blue_vertices, scale_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateRed", rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateGreen", rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("RotateBlue", rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
-    if (!CreateMesh("Grid", grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
+    const FMeshNames& Names = GetMeshNames();
+
+    if (!CreateMesh(Names.Triangle, triangle_vertices, triangle_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateTexturedMesh(Names.Flame, flame_vertices, flame_indices)) throw std::runtime_error("Flame mesh creation failed");
+    if (!CreateTexturedMesh(Names.Pepe, pepe_vertices, pepe_indices)) throw std::runtime_error("Pepe mesh creation failed");
+    if (!CreateMesh(Names.Octopus, octopus_vertices, octopus_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.ArrowRed, arrow_red_vertices, arrow_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.ArrowGreen, arrow_green_vertices, arrow_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.ArrowBlue, arrow_blue_vertices, arrow_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.MoveRed, move_red_vertices, move_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.MoveGreen, move_green_vertices, move_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.MoveBlue, move_blue_vertices, move_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.ScaleRed, scale_red_vertices, scale_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.ScaleGreen, scale_green_vertices, scale_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.ScaleBlue, scale_blue_vertices, scale_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.RotateRed, rotate_red_vertices, rotate_red_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.RotateGreen, rotate_green_vertices, rotate_green_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.RotateBlue, rotate_blue_vertices, rotate_blue_indices)) throw std::runtime_error("Required mesh creation failed");
+    if (!CreateMesh(Names.Grid, grid_vertices, grid_indices)) throw std::runtime_error("Required mesh creation failed");
 }
 
 
 void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
 {
+    const FMeshNames& Names = GetMeshNames();
+
     TArray<FVertexTexture> CubeVertices;
     TArray<uint32> CubeIndices;
     FGeometryGenerator::CreateCube(2.0f, 2.0f, 2.0f, CubeVertices, CubeIndices);
 
-    if (!CreateTexturedMesh("Cube", CubeVertices, CubeIndices))
+    if (!CreateTexturedMesh(Names.Cube, CubeVertices, CubeIndices))
     {
         throw std::runtime_error("TexturedCube mesh creation failed");
     }
@@ -295,7 +301,7 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
     // 반지름, 세로로 자르는 개수, 가로로 자르는 개수
     FGeometryGenerator::CreateSphere(1.0f, 64, 32, SphereVertices, SphereIndices);
 
-    if (!CreateTexturedMesh("Sphere", SphereVertices, SphereIndices))
+    if (!CreateTexturedMesh(Names.Sphere, SphereVertices, SphereIndices))
     {
         throw std::runtime_error("TexturedCube mesh creation failed");
     }
@@ -304,7 +310,7 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
     TArray<uint32> PlaneIndices;
     FGeometryGenerator::CreatePlane(1.0f, 1.0f, 1, 1, PlaneVertices, PlaneIndices);
 
-    if (!CreateTexturedMesh("Plane", PlaneVertices, PlaneIndices))
+    if (!CreateTexturedMesh(Names.Plane, PlaneVertices, PlaneIndices))
     {
         throw std::runtime_error("TexturedCube mesh creation failed");
     }
@@ -329,7 +335,7 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
         0, 2, 3
     };
     // 모든 SpotLight가 재사용할 아이콘 메시 등록함
-    if (!CreateTexturedMesh("SpotLightIcon", IconVertices, IconIndices))
+    if (!CreateTexturedMesh(Names.SpotLightIcon, IconVertices, IconIndices))
     {
         throw std::runtime_error("SpotLight icon mesh creation failed");
     }

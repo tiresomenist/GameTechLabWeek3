@@ -145,7 +145,12 @@ FName::FName(const char* pStr, uint32 InInternalNumber)
     : FName(FString(pStr ? pStr : ""),InInternalNumber)
 {
 }
-
+FName::FName(const FName& BaseName, uint32 InInternalNumber)
+    : DisplayIndex(BaseName.DisplayIndex)
+    , ComparisonIndex(BaseName.ComparisonIndex)
+    , Number(InInternalNumber)
+{
+}
 // 만약 숫자 접미사를 명시적으로 선언하면, 해당 값이 우선 적용됨.
 FName::FName(FString Str, uint32 InInternalNumber)
     : Number(InInternalNumber)
@@ -237,4 +242,25 @@ void FName::RegisterBaseName(FString Str)
 
     ComparisonIndex = Pool.FindOrAdd(Str);
     DisplayIndex = Pool.FindOrAdd(DisplayText);
+}
+
+std::size_t FName::GetHash() const noexcept
+{
+    // operator==와 동일하게 비교용 인덱스와 내부 번호만 사용함
+    const std::size_t IndexHash = std::hash<int32>{}(ComparisonIndex);
+
+    const std::size_t NumberHash = std::hash<uint32>{}(Number);
+
+    // unsigned 연산으로 두 해시를 결합함
+    constexpr std::size_t MixConstant = static_cast<std::size_t>(0x9e3779b9u);
+
+    return IndexHash ^ (NumberHash + MixConstant + (IndexHash << 6) + (IndexHash >> 2));
+}
+
+bool FName::IsNone() const
+{
+    // 기준 이름은 최초 호출 시 한 번 생성함
+    static const FName NoneName("None");
+
+    return *this == NoneName;
 }

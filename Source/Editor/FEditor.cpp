@@ -401,7 +401,7 @@ void FEditor::ReleaseGrids()
 	Grids.Empty();
 }
 
-void FEditor::SpawnStaticMesh(const FString& MeshKey, int Count)
+void FEditor::SpawnStaticMesh(const FName& MeshKey, int Count)
 {
 	UScene* CurrentScene = GetCurrentScene();
 

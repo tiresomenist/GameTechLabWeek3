@@ -125,8 +125,10 @@ bool ValidateSceneJSON(const nlohmann::json& Root)
             if (ParseSceneUUID(Item.key()) >= NextUUID) return false;
             const auto& Object = Item.value();
             if (!Object.is_object() || !Object.at("Type").is_string()) return false;
-            const FString Type = Object.at("Type").get<FString>();
-            if (!IsAllowedSceneType(Type) || !FClassRegistry::FindClassType(Type)) return false;
+			const FName TypeName(Object.at("Type").get<FString>());
+
+			const FResolvedSceneType Resolved = ResolveSceneType(TypeName);
+			if (!Resolved.IsValid()){return false;}
         }
         return true;
     }

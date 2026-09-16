@@ -7,6 +7,7 @@
 #include "Engine/Resource/FTextureResource.h"
 #include "Engine/Component/UCameraComponent.h"
 #include "Engine/Resource/FMeshResource.h"
+#include "Engine/Resource/FMeshNames.h"
 
 void USpotLightComponent::Initialize()
 {
@@ -15,7 +16,7 @@ void USpotLightComponent::Initialize()
     GResourceManager* Resources = GResourceManager::GetInstance();
 
     // 초기화 시 등록한 공유 아이콘 메시 조회함
-    IconMesh = Resources->GetPrimitive("SpotLightIcon");
+    IconMesh = Resources->GetPrimitive(GetMeshNames().SpotLightIcon);
 
     if (!IconMesh)
     {

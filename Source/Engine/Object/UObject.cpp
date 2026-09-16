@@ -14,7 +14,7 @@ FClassType* UObject::GetClass()
 
 	static FClassType Type
 	{
-		.Name = "Object",
+		.Name = FName("Object"),
 		.ClassConstructor = CreateObject,
 	};
 
@@ -87,7 +87,7 @@ UObject::~UObject()
 void UObject::Serialize(FArchive& Archive)
 {
 	// FClassType의 Serialize 이름 지정
-	Archive.SetString("Type", ClassType->Name);
+	Archive.SetString("Type", ClassType->Name.ToString());
 	Archive.SetString("Name", Name.ToString());
 }
 

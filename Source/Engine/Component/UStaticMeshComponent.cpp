@@ -3,7 +3,7 @@
 #include "Engine/Object/FArchive.h"
 #include "Engine/Resource/FTextureResource.h"
 
-void UStaticMeshComponent::SetStaticMesh(const FString& InMeshKey)
+void UStaticMeshComponent::SetStaticMesh(const FName& InMeshKey)
 {
     MeshKey = InMeshKey;
 }
@@ -16,7 +16,7 @@ FMeshResource* UStaticMeshComponent::GetMeshResource() const
 void UStaticMeshComponent::Serialize(FArchive& Archive)
 {
     Super::Serialize(Archive);
-    Archive.SetString("MeshKey", MeshKey);
+    Archive.SetString("MeshKey", MeshKey.IsNone() ? FString{} : MeshKey.ToString());
     Archive.SetString("MaterialPath", MaterialPath);
     Archive.SetBool("bIsVisible", bIsVisible);
 }
@@ -24,9 +24,10 @@ void UStaticMeshComponent::Serialize(FArchive& Archive)
 void UStaticMeshComponent::Deserialize(FArchive& Archive)
 {
     Super::Deserialize(Archive);
-    SetStaticMesh(Archive.Contains("MeshKey")
-        ? Archive.GetString("MeshKey")
-        : FString{});
+    const FName LoadedMeshKey = Archive.Contains("MeshKey")
+        ? FName(Archive.GetString("MeshKey"))
+        : FName{};
+    SetStaticMesh(LoadedMeshKey);
     if (Archive.Contains("MaterialPath"))
         SetMaterial(Archive.GetString("MaterialPath"));
     if (Archive.Contains("bIsVisible"))

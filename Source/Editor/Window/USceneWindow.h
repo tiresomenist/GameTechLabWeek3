@@ -5,7 +5,7 @@
 #include "Core/Math/Matrix.h"
 #include "Core/Container/FString.h"
 #include "Core/Math/FQuaternion.h"
-
+#include "Core/Name/FName.h"
 class FEditor;
 
 class USceneWindow : public UEditorWindow
@@ -17,8 +17,7 @@ private:
 	uint32 Step = 1;
 	FString SceneName{"NewScene"};
 	bool bOrthogonal = false;
-	TArray<FString> SpawnableMeshKeys;
-	FString SelectedMeshKey;
+	FName SelectedMeshKey;
 	/* Camera Info */
 	float FOV = 90.0f;
 	float MaxFOV = 175.0f;

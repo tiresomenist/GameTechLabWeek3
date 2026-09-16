@@ -47,7 +47,7 @@ UObject* FObjectFactory::_ConstructObject(FClassType* Type, EObjectDomain Domain
         if (!Object) throw std::runtime_error("Object construction failed");
         GObjectStatics::CommitSlot(Index, Object);
         Object->Initialize();
-        UE_LOG("[Object Created] Class:{} UUID:{} Domain:{} Name:{}", Type->Name, UUID, static_cast<size_t>(Domain),Object->GetName().ToString());
+        UE_LOG("[Object Created] Class:{} UUID:{} Domain:{} Name:{}", Type->DisplayName, UUID, static_cast<size_t>(Domain),Object->GetName().ToString());
         return Object;
     }
     catch (...)
