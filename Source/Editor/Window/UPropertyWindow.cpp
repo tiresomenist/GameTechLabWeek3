@@ -151,9 +151,9 @@ void UPropertyWindow::Render(float DeltaTime)
 	float PreviousDegree = RotationDegree.Roll;
 
 	AActor* SelectedActor = Editor->GetSelectedActor();
+	ImGui::Begin("Property Window");
 	if (SelectedActor != nullptr)
 	{
-		ImGui::Begin("Property Window");
 		{
 			const FString ActorName = SelectedActor->GetName().ToString();
 			ImGui::Text("Actor: %s", ActorName.c_str());
@@ -423,10 +423,19 @@ void UPropertyWindow::Render(float DeltaTime)
 				{
 					DeleteSelectedActor();
 				}
+				if (SelectedComponent->IsA(UTextComponent::GetClass()))
+				{
+					auto* TextComp = static_cast<UTextComponent*>(SelectedComponent);
+					FString Text = TextComp->GetText();
+					if (ImGui::InputText("Text: ", &Text))
+					{
+						TextComp->SetText(Text);
+					}
+				}
 			}
-			ImGui::End();
 		}
 	}
+	ImGui::End();
 	SetSelectedValue(bRotationChanged);
 	bEditingRotation = SelectedComponent != nullptr && bRotationActive;
 }

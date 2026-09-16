@@ -348,7 +348,7 @@ void USceneWindow::Render(float DeltaTime)
 		bEditingCameraRotation = bRotationActive;
 		ImGui::PopItemWidth();
 		//ImGui::PopStyleVar();
-
+		ImGui::Separator();
 		if (ImGui::Button("SpawnSolarSystem"))
 		{
 			SpawnSolarSystem(Editor->GetCurrentScene());
