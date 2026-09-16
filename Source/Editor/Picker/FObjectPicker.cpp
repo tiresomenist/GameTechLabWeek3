@@ -10,6 +10,8 @@
 #include "Engine/Component/Primitive/UPrimitiveComponent.h"
 #include "Engine/Component/UStaticMeshComponent.h"
 #include "Editor/FEditor.h"
+#include "Engine/Actor/AActor.h"
+#include "Engine/Component/Light/USpotLightComponent.h"
 
 FObjectPicker::FObjectPicker(FEditor* InEditor)
 	: Editor{ InEditor }
@@ -111,14 +113,25 @@ bool FObjectPicker::RayAABBIntersect(const FRay& Ray,const FVector& BoundsMin,co
 	return true;
 }
 
-UPrimitiveComponent* FObjectPicker::Pick()
+USceneComponent* FObjectPicker::Pick()
 {
-	UScene* Scene = Editor->GetCurrentScene();
-	FRay Ray;
-	if (!MakeWorldRay(Ray)) return nullptr;	//Ray 계산 실패
+	if (!Editor) { return nullptr; }
 
-	UPrimitiveComponent* SelectedObject = nullptr;
-	float ClosestDistance = 100000.f;
+	UScene* Scene = Editor->GetCurrentScene();
+	const UCameraComponent* Camera = Editor->GetEditorCamera();
+
+	if (!Scene || !Camera) { return nullptr; }
+
+	// 숨겨진 프리미티브와 아이콘을 선택하지 않도록 처리함
+	if (!Editor->IsShowingPrimitives()) { return nullptr; }
+
+	FRay Ray;
+
+	if (!MakeWorldRay(Ray)) { return nullptr; }
+
+	// 프리미티브와 광원을 같은 선택 결과로 취급함
+	USceneComponent* SelectedObject = nullptr;
+	float ClosestDistance = 100000.0f;
 	// 19번 최적화해야됨
 	Scene->ForEachPrimitive(
 		[&](UPrimitiveComponent* Primitive)
@@ -184,6 +197,60 @@ UPrimitiveComponent* FObjectPicker::Pick()
 						ClosestDistance = T;
 						SelectedObject = Primitive;
 					}
+				}
+			}
+		}
+	);
+	//SpotLight용 임시코드. continue 조건 바꿈으로써 차후에 확장가능
+	Scene->ForEachActor(
+		[&](AActor* Actor)
+		{
+			for (UActorComponent* Component : Actor->GetComponents())
+			{
+				if (!Component->IsA(USpotLightComponent::GetClass()))
+				{
+					continue;
+				}
+
+				auto* SpotLight = static_cast<USpotLightComponent*>(Component);
+
+				// 실제 렌더링과 동일한 행렬 및 로컬 범위를 조회함
+				const FPrimitiveRenderData IconData = SpotLight->BuildIconRenderData(Camera, false);
+
+				if (!IconData.VertexBuffer || !IconData.IndexBuffer || !IconData.Material || !IconData.WorldMatrix || IconData.IndexCount == 0)
+				{
+					continue;
+				}
+
+				FMatrix InverseWorld;
+
+				// 크기가 0인 경우 등 역변환이 불가능한 아이콘을 제외함
+				if (!IconData.WorldMatrix->TryInverse(InverseWorld))
+				{
+					continue;
+				}
+
+				// 월드 광선을 아이콘의 로컬 공간으로 변환함
+				FRay LocalRay;
+
+				LocalRay.Origin = FVector(FVector4(Ray.Origin, 1.0f) * InverseWorld);
+
+				// 거리 비교 기준을 유지하기 위해 정규화하지 않음
+				LocalRay.Direction = FVector(FVector4(Ray.Direction, 0.0f) * InverseWorld);
+
+				float HitDistance = 0.0f;
+
+				// 로컬 XY 평면의 아이콘 사각형과 교차 검사함
+				if (!RayAABBIntersect(LocalRay,IconData.Min,IconData.Max,ClosestDistance,HitDistance))
+				{
+					continue;
+				}
+
+				// 기존 메시와 아이콘 중 광선 시작점에 가까운 대상을 선택함
+				if (HitDistance > EPSILON &&HitDistance < ClosestDistance)
+				{
+					ClosestDistance = HitDistance;
+					SelectedObject = SpotLight;
 				}
 			}
 		}

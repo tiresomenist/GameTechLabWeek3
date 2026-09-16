@@ -3,9 +3,9 @@
 #include "Core/Container/FString.h"
 #include "Core/Container/TArray.h"
 #include "Core/Math/FVector.h"
-#include "Engine/Renderer/Text/FVertexText.h"
 #include "Engine/Renderer/Text/FFontAtlas.h"
 #include "Engine/Renderer/Text/FWorldTextItem.h"
+#include "Engine/Renderer/FVertexSimple.h"
 
 // 문자열과 각각의 월드 행렬을 받아 아틀라스 글리프 quad 정점 목록을 만든다.
 class FTextMeshBuilder

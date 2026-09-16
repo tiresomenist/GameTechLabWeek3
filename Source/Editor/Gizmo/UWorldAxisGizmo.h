@@ -12,6 +12,6 @@ class UWorldAxisGizmo : public UGizmo
 public:
 
 	virtual TArray<FPrimitiveRenderData> GetRenderData() override;
-
+	FLineDrawRequest BuildLineDrawRequest(const FGrid& Grid,const FVector& CameraPosition) const override;
 };
 

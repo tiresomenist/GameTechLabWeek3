@@ -14,6 +14,7 @@
 #include "Engine/Component/UWidgetComponent.h"
 #include "Core/Math/FRotator.h"
 #include "Core/Util/File.h"
+#include "Engine/Component/Light/USpotLightComponent.h"
 
 namespace
 {
@@ -35,6 +36,7 @@ void UPropertyWindow::Initialize(FEditor* InEditor)
 	AddableComponentClasses.Add(UStaticMeshComponent::GetClass());
 	AddableComponentClasses.Add(UTextComponent::GetClass());
 	AddableComponentClasses.Add(UFlipbookComponent::GetClass());
+	AddableComponentClasses.Add(USpotLightComponent::GetClass());
 	SelectedAddComponentClass = *AddableComponentClasses.begin();
 
 	SpawnableMeshKeys.Add(FString("Sphere"));
@@ -149,9 +151,9 @@ void UPropertyWindow::Render(float DeltaTime)
 	float PreviousDegree = RotationDegree.Roll;
 
 	AActor* SelectedActor = Editor->GetSelectedActor();
+	ImGui::Begin("Property Window");
 	if (SelectedActor != nullptr)
 	{
-		ImGui::Begin("Property Window");
 		{
 			bool bVisible = true;
 			for (UActorComponent* Comp : SelectedActor->GetComponents())
@@ -440,10 +442,19 @@ void UPropertyWindow::Render(float DeltaTime)
 				{
 					DeleteSelectedActor();
 				}
+				if (SelectedComponent->IsA(UTextComponent::GetClass()))
+				{
+					auto* TextComp = static_cast<UTextComponent*>(SelectedComponent);
+					FString Text = TextComp->GetText();
+					if (ImGui::InputText("Text: ", &Text))
+					{
+						TextComp->SetText(Text);
+					}
+				}
 			}
-			ImGui::End();
 		}
 	}
+	ImGui::End();
 	SetSelectedValue(bRotationChanged);
 	bEditingRotation = SelectedComponent != nullptr && bRotationActive;
 }

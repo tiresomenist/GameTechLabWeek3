@@ -306,4 +306,23 @@ void GResourceManager::RegisterTexturePrimitives(GDevice* InDevice)
     {
         throw std::runtime_error("TexturedCube mesh creation failed");
     }
+
+    // SpotLight의 빌보드 아이콘용 정점데이터
+    const TArray<FVertexTexture> IconVertices
+    {
+        { -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f }, //좌하단
+        { 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f },  //우하단
+        { 0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f },  //우상단
+        { -0.5f,  0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f }  //좌상단
+    };
+    const TArray<uint32> IconIndices
+    {
+        0, 1, 2,
+        0, 2, 3
+    };
+    // 모든 SpotLight가 재사용할 아이콘 메시 등록함
+    if (!CreateTexturedMesh("SpotLightIcon", IconVertices, IconIndices))
+    {
+        throw std::runtime_error("SpotLight icon mesh creation failed");
+    }
 }
